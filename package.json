@@ -7,6 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "dev:ssr": "ng serve --open & nodemon dist/portfolio/server/main.js --watch dist/portfolio/server",
     "serve:ssr:portfolio": "node dist/portfolio/server/server.mjs"
   },
   "private": true,
@@ -43,6 +44,7 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "nodemon": "^3.1.9",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.7.2"
