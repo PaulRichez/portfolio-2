@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
 export interface Experience {
   id: number;
@@ -15,21 +16,9 @@ export interface Experience {
   providedIn: 'root'
 })
 export class ExperiencesService {
+  constructor(private http: HttpClient) {}
+
   getExperiences(): Observable<Experience[]> {
-    // Temporary mock data - replace with API call later
-    return of([
-      {
-        id: 1,
-        startDate: '2022-01',
-        endDate: 'Present',
-        job: 'Full Stack Developer',
-        business: 'Tech Corp',
-        businessWebsite: 'https://techcorp.com',
-        descriptions: [
-          'Developed responsive web applications using Angular and Node.js',
-          'Implemented RESTful APIs for data integration'
-        ]
-      }
-    ]);
+    return this.http.get<Experience[]>('/api/experiences');
   }
 }
