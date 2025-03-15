@@ -8,8 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "dev:ssr": "ng serve --open & nodemon dist/portfolio/server/main.js --watch dist/portfolio/server",
-    "serve:ssr:portfolio": "node dist/portfolio/server/server.mjs",
-    "typeorm:migrate": "npx ts-node -r tsconfig-paths/register -P tsconfig.typeorm.json node_modules/typeorm/cli.js -d src/server/config/typeorm.ts migration:run"
+    "serve:ssr:portfolio": "node dist/portfolio/server/server.mjs"
   },
   "private": true,
   "dependencies": {
