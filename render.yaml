@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: angular-ssr
-    runtime: node
-    buildCommand: npm install && npm run build
-    startCommand: npm run serve:ssr:portfolio
-    envVars:
-      - key: NODE_VERSION
-        value: 18
