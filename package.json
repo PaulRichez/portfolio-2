@@ -1,0 +1,17 @@
+{
+  "name": "portfolio",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "client": "cd portfolio-client && npm run start",
+    "server": "cd portfolio-server && npm run develop",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install:client": "cd portfolio-client && npm install",
+    "install:server": "cd portfolio-server && npm install",
+    "install": "npm run install:client && npm run install:server"
+  },
+  "author": "Paul Richez",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
