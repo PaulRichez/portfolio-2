@@ -1,0 +1,366 @@
+{
+  "key": "plugin_content_manager_configuration_content_types::api::me.me",
+  "value": {
+    "settings": {
+      "bulkable": true,
+      "filterable": true,
+      "searchable": true,
+      "pageSize": 10,
+      "mainField": "lastName",
+      "defaultSortBy": "lastName",
+      "defaultSortOrder": "ASC"
+    },
+    "metadatas": {
+      "id": {
+        "edit": {},
+        "list": {
+          "label": "id",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "lastName": {
+        "edit": {
+          "label": "lastName",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "lastName",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "firstName": {
+        "edit": {
+          "label": "firstName",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "firstName",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "city": {
+        "edit": {
+          "label": "city",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "city",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "birthDay": {
+        "edit": {
+          "label": "birthDay",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "birthDay",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "phoneNumber": {
+        "edit": {
+          "label": "phoneNumber",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "phoneNumber",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "email": {
+        "edit": {
+          "label": "email",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "email",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "postName": {
+        "edit": {
+          "label": "postName",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "postName",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "linkedin": {
+        "edit": {
+          "label": "linkedin",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "linkedin",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "github": {
+        "edit": {
+          "label": "github",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "github",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "website": {
+        "edit": {
+          "label": "website",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "website",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "languages": {
+        "edit": {
+          "label": "languages",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "languages",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "knowledges": {
+        "edit": {
+          "label": "knowledges",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "knowledges",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "experiences": {
+        "edit": {
+          "label": "experiences",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "experiences",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "diplomas": {
+        "edit": {
+          "label": "diplomas",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "diplomas",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "createdAt": {
+        "edit": {
+          "label": "createdAt",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true
+        },
+        "list": {
+          "label": "createdAt",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "updatedAt": {
+        "edit": {
+          "label": "updatedAt",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true
+        },
+        "list": {
+          "label": "updatedAt",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "createdBy": {
+        "edit": {
+          "label": "createdBy",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true,
+          "mainField": "firstname"
+        },
+        "list": {
+          "label": "createdBy",
+          "searchable": true,
+          "sortable": true
+        }
+      },
+      "updatedBy": {
+        "edit": {
+          "label": "updatedBy",
+          "description": "",
+          "placeholder": "",
+          "visible": false,
+          "editable": true,
+          "mainField": "firstname"
+        },
+        "list": {
+          "label": "updatedBy",
+          "searchable": true,
+          "sortable": true
+        }
+      }
+    },
+    "layouts": {
+      "list": [
+        "id",
+        "createdAt",
+        "updatedAt",
+        "lastName"
+      ],
+      "edit": [
+        [
+          {
+            "name": "lastName",
+            "size": 6
+          },
+          {
+            "name": "firstName",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "city",
+            "size": 6
+          },
+          {
+            "name": "birthDay",
+            "size": 4
+          }
+        ],
+        [
+          {
+            "name": "phoneNumber",
+            "size": 6
+          },
+          {
+            "name": "email",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "postName",
+            "size": 6
+          },
+          {
+            "name": "linkedin",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "github",
+            "size": 6
+          },
+          {
+            "name": "website",
+            "size": 6
+          }
+        ],
+        [
+          {
+            "name": "languages",
+            "size": 12
+          }
+        ],
+        [
+          {
+            "name": "knowledges",
+            "size": 12
+          }
+        ],
+        [
+          {
+            "name": "experiences",
+            "size": 12
+          }
+        ],
+        [
+          {
+            "name": "diplomas",
+            "size": 12
+          }
+        ]
+      ]
+    },
+    "uid": "api::me.me"
+  },
+  "type": "object",
+  "environment": null,
+  "tag": null
+}
