@@ -3,7 +3,7 @@
 </div>
 
 <div *ngIf="!loading">
-  <app-me></app-me>
+  <app-me [me]="me"></app-me>
   <app-experiences [experiences]="me?.experiences || []"></app-experiences>
   <app-skills></app-skills>
 </div>
