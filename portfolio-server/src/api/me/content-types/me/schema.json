@@ -43,6 +43,26 @@
     },
     "website": {
       "type": "string"
+    },
+    "languages": {
+      "type": "component",
+      "component": "me.languages",
+      "repeatable": true
+    },
+    "knowledges": {
+      "type": "component",
+      "component": "me.knowledge",
+      "repeatable": true
+    },
+    "experiences": {
+      "type": "component",
+      "component": "me.experiences",
+      "repeatable": true
+    },
+    "diplomas": {
+      "type": "component",
+      "component": "me.diplomas",
+      "repeatable": true
     }
   }
 }

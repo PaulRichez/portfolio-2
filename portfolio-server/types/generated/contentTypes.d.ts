@@ -389,9 +389,13 @@ export interface ApiMeMe extends Struct.SingleTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    diplomas: Schema.Attribute.Component<'me.diplomas', true>;
     email: Schema.Attribute.Email & Schema.Attribute.Required;
+    experiences: Schema.Attribute.Component<'me.experiences', true>;
     firstName: Schema.Attribute.String & Schema.Attribute.Required;
     github: Schema.Attribute.String;
+    knowledges: Schema.Attribute.Component<'me.knowledge', true>;
+    languages: Schema.Attribute.Component<'me.languages', true>;
     lastName: Schema.Attribute.String & Schema.Attribute.Required;
     linkedin: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
