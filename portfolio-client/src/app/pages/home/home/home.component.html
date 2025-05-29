@@ -1,3 +1,9 @@
-<app-me></app-me>
-<app-experiences></app-experiences>
-<app-skills></app-skills>
+<div *ngIf="loading" class="loader">
+  Loading...
+</div>
+
+<div *ngIf="!loading">
+  <app-me></app-me>
+  <app-experiences [experiences]="me?.experiences || []"></app-experiences>
+  <app-skills></app-skills>
+</div>

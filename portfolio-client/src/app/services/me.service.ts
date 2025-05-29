@@ -20,7 +20,10 @@ export class MeService {
       );
   }
 
-  getMeWithPopulate(): Observable<StrapiSingleResponse<Me>> {
-    return this.http.get<StrapiSingleResponse<Me>>(`${this.apiUrl}/me?populate=*`);
+  getMeWithPopulate(): Observable<Me> {
+    return this.http.get<StrapiSingleResponse<Me>>(`${this.apiUrl}/me?populate=*`)
+      .pipe(
+        map(response => response.data)
+      );
   }
 }

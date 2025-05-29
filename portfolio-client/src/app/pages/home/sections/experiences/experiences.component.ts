@@ -1,8 +1,7 @@
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TimelineModule } from 'primeng/timeline';
 import { CardModule } from 'primeng/card';
-import { ExperiencesService } from '../../../../services/experiences.service';
 import { Experience } from '../../../../models';
 
 @Component({
@@ -13,15 +12,12 @@ import { Experience } from '../../../../models';
   styleUrl: './experiences.component.scss'
 })
 export class ExperiencesComponent implements OnInit {
-  experiences: Experience[] = [];
+  @Input() experiences: Experience[] = [];
   timelineAlign: 'left' | 'right' | 'alternate' = 'alternate';
 
-  constructor(private experiencesService: ExperiencesService) {}
+  constructor() {}
 
   ngOnInit() {
-    this.experiencesService.getExperiences().subscribe(data => {
-      this.experiences = data;
-    });
     this.updateTimelineAlign();
   }
 
