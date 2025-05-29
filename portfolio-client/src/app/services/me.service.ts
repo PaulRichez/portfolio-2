@@ -3,20 +3,24 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { Experience, Me, StrapiSingleResponse } from '../models';
+import { Me, StrapiSingleResponse } from '../models';
 
 @Injectable({
   providedIn: 'root'
 })
-export class ExperiencesService {
+export class MeService {
   private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
-  getExperiences(): Observable<Experience[]> {
-    return this.http.get<StrapiSingleResponse<Me>>(`${this.apiUrl}/me?populate=experiences`)
+  getMe(): Observable<Me> {
+    return this.http.get<StrapiSingleResponse<Me>>(`${this.apiUrl}/me`)
       .pipe(
-        map(response => response.data.experiences || [])
+        map(response => response.data)
       );
+  }
+
+  getMeWithPopulate(): Observable<StrapiSingleResponse<Me>> {
+    return this.http.get<StrapiSingleResponse<Me>>(`${this.apiUrl}/me?populate=*`);
   }
 }

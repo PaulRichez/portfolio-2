@@ -1,23 +1,46 @@
-<div class="container mx-auto px-4 py-8">
-  <h2 class="text-3xl font-bold mb-8 text-center">Professional Experience</h2>
-  <p-timeline [value]="experiences" class="custom-timeline">
-    <ng-template pTemplate="content" let-experience>
-      <p-card>
-        <div class="mb-3">
-          <h3 class="text-xl font-semibold">{{experience.job}}</h3>
-          <a [href]="experience.businessWebsite" target="_blank" class="text-blue-500 hover:text-blue-700">
-            {{experience.business}}
-          </a>
-        </div>
-        <div class="text-gray-600 mb-3">
-          {{experience.startDate}} - {{experience.endDate}}
-        </div>
-        <ul class="list-disc pl-5">
-          <li *ngFor="let description of experience.descriptions" class="mb-1">
-            {{description}}
-          </li>
-        </ul>
-      </p-card>
+<div class="experiences-container p-4">
+  <div class="experiences-header text-center mb-6">
+    <h2 class="experiences-title text-4xl font-bold text-color mb-3">Expérience Professionnelle</h2>
+    <div class="title-divider w-16 h-1 bg-primary mx-auto border-round"></div>
+  </div>
+
+  <p-timeline [value]="experiences" class="custom-timeline" layout="vertical" [align]="timelineAlign">
+    <ng-template pTemplate="marker" let-experience>
+      <div class="flex w-8 h-8 items-center justify-center text-white rounded-full z-10 shadow-sm bg-primary">
+        <i class="pi pi-briefcase text-lg"></i>
+      </div>
+    </ng-template>
+
+    <ng-template pTemplate="content" let-experience let-i="index">
+      <div class="experience-wrapper mb-4">
+        <p-card
+          [header]="experience.title"
+          [subheader]="(experience.startDate | date:'MMM yyyy':'':'fr') + ' - ' + (experience.endDate ? (experience.endDate | date:'MMM yyyy':'':'fr') : 'Aujourd\'hui')"
+          class="experience-card shadow-4 border-round-lg surface-card w-full">
+
+          <div class="descriptions-list">
+            <div *ngFor="let description of experience.descriptions"
+                 class="description-item flex align-items-start gap-2 p-2 border-round-lg hover:surface-hover transition-colors transition-duration-200 mb-2">
+              <div class="description-bullet w-1rem h-1rem bg-primary-400 border-circle mt-1 flex-shrink-0"></div>
+              <p class="description-text text-color line-height-3 m-0 text-left">{{description}}</p>
+            </div>
+          </div>
+
+          <div *ngIf="experience.technologies && experience.technologies.length > 0"
+               class="technologies-section mt-3 pt-3 border-top-1 surface-border">
+            <h4 class="technologies-title text-sm font-semibold text-color-secondary mb-2 flex align-items-center justify-content-start">
+              <i class="pi pi-cog mr-2"></i>
+              Technologies utilisées
+            </h4>
+            <div class="technologies-list flex flex-wrap gap-2 justify-content-start">
+              <span *ngFor="let tech of experience.technologies"
+                    class="technology-tag px-3 py-1 bg-primary-100 text-primary-800 text-sm font-medium border-round-3xl">
+                {{tech}}
+              </span>
+            </div>
+          </div>
+        </p-card>
+      </div>
     </ng-template>
   </p-timeline>
 </div>
