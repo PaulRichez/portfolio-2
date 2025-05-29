@@ -1,0 +1,15 @@
+{
+  "collectionName": "components_me_knowledges",
+  "info": {
+    "displayName": "knowledge",
+    "icon": "command"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "config": {}
+}

@@ -1,0 +1,15 @@
+{
+  "name": "portfolio",
+  "version": "2.0.0",
+  "scripts": {
+    "start": "npm run dev & npm run client",
+    "dev": "cd portfolio-server && npm run dev",
+    "client": "cd portfolio-client && npm start"
+  },
+  "private": true,
+  "dependencies": {
+
+  },
+  "devDependencies": {
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "collectionName": "components_me_experiences",
+  "info": {
+    "displayName": "experiences",
+    "icon": "earth"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "business": {
+      "type": "string",
+      "required": true
+    },
+    "businessWebsite": {
+      "type": "string"
+    },
+    "descriptions": {
+      "type": "json"
+    },
+    "startDate": {
+      "type": "date",
+      "required": true
+    },
+    "endDate": {
+      "type": "date"
+    }
+  },
+  "config": {}
+}

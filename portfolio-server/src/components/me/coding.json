@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_me_codings",
+  "info": {
+    "displayName": "coding",
+    "icon": "code"
+  },
+  "options": {},
+  "attributes": {
+    "value": {
+      "type": "integer",
+      "required": true,
+      "min": 0,
+      "max": 100
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "icon": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "config": {}
+}
