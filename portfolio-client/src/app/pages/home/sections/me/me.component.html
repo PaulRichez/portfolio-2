@@ -1,1 +1,82 @@
-<p>me works!</p>
+<div>
+  <p-card class="shadow-lg">
+    <div class="flex flex-col lg:flex-row gap-8 items-center lg:items-start">
+
+      <!-- Profile Image Section -->
+      <div class="flex-shrink-0 text-center lg:text-left">
+        <p-avatar
+          [label]="getInitials()"
+          size="xlarge"
+          shape="circle"
+          class="w-32 h-32 lg:w-40 lg:h-40 shadow-lg">
+        </p-avatar>
+      </div>
+
+      <!-- Main Content Section -->
+      <div class="flex-1 text-center lg:text-left">
+
+        <!-- Name and Title -->
+        <div class="mb-6">
+          <h1 class="text-3xl lg:text-4xl font-bold text-surface-900 dark:text-surface-0 mb-2">
+            {{ me?.firstName }} {{ me?.lastName }}
+          </h1>
+          <h2 class="text-xl lg:text-2xl text-primary-500 dark:text-primary-400 font-medium mb-4">
+            {{ me?.postName }}
+          </h2>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="mb-6">
+          <div class="flex flex-wrap justify-center lg:justify-start gap-4 mb-4">
+            <a *ngIf="me?.email" [href]="'mailto:' + me!.email"  target="_blank" class="p-button font-bold no-underline">
+              <i class="pi pi-envelope mr-2"></i>{{ me!.email }}
+            </a>
+            <a *ngIf="me?.phoneNumber" [href]="'tel:' + me!.phoneNumber" class="p-button font-bold no-underline">
+              <i class="pi pi-phone mr-2"></i>{{ me!.phoneNumber }}
+            </a>
+            <a *ngIf="me?.city" [href]="'https://www.google.com/maps/search/' + me!.city" target="_blank" rel="noopener noreferrer" class="p-button font-bold no-underline">
+              <i class="pi pi-map-marker mr-2"></i>{{ me!.city }}
+            </a>
+          </div>
+        </div>
+
+        <!-- Social Links -->
+        <div class="mb-6">
+          <p-divider align="left">
+            <span class="text-surface-600 dark:text-surface-400 font-medium">Réseaux sociaux</span>
+          </p-divider>
+          <div class="flex flex-wrap justify-center lg:justify-start gap-3">
+            <a *ngIf="me?.linkedin" [href]="me!.linkedin" target="_blank" class="no-underline">
+              <p-button
+                label="LinkedIn"
+                icon="pi pi-linkedin"
+                outlined
+                size="small"
+                class="p-button-sm">
+              </p-button>
+            </a>
+            <a *ngIf="me?.github" [href]="me!.github" target="_blank" class="no-underline">
+              <p-button
+                label="GitHub"
+                icon="pi pi-github"
+                outlined
+                size="small"
+                class="p-button-sm">
+              </p-button>
+            </a>
+            <a *ngIf="me?.website" [href]="me!.website" target="_blank" class="no-underline">
+              <p-button
+                label="Website"
+                icon="pi pi-globe"
+                outlined
+                size="small"
+                class="p-button-sm">
+              </p-button>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </p-card>
+</div>
