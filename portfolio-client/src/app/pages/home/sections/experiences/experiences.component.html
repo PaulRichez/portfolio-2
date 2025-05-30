@@ -17,6 +17,23 @@
           [subheader]="(experience.startDate | date:'MMM yyyy':'':'fr') + ' - ' + (experience.endDate ? (experience.endDate | date:'MMM yyyy':'':'fr') : 'Aujourd\'hui')"
           class="experience-card shadow-4 border-round-lg surface-card w-full">
 
+          <div *ngIf="experience.business" class="company-section mb-3">
+            <a *ngIf="experience.businessWebsite; else companyNameOnly"
+               [href]="experience.businessWebsite"
+               target="_blank"
+               class="company-link text-primary font-semibold text-lg no-underline hover:underline">
+              <i class="pi pi-building mr-2"></i>
+              {{experience.business}}
+              <i class="pi pi-external-link ml-1 text-sm"></i>
+            </a>
+            <ng-template #companyNameOnly>
+              <span class="company-name text-color font-semibold text-lg">
+                <i class="pi pi-building mr-2"></i>
+                {{experience.business}}
+              </span>
+            </ng-template>
+          </div>
+
           <div class="descriptions-list">
             <ul class="m-0 pl-3" style="list-style-type: disc; list-style-position: inside;">
               <li *ngFor="let description of experience.descriptions"
