@@ -1,0 +1,43 @@
+<div class="education-container">
+  <div class="education-header text-center mb-6">
+    <h2 class="education-title text-4xl font-bold text-color mb-3">Formation</h2>
+    <div class="title-divider w-16 h-1 bg-primary mx-auto border-round"></div>
+  </div>
+
+  <div *ngIf="diplomas && diplomas.length > 0; else noDiplomas">
+    <p-timeline [value]="diplomas" class="custom-timeline" layout="vertical" align="alternate">
+      <ng-template pTemplate="marker" let-diploma>
+        <div class="flex w-8 h-8 items-center justify-center text-white rounded-full z-10 shadow-sm bg-primary">
+          <i class="pi pi-graduation-cap text-lg"></i>
+        </div>
+      </ng-template>
+
+      <ng-template pTemplate="content" let-diploma let-i="index">
+        <div class="education-wrapper mb-4">
+          <p-card [header]="diploma.title"
+            [subheader]="(diploma.startDate | date:'MMM yyyy':'':'fr') + ' - ' + (diploma.endDate ? (diploma.endDate | date:'MMM yyyy':'':'fr') : 'En cours')"
+            class="education-card shadow-4 border-round-lg surface-card w-full">
+
+            <div *ngIf="diploma.school" class="school-section mb-3">
+              <h4 class="school-name text-primary font-semibold text-lg mb-1">
+                <i class="pi pi-building mr-2"></i>
+                {{ diploma.school }}
+              </h4>
+            </div>
+
+            <div *ngIf="diploma.description" class="description mb-3">
+              <p class="description-text text-color line-height-3 m-0">{{ diploma.description }}</p>
+            </div>
+          </p-card>
+        </div>
+      </ng-template>
+    </p-timeline>
+  </div>
+
+  <ng-template #noDiplomas>
+    <div class="text-center text-color-secondary">
+      <i class="pi pi-info-circle text-4xl mb-3"></i>
+      <p class="text-lg">Aucun diplôme à afficher pour le moment.</p>
+    </div>
+  </ng-template>
+</div>

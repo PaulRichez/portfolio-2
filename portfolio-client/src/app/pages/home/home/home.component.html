@@ -1,8 +1,13 @@
 <div *ngIf="loading" class="flex justify-center items-center min-h-[200px]">
-  Loading...
+  <i class="pi pi-spin pi-spinner text-4xl text-primary"></i>
 </div>
 
-<div *ngIf="!loading" class="w-full max-w-6xl mx-auto flex flex-col gap-8">
+<div *ngIf="!loading" class="w-full max-w-6xl mx-auto flex flex-col gap-12 p-4">
   <app-me [me]="me"></app-me>
+
   <app-experiences [experiences]="me?.experiences || []"></app-experiences>
+
+  <app-education [diplomas]="me?.diplomas || []"></app-education>
+
+  <app-projects></app-projects>
 </div>

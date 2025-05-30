@@ -1,0 +1,63 @@
+<div class="projects-container">
+  <div class="projects-header text-center mb-6">
+    <h2 class="projects-title text-4xl font-bold text-color mb-3">Mes dernier projets</h2>
+    <div class="title-divider w-16 h-1 bg-primary mx-auto border-round"></div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div *ngFor="let project of projects" class="project-item">
+      <p-card class="h-full shadow-lg project-card">
+        <div class="project-image mb-4" *ngIf="project.image">
+          <img
+            [src]="project.image"
+            [alt]="project.title"
+            class="w-full h-48 object-cover border-round"
+            onerror="this.src='assets/images/placeholder-project.jpg'">
+        </div>
+
+        <div class="project-content flex flex-col h-full">
+          <div class="project-header mb-3">
+            <h3 class="project-title text-xl font-bold text-color mb-2 flex items-center">
+              {{ project.title }}
+              <i *ngIf="project.featured" class="pi pi-star-fill text-yellow-500 ml-2" title="Projet mis en avant"></i>
+            </h3>
+          </div>
+
+          <div class="project-description mb-4 flex-grow">
+            <p class="text-color-secondary line-height-3">{{ project.description }}</p>
+          </div>
+
+          <div class="project-technologies mb-4">
+            <div class="flex flex-wrap gap-2">
+              <p-chip
+                *ngFor="let tech of project.technologies"
+                [label]="tech"
+                class="bg-primary-100 text-primary-800 text-sm">
+              </p-chip>
+            </div>
+          </div>
+
+          <div class="project-actions flex gap-2 mt-auto">
+            <p-button
+              *ngIf="project.demoUrl"
+              label="Démo"
+              icon="pi pi-external-link"
+              size="small"
+              (onClick)="openUrl(project.demoUrl!)"
+              class="flex-1">
+            </p-button>
+            <p-button
+              *ngIf="project.sourceUrl"
+              label="Code"
+              icon="pi pi-github"
+              outlined
+              size="small"
+              (onClick)="openUrl(project.sourceUrl!)"
+              class="flex-1">
+            </p-button>
+          </div>
+        </div>
+      </p-card>
+    </div>
+  </div>
+</div>
