@@ -2,13 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MeComponent } from "../sections/me/me.component";
 import { ExperiencesComponent } from "../sections/experiences/experiences.component";
-import { SkillsComponent } from "../sections/skills/skills.component";
 import { MeService } from '../../../services/me.service';
 import { Me } from '../../../models';
 
 @Component({
   selector: 'app-home',
-  imports: [CommonModule, MeComponent, ExperiencesComponent, SkillsComponent],
+  imports: [CommonModule, MeComponent, ExperiencesComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
