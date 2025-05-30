@@ -49,11 +49,6 @@
       "component": "me.languages",
       "repeatable": true
     },
-    "knowledges": {
-      "type": "component",
-      "component": "me.knowledge",
-      "repeatable": true
-    },
     "experiences": {
       "type": "component",
       "component": "me.experiences",
@@ -62,6 +57,11 @@
     "diplomas": {
       "type": "component",
       "component": "me.diplomas",
+      "repeatable": true
+    },
+    "codings": {
+      "type": "component",
+      "component": "me.coding",
       "repeatable": true
     }
   }

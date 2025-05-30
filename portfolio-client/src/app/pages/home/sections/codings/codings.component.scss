@@ -1,0 +1,46 @@
+.codings-container {
+  .category-section {
+    .category-title {
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1rem;
+    }
+  }
+
+  .coding-item {
+    .coding-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      height: 100%;
+
+      &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      }
+    }
+
+    .coding-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--primary-50);
+      margin: 0 auto;
+
+      img {
+        transition: transform 0.3s ease;
+      }
+
+      &:hover img {
+        transform: scale(1.1);
+      }
+    }
+
+    .level-indicator {
+      .level-dot {
+        transition: all 0.3s ease;
+      }
+    }
+  }
+}

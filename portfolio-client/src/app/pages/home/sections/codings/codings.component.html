@@ -1,0 +1,44 @@
+<div class="codings-container">
+  <div class="codings-header text-center mb-6">
+    <h2 class="codings-title text-4xl font-bold text-color mb-3">Compétences Techniques</h2>
+    <div class="title-divider w-16 h-1 bg-primary mx-auto border-round"></div>
+  </div>
+
+  <div *ngFor="let category of categorizedCodings" class="category-section mb-6">
+    <h3 class="category-title text-xl font-semibold text-primary mb-4 flex align-items-center">
+      <i [class]="getCategoryIcon(category.category)" class="mr-2"></i>
+      {{ getCategoryLabel(category.category) }}
+    </h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div *ngFor="let coding of category.items" class="coding-item">
+        <p-card class="h-full shadow-lg coding-card transition-all hover:shadow-xl">
+          <div class="coding-content flex flex-col items-center text-center p-4">
+            <div class="coding-icon mb-3">
+              <img
+                [src]="coding.icon"
+                [alt]="coding.name + ' icon'"
+                class="w-12 h-12 object-contain"
+                onerror="this.src='assets/images/placeholder-tech.svg'">
+            </div>
+
+            <h4 class="coding-name text-lg font-semibold text-color mb-2">{{ coding.name }}</h4>
+
+            <div class="level-indicator mb-3">
+              <div class="flex gap-1 justify-center">
+                <div *ngFor="let dot of getLevelDots(coding.level); let i = index"
+                     class="level-dot w-2 h-2 border-round-xl transition-all"
+                     [ngClass]="{
+                       'bg-primary': i < getLevelValue(coding.level),
+                       'bg-surface-300': i >= getLevelValue(coding.level)
+                     }">
+                </div>
+              </div>
+              <span class="level-text text-sm text-color-secondary mt-1 block">{{ getLevelLabel(coding.level) }}</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </div>
+  </div>
+</div>

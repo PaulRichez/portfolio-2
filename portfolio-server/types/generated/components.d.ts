@@ -7,17 +7,24 @@ export interface MeCoding extends Struct.ComponentSchema {
     icon: 'code';
   };
   attributes: {
+    category: Schema.Attribute.Enumeration<
+      [
+        'frontend_languages',
+        'frontend_frameworks',
+        'backend',
+        'databases',
+        'devops_tools',
+        'tools',
+        'other_languages',
+      ]
+    > &
+      Schema.Attribute.Required;
     icon: Schema.Attribute.String & Schema.Attribute.Required;
+    level: Schema.Attribute.Enumeration<
+      ['beginner', 'Intermediate', 'advanced', 'expert']
+    > &
+      Schema.Attribute.Required;
     name: Schema.Attribute.String & Schema.Attribute.Required;
-    value: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetMinMax<
-        {
-          max: 100;
-          min: 0;
-        },
-        number
-      >;
   };
 }
 
@@ -51,17 +58,6 @@ export interface MeExperiences extends Struct.ComponentSchema {
   };
 }
 
-export interface MeKnowledge extends Struct.ComponentSchema {
-  collectionName: 'components_me_knowledges';
-  info: {
-    displayName: 'knowledge';
-    icon: 'command';
-  };
-  attributes: {
-    name: Schema.Attribute.String & Schema.Attribute.Required;
-  };
-}
-
 export interface MeLanguages extends Struct.ComponentSchema {
   collectionName: 'components_me_languages';
   info: {
@@ -80,7 +76,6 @@ declare module '@strapi/strapi' {
       'me.coding': MeCoding;
       'me.diplomas': MeDiplomas;
       'me.experiences': MeExperiences;
-      'me.knowledge': MeKnowledge;
       'me.languages': MeLanguages;
     }
   }

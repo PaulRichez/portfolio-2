@@ -3,9 +3,11 @@ import { CommonModule } from '@angular/common';
 import { MeComponent } from "../sections/me/me.component";
 import { ExperiencesComponent } from "../sections/experiences/experiences.component";
 import { EducationComponent } from "../sections/education/education.component";
-import { ProjectsComponent } from "../sections/projects/projects.component";
+// import { ProjectsComponent } from "../sections/projects/projects.component";
 import { MeService } from '../../../services/me.service';
 import { Me } from '../../../models';
+import { CodingsComponent } from '../sections/codings/codings.component';
+import { KnowledgesComponent } from '../sections/knowledges/knowledges.component';
 
 @Component({
   selector: 'app-home',
@@ -14,7 +16,9 @@ import { Me } from '../../../models';
     MeComponent,
     ExperiencesComponent,
     EducationComponent,
-    ProjectsComponent
+    // ProjectsComponent,
+    CodingsComponent,
+    KnowledgesComponent
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'

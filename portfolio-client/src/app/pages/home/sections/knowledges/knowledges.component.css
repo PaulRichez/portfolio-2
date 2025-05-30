@@ -1,0 +1,16 @@
+.knowledges-container {
+  width: 100%;
+}
+
+.chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.knowledge-chip {
+  margin: 0.25rem;
+}

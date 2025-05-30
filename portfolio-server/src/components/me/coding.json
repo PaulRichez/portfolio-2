@@ -6,12 +6,6 @@
   },
   "options": {},
   "attributes": {
-    "value": {
-      "type": "integer",
-      "required": true,
-      "min": 0,
-      "max": 100
-    },
     "name": {
       "type": "string",
       "required": true
@@ -19,6 +13,29 @@
     "icon": {
       "type": "string",
       "required": true
+    },
+    "level": {
+      "type": "enumeration",
+      "required": true,
+      "enum": [
+        "beginner",
+        "Intermediate",
+        "advanced",
+        "expert"
+      ]
+    },
+    "category": {
+      "type": "enumeration",
+      "required": true,
+      "enum": [
+        "frontend_languages",
+        "frontend_frameworks",
+        "backend",
+        "databases",
+        "devops_tools",
+        "tools",
+        "other_languages"
+      ]
     }
   },
   "config": {}
