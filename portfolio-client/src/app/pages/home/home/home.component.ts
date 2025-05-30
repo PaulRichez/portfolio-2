@@ -7,7 +7,6 @@ import { EducationComponent } from "../sections/education/education.component";
 import { MeService } from '../../../services/me.service';
 import { Me } from '../../../models';
 import { CodingsComponent } from '../sections/codings/codings.component';
-import { KnowledgesComponent } from '../sections/knowledges/knowledges.component';
 
 @Component({
   selector: 'app-home',
@@ -18,7 +17,6 @@ import { KnowledgesComponent } from '../sections/knowledges/knowledges.component
     EducationComponent,
     // ProjectsComponent,
     CodingsComponent,
-    KnowledgesComponent
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
