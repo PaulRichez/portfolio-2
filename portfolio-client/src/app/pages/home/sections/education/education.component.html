@@ -1,11 +1,11 @@
 <div class="education-container">
   <div class="education-header text-center mb-6">
-    <h2 class="education-title text-4xl font-bold text-color mb-3">Formation</h2>
+    <h2 class="education-title text-4xl font-bold text-color mb-3">Formations</h2>
     <div class="title-divider w-16 h-1 bg-primary mx-auto border-round"></div>
   </div>
 
   <div *ngIf="diplomas && diplomas.length > 0; else noDiplomas">
-    <p-timeline [value]="diplomas" class="custom-timeline" layout="vertical" align="alternate">
+    <p-timeline [value]="diplomas" class="custom-timeline" layout="vertical" [align]="timelineAlign">
       <ng-template pTemplate="marker" let-diploma>
         <div class="flex w-8 h-8 items-center justify-center text-white rounded-full z-10 shadow-sm bg-primary">
           <i class="pi pi-graduation-cap text-lg"></i>
