@@ -73,7 +73,7 @@
     }
 
     .layout-menu-button {
-        margin-right: 0.5rem;
+        display: none;
     }
 
     .layout-topbar-menu-button {
@@ -106,6 +106,7 @@
         }
 
         .layout-menu-button {
+            display: inline-flex;
             margin-left: 0;
             margin-right: 0.5rem;
         }
