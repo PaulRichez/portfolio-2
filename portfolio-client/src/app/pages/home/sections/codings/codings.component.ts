@@ -57,7 +57,7 @@ export class CodingsComponent implements OnInit {
       'databases': 'pi pi-database',
       'devops_tools': 'pi pi-cog',
       'tools': 'pi pi-wrench',
-      'other_languages': 'pi pi-file-code'
+      'other_languages': 'pi pi-file'
     };
     return icons[category] || 'pi pi-code';
   }
