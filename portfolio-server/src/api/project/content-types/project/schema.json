@@ -32,9 +32,9 @@
     },
     "codings": {
       "type": "relation",
-      "relation": "manyToMany",
+      "relation": "oneToMany",
       "target": "api::coding.coding",
-      "mappedBy": "projects"
+      "mappedBy": "project"
     }
   }
 }
