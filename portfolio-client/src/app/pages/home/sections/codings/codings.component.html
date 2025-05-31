@@ -5,7 +5,7 @@
   </div>
 
   <div *ngFor="let category of categorizedCodings" class="category-section mb-6">
-    <h3 class="category-title text-xl font-semibold text-primary mb-4 flex align-items-center">
+    <h3 class="category-title text-xl font-semibold text-primary mb-4 flex items-baseline">
       <i [class]="getCategoryIcon(category.category)" class="mr-2"></i>
       {{ getCategoryLabel(category.category) }}
     </h3>
