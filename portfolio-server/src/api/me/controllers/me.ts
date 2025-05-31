@@ -16,6 +16,8 @@ module.exports = {
 
   async findWithPopulate(ctx) {
     try {
+      const { projectsLimit } = ctx.query;
+      
       const entity = await strapi.entityService.findMany('api::me.me', {
         populate: {
           languages: true,
@@ -28,6 +30,19 @@ module.exports = {
           }
         }
       });
+
+      // Fetch projects separately with limit and sorting
+      const limit = projectsLimit ? parseInt(projectsLimit) : 6;
+      const projects = await strapi.entityService.findMany('api::project.project', {
+        populate: '*',
+        sort: { createdAt: 'desc' },
+        limit: limit
+      });
+
+      // Add projects to entity
+      if (entity) {
+        (entity as any).projects = projects;
+      }
 
       return { data: entity };
     } catch (error) {

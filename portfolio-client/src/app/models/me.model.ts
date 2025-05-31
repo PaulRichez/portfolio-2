@@ -2,6 +2,7 @@ import { Language } from './language.model';
 import { CodingSkill } from './coding-skill.model';
 import { Diploma } from './diploma.model';
 import { Experience } from './experience.model';
+import { Project } from './project.model';
 
 export interface Me {
   id?: number;
@@ -22,6 +23,7 @@ export interface Me {
   coding_skills?: CodingSkill[];
   experiences?: Experience[];
   diplomas?: Diploma[];
+  projects?: Project[];
 
   // Strapi metadata
   createdAt?: string;

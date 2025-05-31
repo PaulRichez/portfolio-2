@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MeComponent } from "../sections/me/me.component";
 import { ExperiencesComponent } from "../sections/experiences/experiences.component";
 import { EducationComponent } from "../sections/education/education.component";
-// import { ProjectsComponent } from "../sections/projects/projects.component";
+import { ProjectsComponent } from "../sections/projects/projects.component";
 import { MeService } from '../../../services/me.service';
 import { Me } from '../../../models';
 import { CodingsComponent } from '../sections/codings/codings.component';
@@ -15,7 +15,7 @@ import { CodingsComponent } from '../sections/codings/codings.component';
     MeComponent,
     ExperiencesComponent,
     EducationComponent,
-    // ProjectsComponent,
+    ProjectsComponent,
     CodingsComponent,
   ],
   templateUrl: './home.component.html',

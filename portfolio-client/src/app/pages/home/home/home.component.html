@@ -5,11 +5,12 @@
 <div *ngIf="!loading" class="w-full max-w-6xl mx-auto flex flex-col gap-12 p-4">
   <app-me [me]="me"></app-me>
 
+  <app-projects [projects]="me?.projects || []"></app-projects>
+
   <app-experiences [experiences]="me?.experiences || []"></app-experiences>
 
   <app-education [diplomas]="me?.diplomas || []"></app-education>
 
   <app-codings [coding_skills]="me?.coding_skills || []"></app-codings>
 
-  <!-- <app-projects></app-projects> -->
 </div>
