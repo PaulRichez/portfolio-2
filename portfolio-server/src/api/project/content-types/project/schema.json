@@ -29,6 +29,12 @@
     },
     "link_demo": {
       "type": "string"
+    },
+    "codings": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::coding.coding",
+      "mappedBy": "projects"
     }
   }
 }

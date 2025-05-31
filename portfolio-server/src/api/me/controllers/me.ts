@@ -34,7 +34,9 @@ module.exports = {
       // Fetch projects separately with limit and sorting
       const limit = projectsLimit ? parseInt(projectsLimit) : 6;
       const projects = await strapi.entityService.findMany('api::project.project', {
-        populate: '*',
+        populate: {
+          codings: true
+        },
         sort: { createdAt: 'desc' },
         limit: limit
       });

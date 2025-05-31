@@ -1,3 +1,5 @@
+import { Coding } from "./coding.model";
+
 export interface Project {
   id?: number;
   documentId?: string;
@@ -6,7 +8,7 @@ export interface Project {
   image?: string;
   demoUrl?: string;
   sourceUrl?: string;
-  technologies?: string[];
+  codings?: Coding[];
   featured?: boolean;
 
   // Strapi metadata

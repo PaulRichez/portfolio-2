@@ -28,10 +28,20 @@
 
           <div class="project-technologies mb-4">
             <div class="flex flex-wrap gap-2">
+              <!-- Afficher les premiers codings selon la constante -->
               <p-chip
-                *ngFor="let tech of project.technologies"
-                [label]="tech"
+                *ngFor="let coding of project.codings?.slice(0, getMaxVisibleCodings())"
+                [label]="coding.name"
                 class="bg-primary-100 text-primary-800 text-sm">
+              </p-chip>
+
+              <!-- Chip +nombre pour les codings supplémentaires -->
+              <p-chip
+                *ngIf="project.codings && project.codings.length > getMaxVisibleCodings()"
+                [label]="'+' + (project.codings.length - getMaxVisibleCodings())"
+                class="bg-surface-300 text-surface-700 text-sm"
+                [pTooltip]="getExtraCodings(project.codings)"
+                tooltipPosition="top">
               </p-chip>
             </div>
           </div>
