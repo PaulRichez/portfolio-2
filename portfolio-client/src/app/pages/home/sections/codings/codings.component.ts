@@ -1,12 +1,12 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { CodingSkill } from '../../../../models';
 import { CardModule } from 'primeng/card';
 import { ChipModule } from 'primeng/chip';
-import { Coding } from '../../../../models';
 
-interface CategorizedCodings {
+interface CategorizedCoding {
   category: string;
-  items: Coding[];
+  items: CodingSkill[];
 }
 
 @Component({
@@ -14,26 +14,42 @@ interface CategorizedCodings {
   standalone: true,
   imports: [CommonModule, CardModule, ChipModule],
   templateUrl: './codings.component.html',
-  styleUrl: './codings.component.scss'
+  styleUrls: ['./codings.component.scss']
 })
-export class CodingsComponent implements OnInit {
-  @Input() codings: Coding[] = [];
-  categorizedCodings: CategorizedCodings[] = [];
+export class CodingsComponent implements OnInit, OnChanges {
+  @Input() coding_skills: CodingSkill[] = [];
+
+  categorizedCodings: CategorizedCoding[] = [];
 
   ngOnInit() {
-    this.groupCodingsByCategory();
+    this.categorizeCodingSkills();
   }
 
-  ngOnChanges() {
-    this.groupCodingsByCategory();
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['coding_skills']) {
+      this.categorizeCodingSkills();
+    }
   }
 
-  private groupCodingsByCategory() {
-    const categories = [...new Set(this.codings.map(coding => coding.category))];
-    this.categorizedCodings = categories.map(category => ({
-      category,
-      items: this.codings.filter(coding => coding.category === category)
-    }));
+  private categorizeCodingSkills() {
+    if (!this.coding_skills || this.coding_skills.length === 0) {
+      this.categorizedCodings = [];
+      return;
+    }
+
+    const categories = new Map<string, CodingSkill[]>();
+
+    this.coding_skills.forEach(codingSkill => {
+      const category = codingSkill.coding.category;
+      if (!categories.has(category)) {
+        categories.set(category, []);
+      }
+      categories.get(category)!.push(codingSkill);
+    });
+
+    this.categorizedCodings = Array.from(categories.entries())
+      .map(([category, items]) => ({ category, items }))
+      .sort((a, b) => this.getCategoryOrder(a.category) - this.getCategoryOrder(b.category));
   }
 
   getCategoryLabel(category: string): string {
@@ -63,26 +79,39 @@ export class CodingsComponent implements OnInit {
   }
 
   getLevelValue(level: string): number {
-    const levels: { [key: string]: number } = {
-      'beginner': 1,
-      'Intermediate': 2,
-      'advanced': 3,
-      'expert': 4
-    };
-    return levels[level] || 1;
+    switch (level.toLowerCase()) {
+      case 'beginner': return 1;
+      case 'intermediate': return 2;
+      case 'advanced': return 3;
+      case 'expert': return 4;
+      default: return 0;
+    }
   }
 
   getLevelLabel(level: string): string {
-    const labels: { [key: string]: string } = {
-      'beginner': 'Débutant',
-      'Intermediate': 'Intermédiaire',
-      'advanced': 'Avancé',
-      'expert': 'Expert'
-    };
-    return labels[level] || level;
+    switch (level.toLowerCase()) {
+      case 'beginner': return 'Débutant';
+      case 'intermediate': return 'Intermédiaire';
+      case 'advanced': return 'Avancé';
+      case 'expert': return 'Expert';
+      default: return level;
+    }
   }
 
   getLevelDots(level: string): number[] {
     return Array(4).fill(0).map((_, i) => i);
+  }
+
+  private getCategoryOrder(category: string): number {
+    const order: { [key: string]: number } = {
+      'frontend_languages': 1,
+      'frontend_frameworks': 2,
+      'backend': 3,
+      'databases': 4,
+      'devops_tools': 5,
+      'tools': 6,
+      'other_languages': 7
+    };
+    return order[category] || 99;
   }
 }

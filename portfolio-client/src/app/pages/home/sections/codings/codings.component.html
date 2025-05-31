@@ -11,30 +11,30 @@
     </h3>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div *ngFor="let coding of category.items" class="coding-item">
+      <div *ngFor="let codingSkill of category.items" class="coding-item">
         <p-card class="h-full shadow-lg coding-card transition-all hover:shadow-xl">
           <div class="coding-content flex flex-col items-center text-center p-4">
             <div class="coding-icon mb-3">
               <img
-                [src]="coding.icon"
-                [alt]="coding.name + ' icon'"
+                [src]="codingSkill.coding.icon"
+                [alt]="codingSkill.coding.name + ' icon'"
                 class="w-12 h-12 object-contain"
                 onerror="this.src='assets/images/placeholder-tech.svg'">
             </div>
 
-            <h4 class="coding-name text-lg font-semibold text-color mb-2">{{ coding.name }}</h4>
+            <h4 class="coding-name text-lg font-semibold text-color mb-2">{{ codingSkill.coding.name }}</h4>
 
             <div class="level-indicator mb-3">
               <div class="flex gap-1 justify-center">
-                <div *ngFor="let dot of getLevelDots(coding.level); let i = index"
+                <div *ngFor="let dot of getLevelDots(codingSkill.level); let i = index"
                      class="level-dot w-2 h-2 border-round-xl transition-all"
                      [ngClass]="{
-                       'bg-primary': i < getLevelValue(coding.level),
-                       'bg-surface-300': i >= getLevelValue(coding.level)
+                       'bg-primary': i < getLevelValue(codingSkill.level),
+                       'bg-surface-300': i >= getLevelValue(codingSkill.level)
                      }">
                 </div>
               </div>
-              <span class="level-text text-sm text-color-secondary mt-1 block">{{ getLevelLabel(coding.level) }}</span>
+              <span class="level-text text-sm text-color-secondary mt-1 block">{{ getLevelLabel(codingSkill.level) }}</span>
             </div>
           </div>
         </p-card>

@@ -1,7 +1,28 @@
+'use strict';
+
 /**
  * me router
  */
 
-import { factories } from '@strapi/strapi';
-
-export default factories.createCoreRouter('api::me.me');
+module.exports = {
+  routes: [
+    {
+      method: 'GET',
+      path: '/me',
+      handler: 'api::me.me.find',
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: 'GET',
+      path: '/me/populated',
+      handler: 'api::me.me.findWithPopulate',
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+  ],
+};

@@ -59,9 +59,9 @@
       "component": "me.diplomas",
       "repeatable": true
     },
-    "codings": {
+    "coding_skills": {
       "type": "component",
-      "component": "me.coding",
+      "component": "me.coding-skill",
       "repeatable": true
     }
   }

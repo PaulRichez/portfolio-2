@@ -11,7 +11,7 @@ import { Me, StrapiSingleResponse } from '../models';
 export class MeService {
   private apiUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   getMe(): Observable<Me> {
     return this.http.get<StrapiSingleResponse<Me>>(`${this.apiUrl}/me`)
@@ -21,7 +21,7 @@ export class MeService {
   }
 
   getMeWithPopulate(): Observable<Me> {
-    return this.http.get<StrapiSingleResponse<Me>>(`${this.apiUrl}/me?populate=*`)
+    return this.http.get<StrapiSingleResponse<Me>>(`${this.apiUrl}/me/populated`)
       .pipe(
         map(response => response.data)
       );

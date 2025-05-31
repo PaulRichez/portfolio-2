@@ -1,30 +1,17 @@
 import type { Schema, Struct } from '@strapi/strapi';
 
-export interface MeCoding extends Struct.ComponentSchema {
-  collectionName: 'components_me_codings';
+export interface MeCodingSkill extends Struct.ComponentSchema {
+  collectionName: 'components_me_coding_skills';
   info: {
-    displayName: 'coding';
+    displayName: 'coding_skill';
     icon: 'code';
   };
   attributes: {
-    category: Schema.Attribute.Enumeration<
-      [
-        'frontend_languages',
-        'frontend_frameworks',
-        'backend',
-        'databases',
-        'devops_tools',
-        'tools',
-        'other_languages',
-      ]
-    > &
-      Schema.Attribute.Required;
-    icon: Schema.Attribute.String & Schema.Attribute.Required;
+    coding: Schema.Attribute.Relation<'oneToOne', 'api::coding.coding'>;
     level: Schema.Attribute.Enumeration<
       ['beginner', 'Intermediate', 'advanced', 'expert']
     > &
       Schema.Attribute.Required;
-    name: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
 
@@ -73,7 +60,7 @@ export interface MeLanguages extends Struct.ComponentSchema {
 declare module '@strapi/strapi' {
   export module Public {
     export interface ComponentSchemas {
-      'me.coding': MeCoding;
+      'me.coding-skill': MeCodingSkill;
       'me.diplomas': MeDiplomas;
       'me.experiences': MeExperiences;
       'me.languages': MeLanguages;

@@ -18,7 +18,7 @@ export default {
    */
   bootstrap(/* { strapi }: { strapi: Core.Strapi } */) {
     // setTimeout(() => {
-    // strapi.service('api::me.migration').populateMeData();
+    //   strapi.service('api::me.migration').populateAllData();
     // }, 5000);
   },
 };

@@ -1,5 +1,5 @@
 import { Language } from './language.model';
-import { Coding } from './coding.model';
+import { CodingSkill } from './coding-skill.model';
 import { Diploma } from './diploma.model';
 import { Experience } from './experience.model';
 
@@ -19,7 +19,7 @@ export interface Me {
 
   // Component relationships
   languages?: Language[];
-  codings?: Coding[];
+  coding_skills?: CodingSkill[];
   experiences?: Experience[];
   diplomas?: Diploma[];
 

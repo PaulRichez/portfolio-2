@@ -373,6 +373,47 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCodingCoding extends Struct.CollectionTypeSchema {
+  collectionName: 'codings';
+  info: {
+    displayName: 'coding';
+    pluralName: 'codings';
+    singularName: 'coding';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    category: Schema.Attribute.Enumeration<
+      [
+        'frontend_languages',
+        'frontend_frameworks',
+        'backend',
+        'databases',
+        'devops_tools',
+        'tools',
+        'other_languages',
+      ]
+    > &
+      Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    icon: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::coding.coding'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiMeMe extends Struct.SingleTypeSchema {
   collectionName: 'us';
   info: {
@@ -386,7 +427,7 @@ export interface ApiMeMe extends Struct.SingleTypeSchema {
   attributes: {
     birthDay: Schema.Attribute.Date;
     city: Schema.Attribute.String;
-    codings: Schema.Attribute.Component<'me.coding', true>;
+    coding_skills: Schema.Attribute.Component<'me.coding-skill', true>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -953,6 +994,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::coding.coding': ApiCodingCoding;
       'api::me.me': ApiMeMe;
       'api::project.project': ApiProjectProject;
       'plugin::content-releases.release': PluginContentReleasesRelease;
