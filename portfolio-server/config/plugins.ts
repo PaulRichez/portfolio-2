@@ -1,8 +1,9 @@
-export default () => ({    "llm-chat": {
+export default () => ({
+    "llm-chat": {
         enabled: true,
         resolve: `./src/plugins/llm-chat`,
         config: {
-            provider: process.env.LLM_PROVIDER || 'openai',
+            provider: process.env.LLM_PROVIDER || 'custom',
             openai: {
                 apiKey: process.env.OPENAI_API_KEY || '',
                 modelName: process.env.OPENAI_MODEL_NAME || 'gpt-3.5-turbo',

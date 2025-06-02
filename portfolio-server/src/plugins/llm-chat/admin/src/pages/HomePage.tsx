@@ -21,7 +21,7 @@ const HomePage = () => {
             defaultSystemPrompt="You are a helpful assistant for the website administrator. Provide concise and accurate information."
           />
         </Box>
-      </ContentLayout>
+      </ContentLayout> 
     </Main>
   );
 };
