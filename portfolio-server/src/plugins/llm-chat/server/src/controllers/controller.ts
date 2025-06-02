@@ -4,9 +4,26 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
   index(ctx) {
     ctx.body = strapi
       .plugin('llm-chat')
-      // the name of the service file & the method.
       .service('service')
       .getWelcomeMessage();
+  },
+
+  async chat(ctx) {
+    try {
+      const { message } = ctx.request.body;
+      if (!message) {
+        ctx.throw(400, 'Message is required');
+      }
+
+      const response = await strapi
+        .plugin('llm-chat')
+        .service('langchainService')
+        .createChat(message);
+
+      ctx.body = { response };
+    } catch (error) {
+      ctx.throw(500, error.message);
+    }
   },
 });
 
