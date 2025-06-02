@@ -2,6 +2,10 @@ import type { Core } from '@strapi/strapi';
 import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { LLMChain } from "langchain/chains";
+import { ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate } from "@langchain/core/prompts";
+import { ConversationChain } from "langchain/chains";
+import { BufferMemory } from "langchain/memory";
+import { BaseMessage, AIMessage, HumanMessage } from "@langchain/core/messages";
 
 // Interface pour définir la structure de la configuration
 interface LlmChatConfig {
@@ -19,52 +23,120 @@ interface LlmChatConfig {
   };
 }
 
-const langchainService = ({ strapi }: { strapi: Core.Strapi }) => ({
-  async createChat(message: string) {
-    try {
-      const config = strapi.plugin('llm-chat').config('') as unknown as LlmChatConfig;
-      let model;
+// Interface pour les options de conversation
+interface ConversationOptions {
+  sessionId?: string;
+  systemPrompt?: string;
+  maxTokens?: number;
+  temperature?: number;
+}
 
-      if (config.provider === 'openai') {
-        model = new ChatOpenAI({
-          modelName: config.openai.modelName,
-          temperature: config.openai.temperature,
-          openAIApiKey: config.openai.apiKey,
-        });
-      } else if (config.provider === 'custom') {
-        model = new ChatOpenAI({
-          modelName: config.custom.modelName,
-          temperature: config.custom.temperature,
-          configuration: {
-            baseURL: config.custom.baseUrl,
-            apiKey: config.custom.apiKey || "not-needed",
-          },
-        });
-      } else {
-        throw new Error(`Unsupported LLM provider: ${config.provider}`);
-      }
+const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
+  // Stocker les conversations en mémoire (dans une application réelle, utilisez une base de données)
+  const conversations = new Map();
 
-      const template = '{message}';
-      const prompt = new PromptTemplate({
-        template,
-        inputVariables: ['message'],
+  // Créer un modèle en fonction de la configuration
+  const createModel = (config: LlmChatConfig, options?: ConversationOptions) => {
+    const temperature = options?.temperature !== undefined
+      ? options.temperature
+      : (config.provider === 'openai' ? config.openai.temperature : config.custom.temperature);
+
+    if (config.provider === 'openai') {
+      return new ChatOpenAI({
+        modelName: config.openai.modelName,
+        temperature: temperature,
+        openAIApiKey: config.openai.apiKey,
+        maxTokens: options?.maxTokens,
       });
-
-      const chain = new LLMChain({
-        llm: model,
-        prompt,
+    } else if (config.provider === 'custom') {
+      return new ChatOpenAI({
+        modelName: config.custom.modelName,
+        temperature: temperature,
+        maxTokens: options?.maxTokens,
+        configuration: {
+          baseURL: config.custom.baseUrl,
+          apiKey: config.custom.apiKey || "not-needed",
+        },
       });
-
-      const response = await chain.call({
-        message,
-      });
-
-      return response.text;
-    } catch (error) {
-      strapi.log.error('Error in langchain service:', error);
-      throw error;
+    } else {
+      throw new Error(`Unsupported LLM provider: ${config.provider}`);
     }
-  },
-});
+  };
+
+  return {
+    // Créer une nouvelle conversation ou continuer une existante
+    async chat(message: string, options?: ConversationOptions) {
+      try {
+        const config = strapi.plugin('llm-chat').config('') as unknown as LlmChatConfig;
+        const sessionId = options?.sessionId || 'default';
+        const model = createModel(config, options);
+
+        // Récupérer ou créer une conversation
+        if (!conversations.has(sessionId)) {
+          // Créer une nouvelle chaîne de conversation avec mémoire
+          const memory = new BufferMemory({
+            returnMessages: true,
+            memoryKey: "history",
+          });
+
+          const systemPrompt = options?.systemPrompt || "You are a helpful AI assistant.";
+          const chatPrompt = ChatPromptTemplate.fromMessages([
+            ["system", systemPrompt],
+            new MessagesPlaceholder("history"),
+            HumanMessagePromptTemplate.fromTemplate("{input}"),
+          ]);
+
+          const chain = new ConversationChain({
+            memory: memory,
+            prompt: chatPrompt,
+            llm: model,
+          });
+
+          conversations.set(sessionId, { chain, messages: [] });
+        }
+
+        // Récupérer la conversation existante
+        const conversation = conversations.get(sessionId);
+
+        // Appeler la chaîne et obtenir une réponse
+        const response = await conversation.chain.call({
+          input: message,
+        });
+
+        // Ajouter les messages à l'historique
+        conversation.messages.push(
+          new HumanMessage(message),
+          new AIMessage(response.response)
+        );
+
+        return {
+          sessionId,
+          response: response.response,
+          history: conversation.messages,
+        };
+      } catch (error) {
+        strapi.log.error('Error in langchain chat service:', error);
+        throw error;
+      }
+    },
+
+    // Obtenir l'historique d'une conversation
+    getHistory(sessionId: string = 'default') {
+      if (!conversations.has(sessionId)) {
+        return [];
+      }
+      return conversations.get(sessionId).messages;
+    },
+
+    // Effacer l'historique d'une conversation
+    clearHistory(sessionId: string = 'default') {
+      if (conversations.has(sessionId)) {
+        conversations.delete(sessionId);
+        return true;
+      }
+      return false;
+    },
+  };
+};
 
 export default langchainService;

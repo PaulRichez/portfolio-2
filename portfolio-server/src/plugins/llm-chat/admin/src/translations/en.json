@@ -1,1 +1,12 @@
-{}
+{
+  "plugin.name": "LLM Chat",
+  "plugin.description": "Interface to chat with AI language models",
+  "chat.start": "Start a conversation...",
+  "chat.inputPlaceholder": "Type your message...",
+  "chat.send": "Send",
+  "chat.clear": "Clear chat",
+  "configuration.title": "Chat Configuration",
+  "configuration.systemPrompt": "System Prompt",
+  "configuration.provider": "Provider",
+  "configuration.temperature": "Temperature"
+}

@@ -36,6 +36,7 @@
     "@langchain/langgraph": "^0.2.74",
     "@langchain/openai": "^0.5.11",
     "@strapi/design-system": "^2.0.0-rc.24",
+    "@strapi/helper-plugin": "^4.25.22",
     "@strapi/icons": "^2.0.0-rc.24",
     "@types/node": "^22.15.29",
     "langchain": "^0.3.27",

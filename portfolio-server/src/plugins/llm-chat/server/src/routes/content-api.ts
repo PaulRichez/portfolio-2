@@ -15,4 +15,20 @@ export default [
       policies: [],
     },
   },
+  {
+    method: 'GET',
+    path: '/history',
+    handler: 'controller.getHistory',
+    config: {
+      policies: [],
+    },
+  },
+  {
+    method: 'DELETE',
+    path: '/history',
+    handler: 'controller.clearHistory',
+    config: {
+      policies: [],
+    },
+  },
 ];

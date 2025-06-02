@@ -1,4 +1,4 @@
-export default () => ({    "llmchat": {
+export default () => ({    "llm-chat": {
         enabled: true,
         resolve: `./src/plugins/llm-chat`,
         config: {
