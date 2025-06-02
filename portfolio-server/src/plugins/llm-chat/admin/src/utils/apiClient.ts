@@ -1,4 +1,6 @@
+// @ts-expect-error temporary until types are fixed
 import { request } from '@strapi/sdk-plugin';
+
 import { PLUGIN_ID } from '../pluginId';
 
 /**

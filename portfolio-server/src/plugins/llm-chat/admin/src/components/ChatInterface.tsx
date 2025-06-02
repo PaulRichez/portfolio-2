@@ -17,7 +17,8 @@ import { Play, Trash, User, Magic } from '@strapi/icons';
 import { useIntl } from 'react-intl';
 import { PLUGIN_ID } from '../pluginId';
 import { getTranslation } from '../utils/getTranslation';
-import { request } from '@strapi/helper-plugin';
+// @ts-expect-error temporary until types are fixed
+import { request } from '@strapi/sdk-plugin';
 
 interface Message {
   role: 'user' | 'assistant';
