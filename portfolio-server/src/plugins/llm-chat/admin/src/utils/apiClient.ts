@@ -1,5 +1,4 @@
-// @ts-expect-error temporary until types are fixed
-import { request } from '@strapi/sdk-plugin';
+import axios from 'axios';
 
 import { PLUGIN_ID } from '../pluginId';
 
@@ -36,10 +35,7 @@ export const apiClient = {
       formData.append('maxTokens', options.maxTokens.toString());
     }
 
-    return request(`/${PLUGIN_ID}/chat`, {
-      method: 'POST',
-      body: formData,
-    });
+    return axios.post(`/${PLUGIN_ID}/chat`, formData);
   },
 
   /**
@@ -47,9 +43,7 @@ export const apiClient = {
    */
   getHistory: async (sessionId?: string) => {
     const url = `/${PLUGIN_ID}/history${sessionId ? `?sessionId=${sessionId}` : ''}`;
-    return request(url, {
-      method: 'GET',
-    });
+    return axios.get(url);
   },
 
   /**
@@ -57,8 +51,6 @@ export const apiClient = {
    */
   clearHistory: async (sessionId?: string) => {
     const url = `/${PLUGIN_ID}/history${sessionId ? `?sessionId=${sessionId}` : ''}`;
-    return request(url, {
-      method: 'DELETE',
-    });
+    return axios.delete(url);
   },
 };
