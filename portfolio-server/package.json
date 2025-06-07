@@ -3,13 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "description": "A Strapi application",  "scripts": {
-    "build": "strapi build",
+    "build": "npm run build:plugins && strapi build",
+    "build:plugins": "npm run -ws build",
     "console": "strapi console",
     "deploy": "strapi deploy",
-    "dev": "strapi develop",
-    "dev:postgres": "NODE_ENV=development strapi develop",
-    "develop": "strapi develop",
+    "dev": "concurrently \"npm run watch:plugins\" \"strapi develop\"",
+    "dev:postgres": "NODE_ENV=development npm run build:plugins && strapi develop",
+    "develop": "npm run build:plugins && strapi develop",
     "develop:watch": "strapi develop --watch-admin",
+    "install:plugins": "npm install",
+    "postinstall": "npm run build:plugins",
+    "watch:plugins": "npm run -ws watch",
     "start": "strapi start",
     "start:postgres": "NODE_ENV=production strapi start",
     "strapi": "strapi",
@@ -28,18 +32,20 @@
     "react-router-dom": "^6.0.0",
     "strapi-plugin-config-sync": "^3.1.1",
     "styled-components": "^6.0.0"
-  },
-  "devDependencies": {
+  },  "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "concurrently": "^9.1.0",
     "typescript": "^5"
   },
   "engines": {
     "node": ">=18.0.0 <=22.x.x",
     "npm": ">=6.0.0"
-  },
-  "strapi": {
+  },  "strapi": {
     "uuid": "4ac3093f-d981-4612-88f3-1bf5be12f7dc"
-  }
+  },
+  "workspaces": [
+    "src/plugins/*"
+  ]
 }
