@@ -1,0 +1,47 @@
+{
+  "kind": "collectionType",
+  "collectionName": "llm_chat_messages",
+  "info": {
+    "singularName": "chat-message",
+    "pluralName": "chat-messages",
+    "displayName": "Chat Message",
+    "description": "LLM Chat Messages"
+  },
+  "options": {
+    "draftAndPublish": false,
+    "comment": ""
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    },
+    "content-type-builder": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "content": {
+      "type": "text",
+      "required": true
+    },
+    "role": {
+      "type": "enumeration",
+      "enum": ["user", "assistant", "system"],
+      "required": true
+    },
+    "sessionId": {
+      "type": "string",
+      "required": true
+    },
+    "timestamp": {
+      "type": "datetime",
+      "required": true
+    },
+    "session": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::llm-chat.chat-session",
+      "inversedBy": "messages"
+    }
+  }
+}
