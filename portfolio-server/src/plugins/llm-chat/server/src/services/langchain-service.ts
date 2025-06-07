@@ -63,11 +63,22 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
     }
   };
 
-  return {
-    // Créer une nouvelle conversation ou continuer une existante
+  return {    // Créer une nouvelle conversation ou continuer une existante
     async chat(message: string, options?: ConversationOptions) {
       try {
-        const config = strapi.plugin('llm-chat').config('') as unknown as LlmChatConfig;
+        // Get the plugin configuration with proper error handling
+        const pluginConfig = strapi.config.get('plugin::llm-chat') || strapi.plugin('llm-chat').config('default');
+
+        if (!pluginConfig) {
+          throw new Error('LLM Chat plugin configuration not found');
+        }
+
+        const config = pluginConfig as LlmChatConfig;
+
+        if (!config.provider) {
+          throw new Error('LLM provider not configured');
+        }
+
         const sessionId = options?.sessionId || 'default';
         const model = createModel(config, options);
 

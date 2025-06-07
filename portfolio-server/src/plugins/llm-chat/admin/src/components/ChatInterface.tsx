@@ -7,18 +7,13 @@ import {
   Typography,
   Flex,
   Card,
-  Stack,
-  IconButton,
-  Badge,
-  Select,
-  Option
+  Badge
 } from '@strapi/design-system';
 import { Play, Trash, User, Magic } from '@strapi/icons';
 import { useIntl } from 'react-intl';
+import { useFetchClient } from '@strapi/strapi/admin';
 import { PLUGIN_ID } from '../pluginId';
 import { getTranslation } from '../utils/getTranslation';
-// @ts-expect-error temporary until types are fixed
-import { request } from '@strapi/sdk-plugin';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -43,22 +38,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { formatMessage } = useIntl();
+  const { get, post, del } = useFetchClient();
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
   // Load existing chat history when session ID changes
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await request(`/${PLUGIN_ID}/history?sessionId=${sessionId}`, {
-          method: 'GET',
-        }) as any; // Type as any to avoid TypeScript errors
+        const response = await get(`/${PLUGIN_ID}/history?sessionId=${sessionId}`) as any;
 
-        if (response && response.history && Array.isArray(response.history)) {
-          const formattedMessages = response.history.map((msg: any) => ({
+        if (response && response.data && response.data.history && Array.isArray(response.data.history)) {
+          const formattedMessages = response.data.history.map((msg: any) => ({
             role: msg._getType() === 'human' ? 'user' : 'assistant',
             content: msg.text,
             timestamp: new Date().toISOString(),
@@ -71,7 +64,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
     };
 
     fetchHistory();
-  }, [sessionId]);
+  }, [sessionId, get]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -85,24 +78,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
-    setError('');
-    setIsLoading(true);    try {
-      // Créer un FormData pour la requête
+    setError('');    setIsLoading(true);
+
+    try {
+      // Create form data for the request
       const formData = new FormData();
       formData.append('message', input);
       formData.append('sessionId', sessionId);
       formData.append('systemPrompt', systemPrompt);
       formData.append('temperature', temperature);
 
-      const response = await request(`/${PLUGIN_ID}/chat`, {
-        method: 'POST',
-        body: formData,
-      }) as any; // Utiliser any temporairement pour éviter les erreurs de type
+      const response = await post(`/${PLUGIN_ID}/chat`, formData) as any;
 
-      if (response && response.response) {
+      if (response && response.data && response.data.response) {
         const assistantMessage: Message = {
           role: 'assistant',
-          content: response.response,
+          content: response.data.response,
           timestamp: new Date().toISOString(),
         };
 
@@ -115,12 +106,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
       setIsLoading(false);
     }
   };
-
   const clearChat = async () => {
     try {
-      await request(`/${PLUGIN_ID}/history?sessionId=${sessionId}`, {
-        method: 'DELETE',
-      });
+      await del(`/${PLUGIN_ID}/history?sessionId=${sessionId}`);
       setMessages([]);
       // Generate a new session ID to force a fresh conversation
       setSessionId(`session-${Date.now()}`);
@@ -135,21 +123,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
       sendMessage();
     }
   };
-
   return (
-    <Stack spacing={4}>
+    <Flex direction="column" gap={4}>
       {/* Chat configuration panel */}
       <Flex justifyContent="space-between" alignItems="center">
         <Button variant="tertiary" onClick={() => setShowConfig(!showConfig)}>
           {showConfig ? 'Hide Configuration' : 'Show Configuration'}
         </Button>
         <Badge active>{sessionId}</Badge>
-        <IconButton onClick={clearChat} label="Clear chat" icon={<Trash />} />
+        <Button variant="secondary" startIcon={<Trash />} onClick={clearChat}>
+          Clear chat
+        </Button>
       </Flex>
 
       {showConfig && (
         <Card padding={4}>
-          <Stack spacing={2}>
+          <Flex direction="column" gap={2}>
             <Typography variant="beta">Chat Configuration</Typography>
 
             <Box>
@@ -160,18 +149,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
                 value={systemPrompt}
                 placeholder="Instructions for the AI..."
               />
-            </Box>
-
-            <Box>
+            </Box>            <Box>
               <Typography variant="delta">Provider</Typography>
-              <Select
+              <TextInput
+                name="provider"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProvider(e.target.value)}
                 value={provider}
-                onChange={setProvider}
-                placeholder="Select provider"
-              >
-                <Option value="openai">OpenAI</Option>
-                <Option value="custom">Custom API</Option>
-              </Select>
+                placeholder="openai"
+              />
             </Box>
 
             <Box>
@@ -184,9 +169,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
                 value={temperature}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTemperature(e.target.value)}
                 style={{ width: '100%' }}
-              />
-            </Box>
-          </Stack>
+              />            </Box>
+          </Flex>
         </Card>
       )}
 
@@ -271,10 +255,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
             disabled={isLoading || !input.trim()}
           >
             Send
-          </Button>
-        </Flex>
+          </Button>        </Flex>
       </Box>
-    </Stack>
+    </Flex>
   );
 };
 
