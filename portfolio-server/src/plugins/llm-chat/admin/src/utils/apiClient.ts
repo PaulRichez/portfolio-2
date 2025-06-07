@@ -53,4 +53,18 @@ export const apiClient = {
     const url = `/${PLUGIN_ID}/history${sessionId ? `?sessionId=${sessionId}` : ''}`;
     return axios.delete(url);
   },
+
+  /**
+   * Get all active chat sessions
+   */
+  getAllSessions: async () => {
+    return axios.get(`/${PLUGIN_ID}/sessions`);
+  },
+
+  /**
+   * Clear all chat history
+   */
+  clearAllHistory: async () => {
+    return axios.delete(`/${PLUGIN_ID}/history/all`);
+  },
 };

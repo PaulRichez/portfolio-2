@@ -38,21 +38,21 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
   // Créer un modèle en fonction de la configuration
   const createModel = (config: LlmChatConfig, options?: ConversationOptions) => {
     const temperature = options?.temperature !== undefined
-      ? options.temperature
-      : (config.provider === 'openai' ? config.openai.temperature : config.custom.temperature);
+      ? Number(options.temperature)
+      : Number(config.provider === 'openai' ? config.openai.temperature : config.custom.temperature);
 
     if (config.provider === 'openai') {
       return new ChatOpenAI({
         modelName: config.openai.modelName,
         temperature: temperature,
         openAIApiKey: config.openai.apiKey,
-        maxTokens: options?.maxTokens,
+        maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
       });
     } else if (config.provider === 'custom') {
       return new ChatOpenAI({
         modelName: config.custom.modelName,
         temperature: temperature,
-        maxTokens: options?.maxTokens,
+        maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
         configuration: {
           baseURL: config.custom.baseUrl,
           apiKey: config.custom.apiKey || "not-needed",
@@ -134,9 +134,40 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
     // Obtenir l'historique d'une conversation
     getHistory(sessionId: string = 'default') {
       if (!conversations.has(sessionId)) {
-        return [];
+        return {
+          sessionId,
+          messages: [],
+          messageCount: 0,
+          lastActivity: null
+        };
       }
-      return conversations.get(sessionId).messages;
+      const conversation = conversations.get(sessionId);
+      return {
+        sessionId,
+        messages: conversation.messages,
+        messageCount: conversation.messages.length,
+        lastActivity: conversation.messages.length > 0
+          ? conversation.messages[conversation.messages.length - 1].timestamp || new Date().toISOString()
+          : null
+      };
+    },
+
+    // Obtenir toutes les sessions actives
+    getAllSessions() {
+      const sessions = [];
+      for (const [sessionId, conversation] of conversations.entries()) {
+        sessions.push({
+          sessionId,
+          messageCount: conversation.messages.length,
+          lastActivity: conversation.messages.length > 0
+            ? conversation.messages[conversation.messages.length - 1].timestamp || new Date().toISOString()
+            : new Date().toISOString(),
+          lastMessage: conversation.messages.length > 0
+            ? conversation.messages[conversation.messages.length - 1].content.slice(0, 100) + '...'
+            : 'No messages'
+        });
+      }
+      return sessions.sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime());
     },
 
     // Effacer l'historique d'une conversation
@@ -146,6 +177,13 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
         return true;
       }
       return false;
+    },
+
+    // Effacer toutes les conversations
+    clearAllHistory() {
+      const count = conversations.size;
+      conversations.clear();
+      return { cleared: count };
     },
   };
 };

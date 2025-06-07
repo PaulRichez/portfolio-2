@@ -35,7 +35,20 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
         .service('langchainService')
         .getHistory(sessionId);
 
-      ctx.body = { sessionId, history };
+      ctx.body = history;
+    } catch (error) {
+      ctx.throw(500, error.message);
+    }
+  },
+
+  async getAllSessions(ctx) {
+    try {
+      const sessions = strapi
+        .plugin('llm-chat')
+        .service('langchainService')
+        .getAllSessions();
+
+      ctx.body = { sessions };
     } catch (error) {
       ctx.throw(500, error.message);
     }
@@ -51,6 +64,19 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
         .clearHistory(sessionId);
 
       ctx.body = { success, sessionId };
+    } catch (error) {
+      ctx.throw(500, error.message);
+    }
+  },
+
+  async clearAllHistory(ctx) {
+    try {
+      const result = strapi
+        .plugin('llm-chat')
+        .service('langchainService')
+        .clearAllHistory();
+
+      ctx.body = result;
     } catch (error) {
       ctx.throw(500, error.message);
     }

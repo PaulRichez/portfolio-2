@@ -16,9 +16,25 @@ export default [
     },
   },
   {
+    method: 'GET',
+    path: '/sessions',
+    handler: 'controller.getAllSessions',
+    config: {
+      policies: [],
+    },
+  },
+  {
     method: 'DELETE',
     path: '/history',
     handler: 'controller.clearHistory',
+    config: {
+      policies: [],
+    },
+  },
+  {
+    method: 'DELETE',
+    path: '/history/all',
+    handler: 'controller.clearAllHistory',
     config: {
       policies: [],
     },
