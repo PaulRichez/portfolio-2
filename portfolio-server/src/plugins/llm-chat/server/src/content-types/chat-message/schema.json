@@ -20,8 +20,8 @@
     }
   },
   "attributes": {
-    "content": {
-      "type": "text",
+    "sessionId": {
+      "type": "string",
       "required": true
     },
     "role": {
@@ -29,13 +29,13 @@
       "enum": ["user", "assistant", "system"],
       "required": true
     },
-    "sessionId": {
-      "type": "string",
+    "content": {
+      "type": "text",
       "required": true
     },
     "timestamp": {
       "type": "datetime",
-      "required": true
+      "required": false
     },
     "session": {
       "type": "relation",

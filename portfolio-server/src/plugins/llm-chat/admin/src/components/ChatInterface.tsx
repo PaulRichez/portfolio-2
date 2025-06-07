@@ -104,14 +104,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    // Add user message to the chat
-    const userMessage: Message = {
-      role: 'user',
-      content: input,
-      timestamp: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
     const currentInput = input;
     setInput('');
     setError('');
@@ -127,13 +119,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
       const response = await post(`/${PLUGIN_ID}/chat`, formData) as any;
 
       if (response && response.data && response.data.response) {
-        const assistantMessage: Message = {
-          role: 'assistant',
-          content: response.data.response,
-          timestamp: new Date().toISOString(),
-        };
+        // Recharger l'historique complet depuis la base de données
+        const historyResponse = await get(`/${PLUGIN_ID}/history?sessionId=${sessionId}`) as any;
+        if (historyResponse && historyResponse.data && historyResponse.data.messages) {
+          const formattedMessages = historyResponse.data.messages.map((msg: any) => ({
+            role: msg.role,
+            content: msg.content,
+            timestamp: msg.timestamp || new Date().toISOString(),
+          }));
+          setMessages(formattedMessages);
+        }
 
-        setMessages((prev) => [...prev, assistantMessage]);
+        // Recharger les sessions
+        await fetchSessions();
       }
     } catch (err: any) {
       console.error('Failed to send message', err);
@@ -142,11 +140,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
       setIsLoading(false);
     }
   };
+
   const clearChat = async () => {
     try {
       await del(`/${PLUGIN_ID}/history?sessionId=${sessionId}`);
       setMessages([]);
-      // Generate a new session ID to force a fresh conversation
+      await fetchSessions();
       setSessionId(`session-${Date.now()}`);
     } catch (err) {
       console.error('Failed to clear chat history', err);
@@ -159,6 +158,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
       setMessages([]);
       setSessions([]);
       setSessionId(`session-${Date.now()}`);
+      await fetchSessions();
     } catch (err) {
       console.error('Failed to clear all chat history', err);
     }
@@ -167,14 +167,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
   const loadSession = (selectedSessionId: string) => {
     setSessionId(selectedSessionId);
     setShowHistoryModal(false);
+    // L'effet useEffect se chargera de recharger l'historique
   };
 
   const deleteSession = async (sessionIdToDelete: string) => {
     try {
       await del(`/${PLUGIN_ID}/sessions/${sessionIdToDelete}`);
-      setSessions(sessions.filter(s => s.sessionId !== sessionIdToDelete));
+      await fetchSessions();
 
-      // If we're deleting the current session, create a new one
       if (sessionIdToDelete === sessionId) {
         setMessages([]);
         setSessionId(`session-${Date.now()}`);
@@ -184,33 +184,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
     }
   };
 
-  const startEditingTitle = (session: Session) => {
-    setEditingSessionId(session.sessionId);
-    setEditingTitle(session.title || session.sessionId);
-  };
-
-  const saveSessionTitle = async (sessionIdToUpdate: string) => {
+  // Ajouter une fonction pour forcer la synchronisation
+  const refreshFromDatabase = async () => {
     try {
-      await post(`/${PLUGIN_ID}/sessions/${sessionIdToUpdate}/title`, {
-        title: editingTitle
-      });
+      // Recharger l'historique de la session actuelle
+      const historyResponse = await get(`/${PLUGIN_ID}/history?sessionId=${sessionId}`) as any;
+      if (historyResponse && historyResponse.data && historyResponse.data.messages && Array.isArray(historyResponse.data.messages)) {
+        const formattedMessages = historyResponse.data.messages.map((msg: any) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp || new Date().toISOString(),
+        }));
+        setMessages(formattedMessages);
+      } else {
+        setMessages([]);
+      }
 
-      setSessions(sessions.map(s =>
-        s.sessionId === sessionIdToUpdate
-          ? { ...s, title: editingTitle }
-          : s
-      ));
-
-      setEditingSessionId(null);
-      setEditingTitle('');
+      // Recharger toutes les sessions
+      await fetchSessions();
     } catch (err) {
-      console.error('Failed to update session title', err);
+      console.error('Failed to refresh from database', err);
     }
-  };
-
-  const cancelEditingTitle = () => {
-    setEditingSessionId(null);
-    setEditingTitle('');
   };
 
   const formatDate = (dateString: string) => {
@@ -245,6 +239,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
     }
   };
 
+  const startEditingTitle = (session: Session) => {
+    setEditingSessionId(session.sessionId);
+    setEditingTitle(session.title || session.sessionId);
+  };
+
+  const saveSessionTitle = async (sessionIdToUpdate: string) => {
+    try {
+      await post(`/${PLUGIN_ID}/sessions/${sessionIdToUpdate}/title`, {
+        title: editingTitle
+      });
+
+      setSessions(sessions.map(s =>
+        s.sessionId === sessionIdToUpdate
+          ? { ...s, title: editingTitle }
+          : s
+      ));
+
+      setEditingSessionId(null);
+      setEditingTitle('');
+    } catch (err) {
+      console.error('Failed to update session title', err);
+    }
+  };
+
+  const cancelEditingTitle = () => {
+    setEditingSessionId(null);
+    setEditingTitle('');
+  };
+
   return (
     <Flex direction="column" gap={4}>
       {/* Chat configuration panel */}
@@ -255,6 +278,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
         <Flex gap={2} alignItems="center">
           <Button variant="tertiary" onClick={testStreaming}>
             Test Chat
+          </Button>
+          <Button variant="tertiary" onClick={refreshFromDatabase}>
+            🔄 Refresh
           </Button>
           <Badge active>{sessionId}</Badge>
           <Button variant="secondary" onClick={() => setShowHistoryModal(true)}>

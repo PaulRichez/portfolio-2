@@ -55,25 +55,95 @@ class StrapiChatMemory extends BaseChatMemory {
     const input = inputValues[this.inputKey];
     const output = outputValues[this.outputKey];
 
-    // Sauvegarder le message utilisateur
-    await this.strapi.entityService.create('plugin::llm-chat.chat-message', {
-      data: {
-        sessionId: this.sessionId,
-        role: 'user',
-        content: input,
-        timestamp: new Date().toISOString()
-      }
-    });
+    strapi.log.info('💾 Saving context for session:', this.sessionId);
+    console.log('💾 Saving context for session:', this.sessionId);
+    console.log('User message:', input.substring(0, 50) + '...');
+    console.log('Assistant response:', output.substring(0, 50) + '...');
 
-    // Sauvegarder la réponse de l'assistant
-    await this.strapi.entityService.create('plugin::llm-chat.chat-message', {
-      data: {
-        sessionId: this.sessionId,
-        role: 'assistant',
-        content: output,
-        timestamp: new Date().toISOString()
+    try {
+      // Vérifier que le content-type existe
+      const messageContentType = strapi.contentType('plugin::llm-chat.chat-message');
+      if (!messageContentType) {
+        throw new Error('Content type plugin::llm-chat.chat-message not found');
       }
-    });
+      console.log('✅ Content type chat-message found');
+
+      // Sauvegarder le message utilisateur
+      const userMessage = await this.strapi.entityService.create('plugin::llm-chat.chat-message', {
+        data: {
+          sessionId: this.sessionId,
+          role: 'user',
+          content: input,
+          timestamp: new Date().toISOString()
+        }
+      });
+      strapi.log.info('✅ User message saved with ID:', userMessage.id);
+      console.log('✅ User message saved with ID:', userMessage.id);
+
+      // Sauvegarder la réponse de l'assistant
+      const assistantMessage = await this.strapi.entityService.create('plugin::llm-chat.chat-message', {
+        data: {
+          sessionId: this.sessionId,
+          role: 'assistant',
+          content: output,
+          timestamp: new Date().toISOString()
+        }
+      });
+      strapi.log.info('✅ Assistant message saved with ID:', assistantMessage.id);
+      console.log('✅ Assistant message saved with ID:', assistantMessage.id);
+
+      // Créer ou mettre à jour la session
+      await this.updateOrCreateSession(input, output);
+    } catch (error) {
+      strapi.log.error('❌ Error saving messages:', error);
+      console.error('❌ Error saving messages:', error);
+      throw error;
+    }
+  }
+
+  async updateOrCreateSession(userMessage: string, assistantResponse: string) {
+    try {
+      console.log('🔄 Updating session:', this.sessionId);
+
+      // Vérifier si la session existe
+      const existingSession = await this.strapi.entityService.findMany('plugin::llm-chat.chat-session', {
+        filters: { sessionId: this.sessionId }
+      }) as any[];
+
+      const messageCount = await this.strapi.entityService.count('plugin::llm-chat.chat-message', {
+        filters: { sessionId: this.sessionId }
+      });
+
+      console.log('📊 Current message count for session:', messageCount);
+
+      const sessionData = {
+        sessionId: this.sessionId,
+        messageCount,
+        lastActivity: new Date().toISOString(),
+        lastMessage: assistantResponse.substring(0, 100)
+      } as any;
+
+      if (existingSession.length > 0) {
+        // Mettre à jour la session existante
+        console.log('📝 Updating existing session...');
+        await this.strapi.entityService.update('plugin::llm-chat.chat-session', existingSession[0].id, {
+          data: sessionData
+        });
+        console.log('✅ Session updated');
+      } else {
+        // Créer une nouvelle session
+        console.log('🆕 Creating new session...');
+        const newSession = await this.strapi.entityService.create('plugin::llm-chat.chat-session', {
+          data: {
+            ...sessionData,
+            title: userMessage.substring(0, 50) + (userMessage.length > 50 ? '...' : '')
+          }
+        });
+        console.log('✅ New session created with ID:', newSession.id);
+      }
+    } catch (error) {
+      console.error('❌ Error updating session:', error);
+    }
   }
 
   async getChatMessages(): Promise<BaseMessage[]> {
@@ -138,6 +208,15 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
     // Créer une nouvelle conversation ou continuer une existante
     async chat(message: string, options?: ConversationOptions) {
       try {
+        strapi.log.info('🚀 Starting chat for session:', options?.sessionId);
+        console.log('🚀 Starting chat for session:', options?.sessionId);
+        console.log('📝 User message:', message.substring(0, 50) + '...');
+
+        // Vérifier que Strapi est correctement initialisé
+        if (!strapi.entityService) {
+          throw new Error('Strapi entity service not available');
+        }
+
         const pluginConfig = strapi.config.get('plugin::llm-chat') || strapi.plugin('llm-chat').config('default');
 
         if (!pluginConfig) {
@@ -153,8 +232,32 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
         const sessionId = options?.sessionId || 'default';
         const model = createModel(config, options);
 
+        // S'assurer qu'une session existe AVANT de créer la chaîne
+        await this.ensureSessionExists(sessionId, message);
+
+        // Test: créer un message directement pour voir si ça fonctionne
+        try {
+          const testMessage = await strapi.entityService.create('plugin::llm-chat.chat-message', {
+            data: {
+              sessionId: sessionId,
+              role: 'system',
+              content: 'Test message',
+              timestamp: new Date().toISOString()
+            }
+          });
+          console.log('✅ Test message created successfully:', testMessage.id);
+
+          // Supprimer le message de test
+          await strapi.entityService.delete('plugin::llm-chat.chat-message', testMessage.id);
+          console.log('✅ Test message deleted');
+        } catch (testError) {
+          console.error('❌ Failed to create test message:', testError);
+          throw new Error('Database connection or content-type issue: ' + testError.message);
+        }
+
         // Récupérer ou créer une conversation
         if (!conversationChains.has(sessionId)) {
+          console.log('🔗 Creating new conversation chain for session:', sessionId);
           // Créer une mémoire personnalisée utilisant Strapi
           const memory = new StrapiChatMemory(strapi, sessionId);
 
@@ -172,21 +275,35 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
           });
 
           conversationChains.set(sessionId, chain);
+        } else {
+          console.log('♻️ Using existing conversation chain for session:', sessionId);
         }
 
         // Récupérer la conversation existante
         const chain = conversationChains.get(sessionId);
 
+        console.log('⚡ Calling LLM...');
         // Appeler la chaîne et obtenir une réponse
         const response = await chain.call({
           input: message,
         });
 
-        // Récupérer l'historique depuis la base de données
+        console.log('✅ LLM response received');
+
+        // Vérifier que les messages ont bien été sauvegardés
         const messages = await strapi.entityService.findMany('plugin::llm-chat.chat-message', {
           filters: { sessionId },
           sort: { createdAt: 'asc' }
         });
+
+        console.log('📚 Total messages in database for session:', messages.length);
+
+        // Vérifier que la session existe
+        const sessions = await strapi.entityService.findMany('plugin::llm-chat.chat-session', {
+          filters: { sessionId }
+        });
+
+        console.log('🗂️ Sessions found:', sessions.length);
 
         return {
           sessionId,
@@ -194,7 +311,60 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
           history: messages,
         };
       } catch (error) {
-        strapi.log.error('Error in langchain chat service:', error);
+        strapi.log.error('❌ Error in langchain chat service:', error);
+        console.error('❌ Error in langchain chat service:', error);
+        throw error;
+      }
+    },
+
+    // S'assurer qu'une session existe
+    async ensureSessionExists(sessionId: string, firstMessage: string) {
+      try {
+        strapi.log.info('🔍 Checking if session exists:', sessionId);
+        console.log('🔍 Checking if session exists:', sessionId);
+
+        // Vérifier que le content-type existe
+        try {
+          const contentType = strapi.contentType('plugin::llm-chat.chat-session');
+          if (!contentType) {
+            throw new Error('Content type plugin::llm-chat.chat-session not found');
+          }
+          console.log('✅ Content type chat-session found');
+        } catch (error) {
+          console.error('❌ Content type chat-session not found:', error);
+          throw error;
+        }
+
+        const existingSession = await strapi.entityService.findMany('plugin::llm-chat.chat-session', {
+          filters: { sessionId }
+        }) as any[];
+
+        console.log('🔍 Query result:', existingSession);
+
+        if (existingSession.length === 0) {
+          strapi.log.info('🆕 Session does not exist, creating new one...');
+          console.log('🆕 Session does not exist, creating new one...');
+
+          // Créer une nouvelle session
+          const newSession = await strapi.entityService.create('plugin::llm-chat.chat-session', {
+            data: {
+              sessionId,
+              title: firstMessage.substring(0, 50) + (firstMessage.length > 50 ? '...' : ''),
+              messageCount: 0,
+              lastActivity: new Date().toISOString(),
+              lastMessage: 'New session'
+            }
+          });
+
+          strapi.log.info('✅ New session created with ID:', newSession.id);
+          console.log('✅ New session created with ID:', newSession.id);
+        } else {
+          strapi.log.info('✅ Session already exists');
+          console.log('✅ Session already exists');
+        }
+      } catch (error) {
+        strapi.log.error('❌ Error ensuring session exists:', error);
+        console.error('❌ Error ensuring session exists:', error);
         throw error;
       }
     },

@@ -665,7 +665,7 @@ export interface PluginLlmChatChatMessage extends Struct.CollectionTypeSchema {
       'plugin::llm-chat.chat-session'
     >;
     sessionId: Schema.Attribute.String & Schema.Attribute.Required;
-    timestamp: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    timestamp: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
