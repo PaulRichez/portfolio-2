@@ -16,7 +16,7 @@
       "required": true
     },
     "image": {
-      "type": "string"
+      "type": "text"
     },
     "link_npm": {
       "type": "string"

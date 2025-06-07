@@ -1,15 +1,24 @@
 {
   "name": "portfolio",
   "version": "2.0.0",
-  "scripts": {
+  "description": "Portfolio avec Angular, Strapi, Ollama et ChromaDB",  "scripts": {
     "start": "npm run dev & npm run client",
-    "dev": "cd portfolio-server && npm run dev",
-    "client": "cd portfolio-client && npm start"
+    "dev": "cd portfolio-server && npm run develop",
+    "client": "cd portfolio-client && npm start",
+    "docker:build": "docker-compose build",
+    "docker:start": "docker-compose up -d",
+    "docker:start-postgres": "docker-compose --profile postgres up -d",
+    "docker:stop": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:status": "docker-compose ps",
+    "docker:clean": "docker-compose down -v && docker system prune -f",
+    "dev:start": "docker-compose -f docker-compose.dev.yml up -d",
+    "dev:stop": "docker-compose -f docker-compose.dev.yml down",
+    "dev:logs": "docker-compose -f docker-compose.dev.yml logs -f",
+    "test:ollama": "curl -X POST http://localhost:11434/api/generate -H \"Content-Type: application/json\" -d \"{\\\"model\\\": \\\"qwen2:0.5b\\\", \\\"prompt\\\": \\\"Hello!\\\", \\\"stream\\\": false}\"",
+    "test:chroma": "curl -X GET http://localhost:8001/api/v1/heartbeat"
   },
   "private": true,
-  "dependencies": {
-
-  },
-  "devDependencies": {
-  }
+  "dependencies": {},
+  "devDependencies": {}
 }
