@@ -35,6 +35,7 @@ interface ChatInterfaceProps {
 
 interface Session {
   sessionId: string;
+  title?: string;
   messageCount: number;
   lastActivity: string;
   lastMessage: string;
@@ -52,6 +53,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
   const [showConfig, setShowConfig] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessageIndex, setStreamingMessageIndex] = useState<number | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { formatMessage } = useIntl();
@@ -81,8 +86,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
 
         if (response && response.data && response.data.messages && Array.isArray(response.data.messages)) {
           const formattedMessages = response.data.messages.map((msg: any) => ({
-            role: msg._getType() === 'human' ? 'user' : 'assistant',
-            content: msg.content || msg.text,
+            role: msg.role, // Now comes directly from database
+            content: msg.content,
             timestamp: msg.timestamp || new Date().toISOString(),
           }));
           setMessages(formattedMessages);
@@ -107,13 +112,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
-    setError('');    setIsLoading(true);
+    setError('');
+    setIsLoading(true);
 
     try {
-      // Create form data for the request
       const formData = new FormData();
-      formData.append('message', input);
+      formData.append('message', currentInput);
       formData.append('sessionId', sessionId);
       formData.append('systemPrompt', systemPrompt);
       formData.append('temperature', temperature);
@@ -163,6 +169,50 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
     setShowHistoryModal(false);
   };
 
+  const deleteSession = async (sessionIdToDelete: string) => {
+    try {
+      await del(`/${PLUGIN_ID}/sessions/${sessionIdToDelete}`);
+      setSessions(sessions.filter(s => s.sessionId !== sessionIdToDelete));
+
+      // If we're deleting the current session, create a new one
+      if (sessionIdToDelete === sessionId) {
+        setMessages([]);
+        setSessionId(`session-${Date.now()}`);
+      }
+    } catch (err) {
+      console.error('Failed to delete session', err);
+    }
+  };
+
+  const startEditingTitle = (session: Session) => {
+    setEditingSessionId(session.sessionId);
+    setEditingTitle(session.title || session.sessionId);
+  };
+
+  const saveSessionTitle = async (sessionIdToUpdate: string) => {
+    try {
+      await post(`/${PLUGIN_ID}/sessions/${sessionIdToUpdate}/title`, {
+        title: editingTitle
+      });
+
+      setSessions(sessions.map(s =>
+        s.sessionId === sessionIdToUpdate
+          ? { ...s, title: editingTitle }
+          : s
+      ));
+
+      setEditingSessionId(null);
+      setEditingTitle('');
+    } catch (err) {
+      console.error('Failed to update session title', err);
+    }
+  };
+
+  const cancelEditingTitle = () => {
+    setEditingSessionId(null);
+    setEditingTitle('');
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
   };
@@ -173,6 +223,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
       sendMessage();
     }
   };
+
+  const testStreaming = async () => {
+    console.log('Testing chat endpoint...');
+    try {
+      const formData = new FormData();
+      formData.append('message', 'Hello, test chat');
+      formData.append('sessionId', sessionId);
+      formData.append('systemPrompt', systemPrompt);
+      formData.append('temperature', temperature);
+
+      const response = await post(`/${PLUGIN_ID}/chat`, formData) as any;
+
+      console.log('Chat response:', response);
+
+      if (response && response.data) {
+        console.log('Chat response received successfully');
+      }
+    } catch (error) {
+      console.error('Chat test failed:', error);
+    }
+  };
+
   return (
     <Flex direction="column" gap={4}>
       {/* Chat configuration panel */}
@@ -181,6 +253,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
           {showConfig ? 'Hide Configuration' : 'Show Configuration'}
         </Button>
         <Flex gap={2} alignItems="center">
+          <Button variant="tertiary" onClick={testStreaming}>
+            Test Chat
+          </Button>
           <Badge active>{sessionId}</Badge>
           <Button variant="secondary" onClick={() => setShowHistoryModal(true)}>
             History ({sessions.length})
@@ -207,6 +282,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
               <Table>
                 <Thead>
                   <Tr>
+                    <Th>Title</Th>
                     <Th>Session ID</Th>
                     <Th>Messages</Th>
                     <Th>Last Activity</Th>
@@ -218,8 +294,41 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
                   {sessions.map((session) => (
                     <Tr key={session.sessionId}>
                       <Td>
-                        <Typography variant="omega">
-                          {session.sessionId.slice(0, 20)}...
+                        {editingSessionId === session.sessionId ? (
+                          <Flex gap={1}>
+                            <TextInput
+                              value={editingTitle}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingTitle(e.target.value)}
+                              onKeyDown={(e: React.KeyboardEvent) => {
+                                if (e.key === 'Enter') {
+                                  saveSessionTitle(session.sessionId);
+                                } else if (e.key === 'Escape') {
+                                  cancelEditingTitle();
+                                }
+                              }}
+                            />
+                            <Button size="S" onClick={() => saveSessionTitle(session.sessionId)}>
+                              Save
+                            </Button>
+                            <Button size="S" variant="tertiary" onClick={cancelEditingTitle}>
+                              Cancel
+                            </Button>
+                          </Flex>
+                        ) : (
+                          <Flex alignItems="center" gap={2}>
+                            <Typography
+                              variant="omega"
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => startEditingTitle(session)}
+                            >
+                              {session.title || 'Untitled Chat'}
+                            </Typography>
+                          </Flex>
+                        )}
+                      </Td>
+                      <Td>
+                        <Typography variant="pi" style={{ fontSize: '0.75rem', color: '#666' }}>
+                          {session.sessionId.slice(0, 15)}...
                         </Typography>
                       </Td>
                       <Td>
@@ -240,7 +349,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
                           <Button size="S" onClick={() => loadSession(session.sessionId)}>
                             Load
                           </Button>
-                          <Button size="S" variant="danger" onClick={() => clearChat()}>
+                          <Button size="S" variant="danger" onClick={() => deleteSession(session.sessionId)}>
                             Delete
                           </Button>
                         </Flex>
@@ -334,6 +443,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
                 <Box>
                   <Typography variant="epsilon" fontWeight="bold">
                     {message.role === 'user' ? 'You' : 'Assistant'}
+                    {isStreaming && index === streamingMessageIndex && (
+                      <span style={{ marginLeft: '8px', animation: 'blink 1s infinite' }}>▋</span>
+                    )}
                   </Typography>
                   <Typography style={{ whiteSpace: 'pre-wrap' }}>
                     {message.content}
