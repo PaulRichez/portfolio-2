@@ -218,7 +218,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
       'typescript', 'html', 'css', 'bootstrap', 'tailwind',
       'qui es-tu', 'présente', 'cv', 'profil', 'about', 'à propos',
       'github', 'linkedin', 'email', 'téléphone', 'coordonnées',
-      'web', 'mobile', 'frontend', 'backend', 'fullstack'
+      'web', 'mobile', 'frontend', 'backend', 'fullstack', 'toi', 'paul'
     ];
 
     const lowerMessage = message.toLowerCase();
