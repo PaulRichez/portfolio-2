@@ -699,39 +699,69 @@ const VectorManagementInterface: React.FC = () => {
               >
                 Search
               </Button>
-            </Flex>
-
-            {searchResults.length > 0 && (
+            </Flex>            {searchResults.length > 0 && (
               <Box>
                 <Typography variant="delta" paddingBottom={3}>
                   Search Results ({searchResults.length})
                 </Typography>
-                {searchResults.map((result, index) => (
-                  <Card key={result.id} padding={3} marginBottom={2} background="neutral100">
-                    <Flex direction="column" gap={2}>
-                      <Flex justifyContent="space-between" alignItems="flex-start">
-                        <Typography variant="omega" fontWeight="semiBold">
-                          {result.metadata.title || result.metadata.collection}
+                {searchResults.map((result, index) => {
+                  // Function to render metadata in search results
+                  const renderSearchMetadata = (metadata: any) => {
+                    const excludeKeys = ['strapi_id', 'collection', 'indexed_at', 'title'];
+                    const metadataEntries = Object.entries(metadata)
+                      .filter(([key, value]) => !excludeKeys.includes(key) && value !== null && value !== undefined && value !== '')
+                      .slice(0, 3) // Limit to 3 most relevant metadata for search results
+                      .sort(([a], [b]) => a.localeCompare(b));
+
+                    if (metadataEntries.length === 0) return null;
+
+                    return (
+                      <Box background="neutral200" hasRadius padding={2} marginTop={2}>
+                        <Typography variant="pi" fontWeight="semiBold" paddingBottom={1} textColor="neutral700">
+                          Key Metadata:
                         </Typography>
-                        <Badge>
-                          Distance: {result.distance.toFixed(3)}
-                        </Badge>
+                        <Flex wrap="wrap" gap={2}>
+                          {metadataEntries.map(([key, value]) => (
+                            <Badge key={key} variant="neutral">
+                              {key.replace(/_/g, ' ')}: {typeof value === 'string' && value.length > 30
+                                ? `${value.substring(0, 30)}...`
+                                : String(value)
+                              }
+                            </Badge>
+                          ))}
+                        </Flex>
+                      </Box>
+                    );
+                  };
+
+                  return (
+                    <Card key={result.id} padding={3} marginBottom={2} background="neutral100">
+                      <Flex direction="column" gap={2}>
+                        <Flex justifyContent="space-between" alignItems="flex-start">
+                          <Typography variant="omega" fontWeight="semiBold">
+                            {result.metadata.title || result.metadata.collection}
+                          </Typography>
+                          <Badge>
+                            Distance: {result.distance.toFixed(3)}
+                          </Badge>
+                        </Flex>
+                        <Typography variant="pi" textColor="neutral600">
+                          Collection: {result.metadata.collection} | ID: {result.metadata.strapi_id}
+                        </Typography>
+                        <Typography variant="pi" style={{
+                          maxHeight: '60px',
+                          overflow: 'hidden',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical'
+                        }}>
+                          {result.content}
+                        </Typography>
+                        {renderSearchMetadata(result.metadata)}
                       </Flex>
-                      <Typography variant="pi" textColor="neutral600">
-                        Collection: {result.metadata.collection} | ID: {result.metadata.strapi_id}
-                      </Typography>
-                      <Typography variant="pi" style={{
-                        maxHeight: '60px',
-                        overflow: 'hidden',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical'
-                      }}>
-                        {result.content}
-                      </Typography>
-                    </Flex>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </Box>
             )}
 
@@ -795,39 +825,73 @@ const VectorManagementInterface: React.FC = () => {
                   Loading documents...
                 </Typography>
               </Box>
-            )}
-
-            {documents.length > 0 && !documentsLoading && (
+            )}            {documents.length > 0 && !documentsLoading && (
               <Box>
-                {documents.map((doc, index) => (
-                  <Card key={doc.id} padding={3} marginBottom={2} background="neutral100">
-                    <Flex direction="column" gap={2}>
-                      <Flex justifyContent="space-between" alignItems="flex-start">
-                        <Typography variant="omega" fontWeight="semiBold">
-                          {doc.metadata.title || `Document ${doc.metadata.strapi_id}`}
+                {documents.map((doc, index) => {
+                  // Function to render metadata in a structured way
+                  const renderMetadata = (metadata: any) => {
+                    const excludeKeys = ['strapi_id', 'collection', 'indexed_at', 'title'];
+                    const metadataEntries = Object.entries(metadata)
+                      .filter(([key, value]) => !excludeKeys.includes(key) && value !== null && value !== undefined && value !== '')
+                      .sort(([a], [b]) => a.localeCompare(b));
+
+                    if (metadataEntries.length === 0) return null;
+
+                    return (
+                      <Box background="neutral200" hasRadius padding={2} marginTop={2}>
+                        <Typography variant="pi" fontWeight="semiBold" paddingBottom={1} textColor="neutral700">
+                          Metadata:
                         </Typography>
-                        <Badge variant="secondary">
-                          {doc.collection}
-                        </Badge>
+                        <Flex direction="column" gap={1}>
+                          {metadataEntries.map(([key, value]) => (
+                            <Flex key={key} alignItems="flex-start" gap={2}>
+                              <Typography variant="pi" fontWeight="semiBold" textColor="neutral600" style={{ minWidth: '120px' }}>
+                                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:
+                              </Typography>
+                              <Typography variant="pi" textColor="neutral700" style={{ flex: 1, wordBreak: 'break-word' }}>
+                                {typeof value === 'string' && value.length > 100
+                                  ? `${value.substring(0, 100)}...`
+                                  : String(value)
+                                }
+                              </Typography>
+                            </Flex>
+                          ))}
+                        </Flex>
+                      </Box>
+                    );
+                  };
+
+                  return (
+                    <Card key={doc.id} padding={3} marginBottom={2} background="neutral100">
+                      <Flex direction="column" gap={2}>
+                        <Flex justifyContent="space-between" alignItems="flex-start">
+                          <Typography variant="omega" fontWeight="semiBold">
+                            {doc.metadata.title || `Document ${doc.metadata.strapi_id}`}
+                          </Typography>
+                          <Badge variant="secondary">
+                            {doc.collection}
+                          </Badge>
+                        </Flex>
+                        <Typography variant="pi" textColor="neutral600">
+                          ID: {doc.id} | Strapi ID: {doc.metadata.strapi_id}
+                        </Typography>
+                        <Typography variant="pi" style={{
+                          maxHeight: '80px',
+                          overflow: 'hidden',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 4,
+                          WebkitBoxOrient: 'vertical'
+                        }}>
+                          {doc.document}
+                        </Typography>
+                        {renderMetadata(doc.metadata)}
+                        <Typography variant="pi" textColor="neutral500">
+                          Indexed: {new Date(doc.metadata.indexed_at).toLocaleString()}
+                        </Typography>
                       </Flex>
-                      <Typography variant="pi" textColor="neutral600">
-                        ID: {doc.id} | Strapi ID: {doc.metadata.strapi_id}
-                      </Typography>
-                      <Typography variant="pi" style={{
-                        maxHeight: '80px',
-                        overflow: 'hidden',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 4,
-                        WebkitBoxOrient: 'vertical'
-                      }}>
-                        {doc.document}
-                      </Typography>
-                      <Typography variant="pi" textColor="neutral500">
-                        Indexed: {new Date(doc.metadata.indexed_at).toLocaleString()}
-                      </Typography>
-                    </Flex>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </Box>
             )}
 
