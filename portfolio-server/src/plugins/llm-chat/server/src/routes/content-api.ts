@@ -33,6 +33,7 @@ export default {
       path: '/history',
       handler: 'controller.clearHistory',
       config: {
+        auth: false,
         policies: [],
       },
     },

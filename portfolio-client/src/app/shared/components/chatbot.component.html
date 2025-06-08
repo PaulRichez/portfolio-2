@@ -138,14 +138,15 @@
             pInputTextarea
             [(ngModel)]="currentMessage"
             placeholder="Tapez votre message..."
-            [rows]="1"
+            [rows]="2"
             [autoResize]="true"
             [disabled]="isLoading"
             (keydown)="onKeyDown($event)"
-            class="w-full">
+            class="w-full min-h-[40px]"
+            style="min-height: 40px; resize: none;">
           </textarea>
         </div>
-        <div class="flex gap-1">
+        <div class="flex gap-1 items-center pb-1">
           <p-button
             icon="pi pi-send"
             [disabled]="!currentMessage.trim() || isLoading"
@@ -155,13 +156,13 @@
             pTooltip="Envoyer (Ctrl+Entrée)">
           </p-button>
           <p-button
-            icon="pi pi-trash"
+            icon="pi pi-history"
             severity="secondary"
-            (onClick)="clearChat()"
+            (onClick)="clearHistory()"
             size="small"
             [rounded]="true"
             [outlined]="true"
-            pTooltip="Effacer la conversation">
+            pTooltip="Effacer l'historique">
           </p-button>
         </div>
       </div>

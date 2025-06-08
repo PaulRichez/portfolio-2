@@ -415,13 +415,20 @@ export class ChatbotService {
 
       request.subscribe({
         next: (response) => {
+          console.log('✅ Historique effacé côté serveur:', response);
+
           // Supprimer du localStorage et créer une nouvelle session
           this.removeSessionIdFromStorage();
           this.createNewSession();
+
+          // Reset les messages localement
+          this.messagesSubject.next([]);
+
           observer.next(response);
           observer.complete();
         },
         error: (error) => {
+          console.error('❌ Erreur lors de l\'effacement de l\'historique:', error);
           observer.error(error);
         }
       });

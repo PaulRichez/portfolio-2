@@ -12,6 +12,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TooltipModule } from 'primeng/tooltip';
 import { AvatarModule } from 'primeng/avatar';
 import { DividerModule } from 'primeng/divider';
+import { MessageService } from 'primeng/api';
 
 import { ChatbotService, ChatMessage } from '../../services/chatbot.service';
 
@@ -31,7 +32,8 @@ import { ChatbotService, ChatMessage } from '../../services/chatbot.service';
     TooltipModule,
     AvatarModule,
     DividerModule
-  ]
+  ],
+  providers: [MessageService]
 })
 export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
@@ -44,7 +46,7 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   private subscriptions: Subscription[] = [];
   private shouldScrollToBottom = false;
 
-  constructor(private chatbotService: ChatbotService) {}
+  constructor(private chatbotService: ChatbotService, private messageService: MessageService) {}
 
   ngOnInit(): void {
     // Subscribe to messages
@@ -172,16 +174,29 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   /**
-   * Efface la conversation
+   * Efface l'historique de la conversation
    */
-  clearChat(): void {
+  clearHistory(): void {
     this.chatbotService.clearHistory().subscribe({
-      next: () => {
-        this.chatbotService.updateMessages([]);
-        this.chatbotService.createNewSession();
+      next: (response) => {
+        console.log('✅ Historique effacé:', response);
+        // L'historique est automatiquement effacé par le service
+        // qui crée une nouvelle session et reset les messages
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Historique effacé',
+          detail: 'L\'historique de la conversation a été supprimé.',
+          life: 3000
+        });
       },
       error: (error) => {
-        console.error('Erreur lors de l\'effacement:', error);
+        console.error('❌ Erreur lors de l\'effacement de l\'historique:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Erreur',
+          detail: 'Impossible d\'effacer l\'historique de la conversation.',
+          life: 3000
+        });
       }
     });
   }

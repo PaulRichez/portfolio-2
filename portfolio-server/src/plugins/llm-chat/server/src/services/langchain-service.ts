@@ -189,22 +189,19 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
   // Stocker les chaînes de conversation en cache
   const conversationChains = new Map();
 
-  // Valeurs système codées en dur
-  const SYSTEM_TEMPERATURE = 0.7;
-
   // Créer un modèle en fonction de la configuration
   const createModel = (config: LlmChatConfig, options?: ConversationOptions) => {
     if (config.provider === 'openai') {
       return new ChatOpenAI({
         modelName: config.openai.modelName,
-        temperature: SYSTEM_TEMPERATURE,
+        temperature: config.openai.temperature,
         openAIApiKey: config.openai.apiKey,
         maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
       });
     } else if (config.provider === 'custom') {
       return new ChatOpenAI({
         modelName: config.custom.modelName,
-        temperature: SYSTEM_TEMPERATURE,
+        temperature: config.custom.temperature,
         maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
         configuration: {
           baseURL: config.custom.baseUrl,
@@ -733,51 +730,145 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
         const config = pluginConfig as LlmChatConfig;
         const sessionId = options?.sessionId || 'default';
 
-        // Créer le modèle avec streaming activé
-        let model;
-        if (config.provider === 'openai') {
-          model = new ChatOpenAI({
-            modelName: config.openai.modelName,
-            temperature: SYSTEM_TEMPERATURE,
-            openAIApiKey: config.openai.apiKey,
-            maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
-            streaming: true,
-          });
-        } else if (config.provider === 'custom') {
-          model = new ChatOpenAI({
-            modelName: config.custom.modelName,
-            temperature: SYSTEM_TEMPERATURE,
-            maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
-            streaming: true,
-            configuration: {
-              baseURL: config.custom.baseUrl,
-              apiKey: config.custom.apiKey || "not-needed",
-            },
-          });
-        } else {
-          throw new Error(`Unsupported LLM provider: ${config.provider}`);
-        }
+        console.log('🌊 Starting streaming chat for session:', sessionId);
 
-        // Récupérer ou créer une conversation
+        // S'assurer qu'une session existe
+        await this.ensureSessionExists(sessionId, message);
+
+        // Récupérer ou créer une conversation avec les mêmes outils que chat()
         if (!conversationChains.has(sessionId)) {
+          console.log('🔗 Creating new streaming conversation chain for session:', sessionId);
+
+          // Créer une mémoire personnalisée utilisant Strapi
           const memory = new StrapiChatMemory(strapi, sessionId);
 
-          const chatPrompt = ChatPromptTemplate.fromMessages([
-            ["system", SYSTEM_PROMPT],
-            new MessagesPlaceholder("history"),
-            HumanMessagePromptTemplate.fromTemplate("{input}"),
-          ]);
+          // Décider si on utilise un agent avec outils RAG ou une conversation simple
+          const useRAG = options?.useRAG !== false; // RAG activé par défaut
 
-          const chain = new ConversationChain({
-            memory: memory,
-            prompt: chatPrompt,
-            llm: model,
-          });
+          if (useRAG) {
+            if (config.provider === 'openai') {
+              console.log('🤖 Creating streaming OpenAI agent with ChromaDB tools...');
 
-          conversationChains.set(sessionId, chain);
+              // Créer le modèle avec streaming activé
+              const model = new ChatOpenAI({
+                modelName: config.openai.modelName,
+                temperature: config.openai.temperature,
+                openAIApiKey: config.openai.apiKey,
+                maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
+                streaming: true,
+              });
+
+              // Créer les outils ChromaDB
+              const tools = [
+                new ChromaRetrievalTool(strapi),
+                new ChromaAdvancedRetrievalTool(strapi)
+              ];
+
+              const agentPrompt = ChatPromptTemplate.fromMessages([
+                ["system", SYSTEM_PROMPT],
+                new MessagesPlaceholder("chat_history"),
+                ["human", "{input}"],
+                new MessagesPlaceholder("agent_scratchpad"),
+              ]);
+
+              // Créer l'agent OpenAI Functions
+              const agent = await createOpenAIFunctionsAgent({
+                llm: model,
+                tools,
+                prompt: agentPrompt,
+              });
+
+              // Créer l'exécuteur d'agent avec mémoire personnalisée
+              const agentExecutor = new AgentExecutor({
+                agent,
+                tools,
+                memory,
+                verbose: true,
+                returnIntermediateSteps: false,
+              });
+
+              conversationChains.set(sessionId, { type: 'agent', executor: agentExecutor });
+            } else {
+              console.log('🔧 Creating streaming custom RAG chain with manual tool integration...');
+
+              // Pour les modèles custom (Ollama), on utilise une approche RAG manuelle
+              const chromaService = strapi.plugin('llm-chat').service('chromaVectorService');
+
+              const model = new ChatOpenAI({
+                modelName: config.custom.modelName,
+                temperature: config.custom.temperature,
+                maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
+                streaming: true,
+                configuration: {
+                  baseURL: config.custom.baseUrl,
+                  apiKey: config.custom.apiKey || "not-needed",
+                },
+              });
+
+              const chatPrompt = ChatPromptTemplate.fromMessages([
+                ["system", SYSTEM_PROMPT],
+                new MessagesPlaceholder("history"),
+                HumanMessagePromptTemplate.fromTemplate("{context}\n\nQuestion: {input}"),
+              ]);
+
+              const chain = new ConversationChain({
+                memory: memory,
+                prompt: chatPrompt,
+                llm: model,
+              });
+
+              conversationChains.set(sessionId, {
+                type: 'rag_manual',
+                chain,
+                chromaService
+              });
+            }
+          } else {
+            console.log('💬 Creating simple streaming conversation chain...');
+
+            // Créer le modèle avec streaming activé
+            let model;
+            if (config.provider === 'openai') {
+              model = new ChatOpenAI({
+                modelName: config.openai.modelName,
+                temperature: config.openai.temperature,
+                openAIApiKey: config.openai.apiKey,
+                maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
+                streaming: true,
+              });
+            } else {
+              model = new ChatOpenAI({
+                modelName: config.custom.modelName,
+                temperature: config.custom.temperature,
+                maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
+                streaming: true,
+                configuration: {
+                  baseURL: config.custom.baseUrl,
+                  apiKey: config.custom.apiKey || "not-needed",
+                },
+              });
+            }
+
+            // Conversation simple sans outils
+            const memory = new StrapiChatMemory(strapi, sessionId);
+            const chatPrompt = ChatPromptTemplate.fromMessages([
+              ["system", SYSTEM_PROMPT],
+              new MessagesPlaceholder("history"),
+              HumanMessagePromptTemplate.fromTemplate("{input}"),
+            ]);
+
+            const chain = new ConversationChain({
+              memory: memory,
+              prompt: chatPrompt,
+              llm: model,
+            });
+
+            conversationChains.set(sessionId, { type: 'chain', chain });
+          }
         }
 
-        const chain = conversationChains.get(sessionId);
+        // Récupérer la conversation existante
+        const conversationData = conversationChains.get(sessionId);
 
         // Retourner un générateur pour le streaming
         return {
@@ -785,35 +876,109 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
             let fullResponse = '';
 
             try {
-              console.log('🌊 Starting LangChain streaming...');
+              console.log('🌊 Starting LangChain streaming with tools...');
 
-              // Utiliser le modèle directement avec streaming
-              const stream = await model.stream(message, {
-                callbacks: [{
-                  handleLLMNewToken(token) {
-                    console.log('📝 Token received:', token);
-                    fullResponse += token;
-                  }
-                }]
-              });
+              if (conversationData.type === 'agent') {
+                // Streaming avec agent OpenAI et outils
+                console.log('🤖 Using agent executor for streaming...');
 
-              for await (const chunk of stream) {
-                console.log('📦 Chunk received:', chunk);
+                // Pour les agents, utiliser la méthode call normale mais avec streaming callbacks
+                const result = await conversationData.executor.call({
+                  input: message,
+                }, {
+                  callbacks: [{
+                    handleLLMNewToken(token: string) {
+                      console.log('📝 Agent token received:', token);
+                      fullResponse += token;
+                      return `data: ${JSON.stringify({ type: 'chunk', content: token })}\n\n`;
+                    }
+                  }]
+                });
 
-                // Les chunks de LangChain contiennent le contenu dans .content
-                let content = '';
-                if (chunk.content) {
-                  content = chunk.content;
-                } else if (typeof chunk === 'string') {
-                  content = chunk;
-                } else if (chunk.text) {
-                  content = chunk.text;
+                // Si on n'a pas reçu de tokens via callback, envoyer la réponse complète
+                if (!fullResponse && result.output) {
+                  fullResponse = result.output;
+                  yield `data: ${JSON.stringify({ type: 'chunk', content: result.output })}\n\n`;
                 }
 
-                if (content) {
-                  // Pas de filtrage, garder le contenu original
-                  fullResponse += content;
-                  yield `data: ${JSON.stringify({ content: content })}\n\n`;
+              } else if (conversationData.type === 'rag_manual') {
+                // Streaming avec RAG manuel pour les modèles custom
+                console.log('🔍 Using manual RAG streaming for custom provider...');
+
+                // Fonction pour détecter si on a besoin de rechercher dans ChromaDB
+                const needsRAG = shouldUseRAG(message);
+
+                let context = '';
+                if (needsRAG) {
+                  console.log('🕵️ Searching ChromaDB for relevant information...');
+                  try {
+                    const searchResults = await conversationData.chromaService.searchDocuments(message, 5);
+                    if (searchResults && searchResults.length > 0) {
+                      context = formatChromaResults(searchResults, message);
+                      console.log(`✅ Found ${searchResults.length} relevant documents`);
+                    } else {
+                      console.log('ℹ️ No relevant documents found in ChromaDB');
+                    }
+                  } catch (searchError) {
+                    console.error('❌ Error searching ChromaDB:', searchError);
+                  }
+                } else {
+                  console.log('ℹ️ Question does not require ChromaDB search');
+                }
+
+                // Utiliser le LLM directement pour le streaming avec contexte
+                const llm = conversationData.chain.llm;
+                const memory = conversationData.chain.memory;
+
+                // Charger l'historique
+                const memoryVariables = await memory.loadMemoryVariables({});
+
+                // Construire le prompt avec contexte
+                const fullPrompt = `${SYSTEM_PROMPT}\n\n${context}\n\nConversation history:\n${memoryVariables.history ? memoryVariables.history.map(msg => `${msg._getType()}: ${msg.content}`).join('\n') : ''}\n\nQuestion: ${message}\n\nAssistant:`;
+
+                const stream = await llm.stream(fullPrompt);
+
+                for await (const chunk of stream) {
+                  let content = '';
+                  if (chunk.content) {
+                    content = chunk.content;
+                  } else if (typeof chunk === 'string') {
+                    content = chunk;
+                  }
+
+                  if (content) {
+                    fullResponse += content;
+                    yield `data: ${JSON.stringify({ type: 'chunk', content: content })}\n\n`;
+                  }
+                }
+
+              } else {
+                // Streaming simple sans outils
+                console.log('💬 Using simple chain streaming...');
+
+                const llm = conversationData.chain.llm;
+                const memory = conversationData.chain.memory;
+
+                // Charger l'historique
+                const memoryVariables = await memory.loadMemoryVariables({});
+
+                // Construire le prompt
+                const fullPrompt = `${SYSTEM_PROMPT}\n\nConversation history:\n${memoryVariables.history ? memoryVariables.history.map(msg => `${msg._getType()}: ${msg.content}`).join('\n') : ''}\n\nHuman: ${message}\n\nAssistant:`;
+
+                const stream = await llm.stream(fullPrompt);
+
+                for await (const chunk of stream) {
+                  let content = '';
+                  if (chunk.content) {
+                    content = chunk.content;
+                  } else if (typeof chunk === 'string') {
+                    content = chunk;
+                  }
+
+                  if (content) {
+                    fullResponse += content;
+                    yield `data: ${JSON.stringify({ type: 'chunk', content: content })}\n\n`;
+                  }
                 }
               }
 
@@ -826,10 +991,10 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
                 { response: fullResponse }
               );
 
-              yield `data: [DONE]\n\n`;
+              yield `data: ${JSON.stringify({ type: 'complete' })}\n\n`;
             } catch (error) {
               console.error('❌ Streaming error:', error);
-              yield `data: ${JSON.stringify({ error: error.message })}\n\n`;
+              yield `data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`;
             }
           },
           sessionId,
