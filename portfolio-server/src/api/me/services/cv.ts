@@ -306,19 +306,44 @@ export default ({ strapi }) => ({
         ];
 
         if (meData.email) {
-            contactStack.push({ text: meData.email, style: 'contactInfo' });
+            contactStack.push({ 
+                text: meData.email, 
+                style: 'contactInfo',
+                link: `mailto:${meData.email}`,
+                decoration: 'underline'
+            } as any);
         }
         if (meData.phoneNumber) {
-            contactStack.push({ text: meData.phoneNumber, style: 'contactInfo' });
+            contactStack.push({ 
+                text: meData.phoneNumber, 
+                style: 'contactInfo',
+                link: `tel:${meData.phoneNumber}`,
+                decoration: 'underline'
+            } as any);
         }
         if (meData.linkedin) {
-            contactStack.push({ text: meData.linkedin, style: 'contactInfo' });
+            contactStack.push({ 
+                text: meData.linkedin, 
+                style: 'contactInfo',
+                link: meData.linkedin.startsWith('http') ? meData.linkedin : `https://${meData.linkedin}`,
+                decoration: 'underline'
+            } as any);
         }
         if (meData.github) {
-            contactStack.push({ text: meData.github, style: 'contactInfo' });
+            contactStack.push({ 
+                text: meData.github, 
+                style: 'contactInfo',
+                link: meData.github.startsWith('http') ? meData.github : `https://${meData.github}`,
+                decoration: 'underline'
+            } as any);
         }
         if (meData.website) {
-            contactStack.push({ text: meData.website, style: 'contactInfo' });
+            contactStack.push({ 
+                text: meData.website, 
+                style: 'contactInfo',
+                link: meData.website.startsWith('http') ? meData.website : `https://${meData.website}`,
+                decoration: 'underline'
+            } as any);
         }
 
         return { stack: contactStack };
@@ -347,8 +372,10 @@ export default ({ strapi }) => ({
             if (experience.businessWebsite) {
                 experiencesStack.push({
                     text: experience.businessWebsite,
-                    style: 'experienceCompany'
-                });
+                    style: 'experienceCompany',
+                    link: experience.businessWebsite.startsWith('http') ? experience.businessWebsite : `https://${experience.businessWebsite}`,
+                    decoration: 'underline'
+                } as any);
             }
 
             // Ajouter les descriptions si disponibles
