@@ -10,25 +10,21 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
 
   async chat(ctx) {
     try {
-      console.log('🎯 Chat controller called');
-      console.log('Request body:', ctx.request.body);
-
       const { message, sessionId, systemPrompt, maxTokens, temperature } = ctx.request.body;
 
       if (!message) {
-        console.log('❌ No message provided');
         ctx.throw(400, 'Message is required');
       }
 
-      console.log('📨 Processing message:', message.substring(0, 50) + '...');
-      console.log('🆔 Session ID:', sessionId);
+      const timerId = `🎯 Chat Controller [${sessionId || Date.now()}]`;
+      console.time(timerId);
 
       const result = await strapi
         .plugin('llm-chat')
         .service('langchainService')
         .chat(message, { sessionId, systemPrompt, maxTokens, temperature });
 
-      console.log('✅ Chat result obtained, sending response');
+      console.timeEnd(timerId);
       ctx.body = result;
     } catch (error) {
       console.error('❌ Error in chat controller:', error);

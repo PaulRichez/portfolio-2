@@ -59,8 +59,9 @@ class StrapiChatMemory extends BaseChatMemory {
     const input = inputValues[this.inputKey];
     const output = outputValues[this.outputKey];
 
+    const timerId = `💾 Save Context [${this.sessionId}]`;
+    console.time(timerId);
     strapi.log.info('💾 Saving context for session:', this.sessionId);
-    console.log('💾 Saving context for session:', this.sessionId);
     console.log('User message:', input.substring(0, 50) + '...');
     console.log('Assistant response:', output.substring(0, 50) + '...');
 
@@ -98,7 +99,10 @@ class StrapiChatMemory extends BaseChatMemory {
 
       // Créer ou mettre à jour la session
       await this.updateOrCreateSession(input, output);
+
+      console.timeEnd(timerId);
     } catch (error) {
+      console.timeEnd(timerId);
       strapi.log.error('❌ Error saving messages:', error);
       console.error('❌ Error saving messages:', error);
       throw error;
@@ -106,6 +110,9 @@ class StrapiChatMemory extends BaseChatMemory {
   }
 
   async updateOrCreateSession(userMessage: string, assistantResponse: string) {
+    const timerId = `📝 Update Session [${this.sessionId}]`;
+    console.time(timerId);
+
     try {
       console.log('🔄 Updating session:', this.sessionId);
 
@@ -145,7 +152,10 @@ class StrapiChatMemory extends BaseChatMemory {
         });
         console.log('✅ New session created with ID:', newSession.id);
       }
+
+      console.timeEnd(timerId);
     } catch (error) {
+      console.timeEnd(timerId);
       console.error('❌ Error updating session:', error);
     }
   }
@@ -284,9 +294,12 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
   return {
     // Créer une nouvelle conversation ou continuer une existante
     async chat(message: string, options?: ConversationOptions) {
+      const sessionId = options?.sessionId || 'default';
+      const timerId = `💬 Chat Session [${sessionId}]`;
+      console.time(timerId);
+
       try {
-        strapi.log.info('🚀 Starting chat for session:', options?.sessionId);
-        console.log('🚀 Starting chat for session:', options?.sessionId);
+        strapi.log.info('🚀 Starting chat for session:', sessionId);
         console.log('📝 User message:', message.substring(0, 50) + '...');
 
         // Vérifier que Strapi est correctement initialisé
@@ -306,13 +319,17 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
           throw new Error('LLM provider not configured');
         }
 
-        const sessionId = options?.sessionId || 'default';
         const model = createModel(config, options);
 
         // S'assurer qu'une session existe AVANT de créer la chaîne
+        const ensureTimerId = `🔍 Session Check [${sessionId}]`;
+        console.time(ensureTimerId);
         await this.ensureSessionExists(sessionId, message);
+        console.timeEnd(ensureTimerId);
 
         // Test: créer un message directement pour voir si ça fonctionne
+        const testTimerId = `🧪 DB Test [${sessionId}]`;
+        console.time(testTimerId);
         try {
           const testMessage = await strapi.entityService.create('plugin::llm-chat.chat-message', {
             data: {
@@ -327,11 +344,15 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
           // Supprimer le message de test
           await strapi.entityService.delete('plugin::llm-chat.chat-message', testMessage.id);
           console.log('✅ Test message deleted');
+          console.timeEnd(testTimerId);
         } catch (testError) {
+          console.timeEnd(testTimerId);
           console.error('❌ Failed to create test message:', testError);
           throw new Error('Database connection or content-type issue: ' + testError.message);
         }        // Récupérer ou créer une conversation
+        const chainTimerId = `⛓️  Chain Setup [${sessionId}]`;
         if (!conversationChains.has(sessionId)) {
+          console.time(chainTimerId);
           console.log('🔗 Creating new conversation chain for session:', sessionId);
 
           // Créer une mémoire personnalisée utilisant Strapi
@@ -454,6 +475,8 @@ Si aucune information contextuelle n'est fournie, réponds avec tes connaissance
 
             conversationChains.set(sessionId, { type: 'chain', chain });
           }
+
+          console.timeEnd(chainTimerId);
         } else {
           console.log('♻️ Using existing conversation for session:', sessionId);
         }
@@ -461,7 +484,8 @@ Si aucune information contextuelle n'est fournie, réponds avec tes connaissance
         // Récupérer la conversation existante
         const conversationData = conversationChains.get(sessionId);
 
-        console.log('⚡ Calling LLM...');
+        const llmTimerId = `🤖 LLM Call [${sessionId}]`;
+        console.time(llmTimerId);
 
         let response;
         if (conversationData.type === 'agent') {
@@ -478,6 +502,8 @@ Si aucune information contextuelle n'est fournie, réponds avec tes connaissance
 
           let context = '';
           if (needsRAG) {
+            const ragTimerId = `🔍 RAG Search [${sessionId}]`;
+            console.time(ragTimerId);
             console.log('🕵️ Searching ChromaDB for relevant information...');
             try {
               const searchResults = await conversationData.chromaService.searchDocuments(message, 5);
@@ -487,7 +513,9 @@ Si aucune information contextuelle n'est fournie, réponds avec tes connaissance
               } else {
                 console.log('ℹ️ No relevant documents found in ChromaDB');
               }
+              console.timeEnd(ragTimerId);
             } catch (searchError) {
+              console.timeEnd(ragTimerId);
               console.error('❌ Error searching ChromaDB:', searchError);
             }
           } else {
@@ -506,6 +534,7 @@ Si aucune information contextuelle n'est fournie, réponds avec tes connaissance
           });
         }
 
+        console.timeEnd(llmTimerId);
         console.log('✅ LLM response received');
 
         // Vérifier que les messages ont bien été sauvegardés
@@ -523,12 +552,14 @@ Si aucune information contextuelle n'est fournie, réponds avec tes connaissance
 
         console.log('🗂️ Sessions found:', sessions.length);
 
+        console.timeEnd(timerId);
         return {
           sessionId,
           response: response.response,
           history: messages,
         };
       } catch (error) {
+        console.timeEnd(timerId);
         strapi.log.error('❌ Error in langchain chat service:', error);
         console.error('❌ Error in langchain chat service:', error);
         throw error;
@@ -537,6 +568,9 @@ Si aucune information contextuelle n'est fournie, réponds avec tes connaissance
 
     // S'assurer qu'une session existe
     async ensureSessionExists(sessionId: string, firstMessage: string) {
+      const timerId = `🔍 Session Exists Check [${sessionId}]`;
+      console.time(timerId);
+
       try {
         strapi.log.info('🔍 Checking if session exists:', sessionId);
         console.log('🔍 Checking if session exists:', sessionId);
@@ -580,7 +614,10 @@ Si aucune information contextuelle n'est fournie, réponds avec tes connaissance
           strapi.log.info('✅ Session already exists');
           console.log('✅ Session already exists');
         }
+
+        console.timeEnd(timerId);
       } catch (error) {
+        console.timeEnd(timerId);
         strapi.log.error('❌ Error ensuring session exists:', error);
         console.error('❌ Error ensuring session exists:', error);
         throw error;

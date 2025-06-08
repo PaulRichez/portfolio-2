@@ -64,12 +64,15 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
   // Purger tous les documents
   async purgeIndex(ctx) {
     try {
+      const timerId = `purge-index-controller-${Date.now()}`;
+      console.time(timerId);
+
       const result = await strapi
         .plugin('llm-chat')
         .service('chromaVectorService')
         .purgeAllDocuments();
 
-      strapi.log.info('🗑️ Vector index purged successfully');
+      console.timeEnd(timerId);
 
       ctx.body = {
         success: true,
@@ -85,13 +88,15 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
   // Réindexer toutes les données
   async reindexAll(ctx) {
     try {
-      strapi.log.info('🔄 Starting full reindexing...');
+      const timerId = `reindex-all-controller-${Date.now()}`;
+      console.time(timerId);
 
       const result = await strapi
         .plugin('llm-chat')
         .service('chromaVectorService')
         .reindexAllData();
 
+      console.timeEnd(timerId);
       ctx.body = {
         success: true,
         message: 'Reindexing completed',
@@ -112,10 +117,15 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
         return ctx.badRequest('Query parameter is required');
       }
 
+      const timerId = `search-documents-controller-${Date.now()}`;
+      console.time(timerId);
+
       const results = await strapi
         .plugin('llm-chat')
         .service('chromaVectorService')
         .searchDocuments(query, parseInt(limit) || 10);
+
+      console.timeEnd(timerId);
 
       ctx.body = {
         success: true,
@@ -138,10 +148,15 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
         return ctx.badRequest('Collection and ID parameters are required');
       }
 
+      const timerId = `sync-entry-controller-${collection}-${id}-${Date.now()}`;
+      console.time(timerId);
+
       const result = await strapi
         .plugin('llm-chat')
         .service('vectorSyncService')
         .syncEntry(collection, parseInt(id));
+
+      console.timeEnd(timerId);
 
       ctx.body = {
         success: true,
@@ -164,10 +179,15 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
         return ctx.badRequest('Collection parameter is required');
       }
 
+      const timerId = `sync-collection-controller-${collection}-${Date.now()}`;
+      console.time(timerId);
+
       const result = await strapi
         .plugin('llm-chat')
         .service('vectorSyncService')
         .syncCollection(collection);
+
+      console.timeEnd(timerId);
 
       ctx.body = {
         success: true,

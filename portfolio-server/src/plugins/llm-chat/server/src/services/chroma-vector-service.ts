@@ -131,6 +131,9 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
 
   // Générer un embedding avec Ollama
   const generateEmbedding = async (text: string): Promise<number[]> => {
+    const timerId = `generate-embedding-${Date.now()}`;
+    console.time(timerId);
+
     try {
       const response = await axios.post(`${config.ollamaUrl}/api/embeddings`, {
         model: config.embeddingModel,
@@ -138,11 +141,14 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
       });
 
       if (response.data && response.data.embedding) {
+        console.timeEnd(timerId);
         return response.data.embedding;
       } else {
+        console.timeEnd(timerId);
         throw new Error('Invalid embedding response from Ollama');
       }
     } catch (error) {
+      console.timeEnd(timerId);
       strapi.log.error('❌ Error generating embedding:', error);
       throw error;
     }
@@ -191,23 +197,30 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
 
   // Indexer un document
   const indexDocument = async (entity: any, collectionName: string): Promise<void> => {
+    const documentId = `${collectionName}-${entity.id}`;
+    const timerId = `index-doc-${documentId}`;
+    console.time(timerId);
+
     try {
       await ensureCollection();
 
       const content = formatDocumentContent(entity, collectionName);
       if (!content.trim()) {
+        console.timeEnd(timerId);
         strapi.log.warn(`⚠️ No content to index for ${collectionName}:${entity.id}`);
         return;
       }
 
       const metadata = extractMetadata(entity, collectionName);
-      const documentId = `${collectionName}-${entity.id}`;
 
       // Supprimer le document existant s'il existe
       await deleteDocument(documentId);
 
       // Générer l'embedding avec Ollama
+      const embeddingTimerId = `embedding-${documentId}`;
+      console.time(embeddingTimerId);
       const embedding = await generateEmbedding(content);
+      console.timeEnd(embeddingTimerId);
 
       // Ajouter le nouveau document avec l'embedding généré
       await collection.add({
@@ -217,8 +230,10 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
         embeddings: [embedding]
       });
 
+      console.timeEnd(timerId);
       strapi.log.info(`✅ Indexed document: ${documentId}`);
     } catch (error) {
+      console.timeEnd(timerId);
       strapi.log.error(`❌ Error indexing document ${collectionName}:${entity.id}:`, error);
       throw error;
     }
@@ -242,6 +257,9 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
 
   // Purger tous les documents
   const purgeAllDocuments = async (): Promise<{ deleted: number }> => {
+    const timerId = `purge-all-${Date.now()}`;
+    console.time(timerId);
+
     try {
       const nullEmbedding = new NullEmbeddingFunction();
 
@@ -268,13 +286,16 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
         });
         strapi.log.info(`✅ Collection recreated for manual embeddings`);
       } catch (error) {
+        console.timeEnd(timerId);
         strapi.log.error('❌ Error recreating collection:', error);
         throw error;
       }
 
+      console.timeEnd(timerId);
       strapi.log.info('✅ ChromaDB purged and collection recreated');
       return { deleted: -1 }; // -1 indique que tout a été supprimé
     } catch (error) {
+      console.timeEnd(timerId);
       strapi.log.error('❌ Error purging ChromaDB:', error);
       throw error;
     }
@@ -282,12 +303,18 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
 
   // Réindexer toutes les données
   const reindexAllData = async (): Promise<{ indexed: number, errors: number }> => {
+    const timerId = `reindex-all-${Date.now()}`;
+    console.time(timerId);
+
     let indexed = 0;
     let errors = 0;
 
     strapi.log.info('🔄 Starting full reindexing...');
 
     for (const [collectionName, config] of Object.entries(INDEXABLE_COLLECTIONS)) {
+      const collectionTimerId = `reindex-collection-${collectionName}-${Date.now()}`;
+      console.time(collectionTimerId);
+
       try {
         strapi.log.info(`📋 Processing collection: ${collectionName}`);
         const entities = await strapi.entityService.findMany(collectionName as any, {
@@ -309,43 +336,60 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
           }
         }
 
+        console.timeEnd(collectionTimerId);
         strapi.log.info(`✅ Processed ${entitiesArray.length} items from ${collectionName}`);
       } catch (error) {
+        console.timeEnd(collectionTimerId);
         strapi.log.error(`❌ Error processing collection ${collectionName}:`, error);
         errors++;
       }
     }
 
+    console.timeEnd(timerId);
     strapi.log.info(`🎯 Reindexing completed: ${indexed} indexed, ${errors} errors`);
     return { indexed, errors };
   };
 
   // Rechercher dans les documents
   const searchDocuments = async (query: string, limit: number = 10): Promise<any[]> => {
+    const timerId = `search-docs-${Date.now()}`;
+    console.time(timerId);
+
     try {
       await ensureCollection();
 
       // Générer l'embedding pour la requête avec Ollama
+      const embeddingTimerId = `search-embedding-${Date.now()}`;
+      console.time(embeddingTimerId);
       const queryEmbedding = await generateEmbedding(query);
+      console.timeEnd(embeddingTimerId);
 
       // Utiliser la recherche par embedding de ChromaDB
+      const chromaTimerId = `chroma-query-${Date.now()}`;
+      console.time(chromaTimerId);
       const results = await collection.query({
         queryEmbeddings: [queryEmbedding],
         nResults: limit,
         include: ['documents', 'metadatas', 'distances']
       });
+      console.timeEnd(chromaTimerId);
 
       if (!results.ids || !results.ids[0] || results.ids[0].length === 0) {
+        console.timeEnd(timerId);
         return [];
       }
 
-      return results.ids[0].map((id, index) => ({
+      const formattedResults = results.ids[0].map((id, index) => ({
         id,
         document: results.documents[0][index],
         metadata: results.metadatas[0][index],
         distance: results.distances[0][index]
       }));
+
+      console.timeEnd(timerId);
+      return formattedResults;
     } catch (error) {
+      console.timeEnd(timerId);
       strapi.log.error('❌ Error searching documents:', error);
       throw error;
     }
