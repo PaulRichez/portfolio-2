@@ -138,8 +138,17 @@ export default ({ strapi }) => ({
                 text: `${age} ans - ${meData.city || ''}`,
                 style: 'basicInfo',
                 alignment: 'center',
-                margin: [0, 0, 0, 10]
+                margin: [0, 0, 0, 5]
             },
+            // Site web sous les infos de base
+            ...(meData.website ? [{
+                text: meData.website,
+                style: 'basicInfo',
+                alignment: 'center',
+                margin: [0, 0, 0, 10],
+                link: meData.website.startsWith('http') ? meData.website : `https://${meData.website}`,
+                decoration: 'underline'
+            }] : [{ margin: [0, 0, 0, 5] }]),
 
             // Compétences techniques
             this.getCodingSkillsSection(meData.coding_skills || []),
@@ -380,14 +389,6 @@ export default ({ strapi }) => ({
                 text: meData.github, 
                 style: 'contactInfo',
                 link: meData.github.startsWith('http') ? meData.github : `https://${meData.github}`,
-                decoration: 'underline'
-            } as any);
-        }
-        if (meData.website) {
-            contactStack.push({ 
-                text: meData.website, 
-                style: 'contactInfo',
-                link: meData.website.startsWith('http') ? meData.website : `https://${meData.website}`,
                 decoration: 'underline'
             } as any);
         }
