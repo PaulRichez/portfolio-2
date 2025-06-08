@@ -61,40 +61,16 @@
              [innerHTML]="formatMessage(message.content)">
           </p>
 
-          <!-- Message Time -->
-          <div class="text-xs mt-1 opacity-70">
-            {{ formatTime(message.timestamp) }}
-          </div>
-        </div>
-      </div>
+          <!-- Message Time with Typing indicator -->
+          <div class="flex items-center justify-between text-xs mt-1 opacity-70">
+            <span>{{ formatTime(message.timestamp) }}</span>
 
-      <!-- Loading Message -->
-      <div *ngIf="isLoading" class="flex items-start min-w-64 w-fit max-w-[80%]">
-        <div class="flex items-center gap-2 sticky top-0 transition-all">
-          <p-avatar
-            styleClass="w-10 h-10 text-sm font-medium"
-            shape="circle"
-            image="assets/images/profile.jpg">
-          </p-avatar>
-          <div>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="7"
-              height="11"
-              viewBox="0 0 7 11"
-              fill="none"
-              class="fill-surface-100 dark:fill-surface-800">
-              <path d="M1.79256 7.09551C0.516424 6.31565 0.516426 4.46224 1.79256 3.68238L7 0.500055L7 10.2778L1.79256 7.09551Z"></path>
-            </svg>
-          </div>
-        </div>
-        <div class="flex-1 bg-surface-100 dark:bg-surface-800 px-3 py-2 rounded-lg">
-          <div class="flex items-center gap-2">
-            <p-progressSpinner
-              [style]="{width: '16px', height: '16px'}"
-              strokeWidth="4">
-            </p-progressSpinner>
-            <span class="text-color text-sm">Assistant est en train d'écrire...</span>
+            <!-- Typing indicator for assistant messages being streamed -->
+            <div *ngIf="message.role === 'assistant' && message.isStreaming" class="flex gap-1">
+              <div class="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style="animation-delay: 0ms;"></div>
+              <div class="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style="animation-delay: 150ms;"></div>
+              <div class="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style="animation-delay: 300ms;"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -146,7 +122,7 @@
             style="min-height: 40px; resize: none;">
           </textarea>
         </div>
-        <div class="flex gap-1 items-center pb-1">
+        <div class="flex gap-1 items-start pb-2">
           <p-button
             icon="pi pi-send"
             [disabled]="!currentMessage.trim() || isLoading"

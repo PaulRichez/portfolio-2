@@ -7,6 +7,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: string;
+  isStreaming?: boolean; // Nouveau: indique si le message est en cours de streaming
 }
 
 export interface ChatSession {
@@ -136,14 +137,6 @@ export class ChatbotService {
         this.createNewSession();
       }
 
-      // Ajouter le message utilisateur immédiatement
-      const userMessage: ChatMessage = {
-        role: 'user',
-        content: message,
-        timestamp: new Date().toISOString()
-      };
-      this.addMessage(userMessage);
-
       const formData = new FormData();
       formData.append('message', message);
       formData.append('sessionId', this.currentSessionId!); // Non-null assertion car on vient de vérifier
@@ -167,6 +160,7 @@ export class ChatbotService {
       let currentResponse = '';
       let sessionId = this.currentSessionId!; // Non-null assertion car on a vérifié
       let buffer = '';
+      let hasStarted = false;
 
       const subscription = request.subscribe({
         next: (event: any) => {
@@ -193,6 +187,18 @@ export class ChatbotService {
                     if (data.type === 'start') {
                       sessionId = data.sessionId || sessionId;
                       console.log('🌊 Streaming started for session:', sessionId);
+
+                      // Ajouter le message utilisateur seulement au début
+                      if (!hasStarted) {
+                        const userMessage: ChatMessage = {
+                          role: 'user',
+                          content: message,
+                          timestamp: new Date().toISOString()
+                        };
+                        this.addMessage(userMessage);
+                        hasStarted = true;
+                      }
+
                     } else if (data.type === 'chunk') {
                       console.log('🧩 Chunk content received:', data.content);
 
@@ -239,10 +245,15 @@ export class ChatbotService {
           this.loadingSubject.next(false);
         },
         complete: () => {
+          console.log('🔚 HTTP request completed');
+
+          // Finaliser le message streaming s'il existe
+          this.finalizeStreamingMessage();
+
           // S'assurer que la réponse finale est envoyée si pas déjà fait
           if (currentResponse && !observer.closed) {
             observer.next({
-              sessionId: sessionId as string, // Assurer le type string
+              sessionId: sessionId as string,
               response: currentResponse,
               history: []
             });
@@ -256,37 +267,47 @@ export class ChatbotService {
       return () => {
         subscription.unsubscribe();
         this.loadingSubject.next(false);
+        // Finaliser le streaming en cas d'annulation
+        this.finalizeStreamingMessage();
       };
     });
   }
 
   /**
-   * Met à jour le message de l'assistant pendant le streaming
+   * Met à jour un message en streaming
    */
-  private updateStreamingMessage(content: string): void {
-    const currentMessages = [...this.messagesSubject.value]; // Créer une nouvelle référence
-    const lastMessage = currentMessages[currentMessages.length - 1];
+  updateStreamingMessage(content: string): void {
+    const messages = this.messagesSubject.value;
+    const lastMessage = messages[messages.length - 1];
 
-    if (lastMessage && lastMessage.role === 'assistant') {
-      // Créer un nouveau message pour forcer la détection de changement
-      const updatedMessage: ChatMessage = {
-        ...lastMessage,
-        content: content,
-        timestamp: new Date().toISOString()
-      };
-      currentMessages[currentMessages.length - 1] = updatedMessage;
+    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
+      // Mettre à jour le contenu du message en cours
+      lastMessage.content = content;
+      this.messagesSubject.next([...messages]);
     } else {
-      // Créer un nouveau message assistant
-      const assistantMessage: ChatMessage = {
+      // Créer un nouveau message streaming
+      const streamingMessage: ChatMessage = {
         role: 'assistant',
         content: content,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        isStreaming: true
       };
-      currentMessages.push(assistantMessage);
+      this.messagesSubject.next([...messages, streamingMessage]);
     }
+  }
 
-    // Émettre le nouveau tableau pour déclencher la détection de changement
-    this.messagesSubject.next(currentMessages);
+  /**
+   * Finalise un message en streaming
+   */
+  private finalizeStreamingMessage(): void {
+    const messages = this.messagesSubject.value;
+    const lastMessage = messages[messages.length - 1];
+
+    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
+      lastMessage.isStreaming = false;
+      this.messagesSubject.next([...messages]);
+      console.log('✅ Streaming message finalized');
+    }
   }
 
   /**
