@@ -520,12 +520,12 @@ export default ({ strapi }) => ({
      */
     getLevelIndicator(level) {
         const levels = {
-            'beginner': '★☆☆☆',
-            'Intermediate': '★★☆☆',
-            'advanced': '★★★☆',
-            'expert': '★★★★'
+            'beginner': '●○○○',
+            'Intermediate': '●●○○',
+            'advanced': '●●●○',
+            'expert': '●●●●'
         };
 
-        return levels[level] || '☆☆☆☆';
+        return levels[level] || '○○○○';
     }
 });
