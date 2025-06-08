@@ -28,20 +28,114 @@ export interface ChatResponse {
 })
 export class ChatbotService {
   private readonly API_URL = environment.apiUrl + '/llm-chat';
+  private readonly SESSION_STORAGE_KEY = 'chatbot-session-id';
   private messagesSubject = new BehaviorSubject<ChatMessage[]>([]);
   private loadingSubject = new BehaviorSubject<boolean>(false);
-  private currentSessionId = `session-${Date.now()}`;
+  private currentSessionId: string | null = null;
 
   public messages$ = this.messagesSubject.asObservable();
   public loading$ = this.loadingSubject.asObservable();
 
-  constructor(private http: HttpClient) {}  /**
+  constructor(private http: HttpClient) {
+    // Initialiser avec une session existante ou en créer une nouvelle
+    this.initializeSession();
+  }
+
+  /**
+   * Initialise la session au démarrage
+   */
+  private initializeSession(): void {
+    const savedSessionId = this.loadSessionIdFromStorage();
+
+    if (savedSessionId) {
+      console.log('🔄 Restauration de la session:', savedSessionId);
+      this.currentSessionId = savedSessionId;
+      this.restoreConversationHistory();
+    } else {
+      console.log('🆕 Création d\'une nouvelle session');
+      this.createNewSession();
+    }
+  }
+
+  /**
+   * Sauvegarde le sessionId dans localStorage
+   */
+  private saveSessionIdToStorage(sessionId: string): void {
+    try {
+      localStorage.setItem(this.SESSION_STORAGE_KEY, sessionId);
+      console.log('💾 SessionId sauvegardé:', sessionId);
+    } catch (error) {
+      console.warn('⚠️ Impossible de sauvegarder le sessionId:', error);
+    }
+  }
+
+  /**
+   * Charge le sessionId depuis localStorage
+   */
+  private loadSessionIdFromStorage(): string | null {
+    try {
+      const sessionId = localStorage.getItem(this.SESSION_STORAGE_KEY);
+      console.log('📂 SessionId chargé:', sessionId);
+      return sessionId;
+    } catch (error) {
+      console.warn('⚠️ Impossible de charger le sessionId:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Supprime le sessionId du localStorage
+   */
+  private removeSessionIdFromStorage(): void {
+    try {
+      localStorage.removeItem(this.SESSION_STORAGE_KEY);
+      console.log('🗑️ SessionId supprimé du localStorage');
+    } catch (error) {
+      console.warn('⚠️ Impossible de supprimer le sessionId:', error);
+    }
+  }
+
+  /**
+   * Restaure l'historique de conversation pour la session actuelle
+   */
+  private restoreConversationHistory(): void {
+    this.getHistory().subscribe({
+      next: (historyData) => {
+        if (historyData.messages && historyData.messages.length > 0) {
+          console.log('🔄 Historique restauré:', historyData.messages.length, 'messages');
+
+          // Convertir les messages de la base de données au format ChatMessage
+          const messages: ChatMessage[] = historyData.messages.map((msg: any) => ({
+            role: msg.role as 'user' | 'assistant' | 'system',
+            content: msg.content,
+            timestamp: msg.timestamp || msg.createdAt
+          }));
+
+          this.messagesSubject.next(messages);
+        } else {
+          console.log('ℹ️ Aucun historique trouvé pour la session');
+        }
+      },
+      error: (error) => {
+        console.error('❌ Erreur lors de la restauration de l\'historique:', error);
+        // En cas d'erreur, créer une nouvelle session
+        this.createNewSession();
+      }
+    });
+  }
+
+  /**
    * Envoie un message au chatbot avec streaming
    */
   sendMessage(message: string): Observable<ChatResponse> {
     this.loadingSubject.next(true);
 
     return new Observable<ChatResponse>(observer => {
+      // S'assurer qu'on a un sessionId valide
+      if (!this.currentSessionId) {
+        this.createNewSession();
+      }
+
       // Ajouter le message utilisateur immédiatement
       const userMessage: ChatMessage = {
         role: 'user',
@@ -52,7 +146,7 @@ export class ChatbotService {
 
       const formData = new FormData();
       formData.append('message', message);
-      formData.append('sessionId', this.currentSessionId);
+      formData.append('sessionId', this.currentSessionId!); // Non-null assertion car on vient de vérifier
 
       const streamUrl = `${this.API_URL}/stream`;
       console.log('🌐 Streaming URL:', streamUrl);
@@ -71,7 +165,7 @@ export class ChatbotService {
       });
 
       let currentResponse = '';
-      let sessionId = this.currentSessionId;
+      let sessionId = this.currentSessionId!; // Non-null assertion car on a vérifié
       let buffer = '';
 
       const subscription = request.subscribe({
@@ -116,7 +210,7 @@ export class ChatbotService {
                       console.log('✅ Streaming completed');
 
                       observer.next({
-                        sessionId: sessionId,
+                        sessionId: sessionId as string, // Assurer le type string
                         response: currentResponse,
                         history: []
                       });
@@ -148,7 +242,7 @@ export class ChatbotService {
           // S'assurer que la réponse finale est envoyée si pas déjà fait
           if (currentResponse && !observer.closed) {
             observer.next({
-              sessionId: sessionId,
+              sessionId: sessionId as string, // Assurer le type string
               response: currentResponse,
               history: []
             });
@@ -199,6 +293,11 @@ export class ChatbotService {
    * Récupère l'historique de la session actuelle
    */
   getHistory(): Observable<{ messages: ChatMessage[], messageCount: number, session: any }> {
+    // S'assurer qu'on a un sessionId valide
+    if (!this.currentSessionId) {
+      this.createNewSession();
+    }
+
     return this.http.get<{ messages: ChatMessage[], messageCount: number, session: any }>(
       `${this.API_URL}/history?sessionId=${this.currentSessionId}`
     );
@@ -209,15 +308,6 @@ export class ChatbotService {
    */
   getAllSessions(): Observable<{ sessions: ChatSession[] }> {
     return this.http.get<{ sessions: ChatSession[] }>(`${this.API_URL}/sessions`);
-  }
-
-  /**
-   * Efface l'historique de la session actuelle
-   */
-  clearHistory(): Observable<{ success: boolean, sessionId: string }> {
-    return this.http.delete<{ success: boolean, sessionId: string }>(
-      `${this.API_URL}/history?sessionId=${this.currentSessionId}`
-    );
   }
 
   /**
@@ -243,9 +333,14 @@ export class ChatbotService {
    * Streaming des messages (pour une future implémentation)
    */
   streamMessage(message: string): Observable<any> {
+    // S'assurer qu'on a un sessionId valide
+    if (!this.currentSessionId) {
+      this.createNewSession();
+    }
+
     const formData = new FormData();
     formData.append('message', message);
-    formData.append('sessionId', this.currentSessionId);
+    formData.append('sessionId', this.currentSessionId!);
 
     return this.http.post(`${this.API_URL}/stream`, formData);
   }
@@ -276,7 +371,10 @@ export class ChatbotService {
    * Obtient l'ID de session actuel
    */
   getCurrentSessionId(): string {
-    return this.currentSessionId;
+    if (!this.currentSessionId) {
+      this.createNewSession();
+    }
+    return this.currentSessionId!;
   }
 
   /**
@@ -284,7 +382,11 @@ export class ChatbotService {
    */
   setCurrentSessionId(sessionId: string): void {
     this.currentSessionId = sessionId;
+    this.saveSessionIdToStorage(sessionId);
     this.messagesSubject.next([]); // Reset messages pour la nouvelle session
+
+    // Restaurer l'historique de la nouvelle session
+    this.restoreConversationHistory();
   }
 
   /**
@@ -292,6 +394,37 @@ export class ChatbotService {
    */
   createNewSession(): void {
     this.currentSessionId = `session-${Date.now()}`;
+    this.saveSessionIdToStorage(this.currentSessionId);
     this.messagesSubject.next([]);
+    console.log('🆕 Nouvelle session créée:', this.currentSessionId);
+  }
+
+  /**
+   * Efface l'historique de la session actuelle et la supprime du localStorage
+   */
+  clearHistory(): Observable<{ success: boolean, sessionId: string }> {
+    return new Observable(observer => {
+      // S'assurer qu'on a un sessionId valide
+      if (!this.currentSessionId) {
+        this.createNewSession();
+      }
+
+      const request = this.http.delete<{ success: boolean, sessionId: string }>(
+        `${this.API_URL}/history?sessionId=${this.currentSessionId}`
+      );
+
+      request.subscribe({
+        next: (response) => {
+          // Supprimer du localStorage et créer une nouvelle session
+          this.removeSessionIdFromStorage();
+          this.createNewSession();
+          observer.next(response);
+          observer.complete();
+        },
+        error: (error) => {
+          observer.error(error);
+        }
+      });
+    });
   }
 }
