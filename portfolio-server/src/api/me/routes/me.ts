@@ -11,6 +11,7 @@ module.exports = {
       path: '/me',
       handler: 'api::me.me.find',
       config: {
+        auth: false,
         policies: [],
         middlewares: [],
       },
@@ -20,6 +21,7 @@ module.exports = {
       path: '/me/populated',
       handler: 'api::me.me.findWithPopulate',
       config: {
+        auth: false,
         policies: [],
         middlewares: [],
       },

@@ -7,7 +7,14 @@
         <img
           src="assets/images/profile.jpg"
           alt="Profile"
-          class="w-32 h-32 lg:w-40 lg:h-40 rounded-full shadow-lg object-cover">
+          class="w-32 h-32 lg:w-40 lg:h-40 rounded-full shadow-lg object-cover mb-6">
+
+        <!-- CV Download Button -->
+        <div class="text-center">
+          <a [href]="getCvDownloadUrl()" target="_blank" class="p-button font-bold no-underline">
+            <i class="pi pi-file-pdf mr-2"></i>Mon CV
+          </a>
+        </div>
       </div>
 
       <!-- Main Content Section -->

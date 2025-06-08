@@ -6,6 +6,7 @@ import { ButtonModule } from 'primeng/button';
 import { ChipModule } from 'primeng/chip';
 import { DividerModule } from 'primeng/divider';
 import { Me } from '../../../../models';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-me',
@@ -21,5 +22,9 @@ export class MeComponent {
       return 'NA';
     }
     return this.me.firstName.charAt(0) + this.me.lastName.charAt(0);
+  }
+
+  getCvDownloadUrl(): string {
+    return `${environment.apiUrl}/api/me/cv`;
   }
 }
