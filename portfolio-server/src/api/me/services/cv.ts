@@ -119,19 +119,19 @@ export default ({ strapi }) => ({
                 text: `${meData.firstName || ''} ${meData.lastName || ''}`,
                 style: 'name',
                 alignment: 'center',
-                margin: [0, 20, 0, 5]
+                margin: [0, 10, 0, 3]
             },
             {
                 text: meData.postName || 'Développeur',
                 style: 'jobTitle',
                 alignment: 'center',
-                margin: [0, 0, 0, 5]
+                margin: [0, 0, 0, 3]
             },
             {
                 text: `${age} ans - ${meData.city || ''}`,
                 style: 'basicInfo',
                 alignment: 'center',
-                margin: [0, 0, 0, 20]
+                margin: [0, 0, 0, 10]
             },
 
             // Compétences techniques
@@ -174,7 +174,7 @@ export default ({ strapi }) => ({
                 jobTitle: {
                     fontSize: 14,
                     color: 'white',
-                    margin: [0, 5, 0, 5]
+                    margin: [0, 2, 0, 2]
                 },
                 basicInfo: {
                     fontSize: 12,
@@ -183,36 +183,36 @@ export default ({ strapi }) => ({
                 sectionTitle: {
                     bold: true,
                     fontSize: 14,
-                    margin: [0, 20, 0, 10],
+                    margin: [0, 10, 0, 5],
                     decoration: 'underline',
                     color: 'white'
                 },
                 sectionTitleMain: {
                     bold: true,
                     fontSize: 14,
-                    margin: [0, 20, 0, 10],
+                    margin: [0, 10, 0, 5],
                     decoration: 'underline',
                     color: 'black'
                 },
                 skillName: {
                     fontSize: 10,
                     color: 'white',
-                    margin: [0, 3, 0, 3]
+                    margin: [0, 1, 0, 1]
                 },
                 contactInfo: {
                     fontSize: 10,
                     color: 'white',
-                    margin: [0, 2, 0, 2]
+                    margin: [0, 1, 0, 1]
                 },
                 experienceTitle: {
                     fontSize: 12,
                     bold: true,
-                    margin: [0, 5, 0, 2]
+                    margin: [0, 3, 0, 1]
                 },
                 experienceCompany: {
                     fontSize: 11,
                     italics: true,
-                    margin: [0, 0, 0, 5]
+                    margin: [0, 0, 0, 2]
                 },
                 experienceDate: {
                     fontSize: 10,
@@ -220,16 +220,16 @@ export default ({ strapi }) => ({
                 },
                 experienceDescription: {
                     fontSize: 10,
-                    margin: [0, 2, 0, 2]
+                    margin: [0, 1, 0, 1]
                 },
                 diplomaTitle: {
                     fontSize: 12,
                     bold: true,
-                    margin: [0, 5, 0, 2]
+                    margin: [0, 3, 0, 1]
                 },
                 diplomaDescription: {
                     fontSize: 11,
-                    margin: [0, 0, 0, 5]
+                    margin: [0, 0, 0, 2]
                 }
             }, content: [
                 {
@@ -241,12 +241,12 @@ export default ({ strapi }) => ({
                                 {
                                     stack: leftColumn,
                                     color: 'white',
-                                    margin: [15, 15, 15, 15],
+                                    margin: [10, 10, 10, 10],
                                     fillColor: '#2c3e50'
                                 },
                                 {
                                     stack: rightColumn,
-                                    margin: [15, 15, 15, 15]
+                                    margin: [10, 10, 10, 10]
                                 }
                             ]
                         ]
@@ -295,7 +295,7 @@ export default ({ strapi }) => ({
                 text: categoryName,
                 style: 'skillName',
                 bold: true,
-                margin: [0, 10, 0, 5]
+                margin: [0, 5, 0, 2]
             } as any); skillsByCategory[category].forEach(skill => {
                 const levelIndicator = this.getLevelIndicator(skill.level);
                 skillsStack.push({
@@ -400,7 +400,7 @@ export default ({ strapi }) => ({
             experiencesStack.push({
                 text: `${dateRange} - ${experience.title} chez ${experience.business}`,
                 style: 'experienceTitle',
-                margin: [0, 10, 0, 5]
+                margin: [0, 5, 0, 2]
             } as any);
 
             if (experience.businessWebsite) {
@@ -418,7 +418,7 @@ export default ({ strapi }) => ({
                     experiencesStack.push({
                         text: `• ${desc}`,
                         style: 'experienceDescription',
-                        margin: [10, 2, 0, 2]
+                        margin: [10, 1, 0, 1]
                     } as any);
                 });
             }
@@ -444,7 +444,7 @@ export default ({ strapi }) => ({
             diplomasStack.push({
                 text: `${dateRange} - ${diploma.title}`,
                 style: 'diplomaTitle',
-                margin: [0, 10, 0, 2]
+                margin: [0, 5, 0, 1]
             } as any);
 
             if (diploma.description) {
