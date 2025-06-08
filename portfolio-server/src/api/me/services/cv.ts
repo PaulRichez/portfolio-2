@@ -1,16 +1,50 @@
 'use strict';
 
 const PdfPrinter = require('pdfmake');
+const path = require('path');
+const fs = require('fs');
 
-// Configuration simple des polices
-const fonts = {
-    Helvetica: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
+// Fonction pour vérifier si un fichier existe
+const fileExists = (filePath) => {
+    try {
+        return fs.existsSync(filePath);
+    } catch (error) {
+        return false;
     }
 };
+
+// Configuration des polices avec support Unicode et fallback
+const getFonts = () => {
+    const fontPaths = {
+        normal: path.join(__dirname, '../../../../../node_modules/pdfmake-unicode/src/fonts/Arial GEO/Roboto-Regular.ttf'),
+        bold: path.join(__dirname, '../../../../../node_modules/pdfmake-unicode/src/fonts/Arial GEO/Roboto-Medium.ttf'),
+        italics: path.join(__dirname, '../../../../../node_modules/pdfmake-unicode/src/fonts/Arial GEO/Roboto-Italic.ttf'),
+        bolditalics: path.join(__dirname, '../../../../../node_modules/pdfmake-unicode/src/fonts/Arial GEO/Roboto-MediumItalic.ttf')
+    };
+
+    // Vérifier si les polices existent
+    const fontsExist = Object.values(fontPaths).every(fontPath => fileExists(fontPath));
+
+    if (fontsExist) {
+        return {
+            ArialGEO: fontPaths
+        };
+    } else {
+        // Fallback vers les polices système
+        console.warn('Polices pdfmake-unicode non trouvées, utilisation des polices système');
+        return {
+            Helvetica: {
+                normal: 'Helvetica',
+                bold: 'Helvetica-Bold',
+                italics: 'Helvetica-Oblique',
+                bolditalics: 'Helvetica-BoldOblique'
+            }
+        };
+    }
+};
+
+const fonts = getFonts();
+const defaultFont = fonts.ArialGEO ? 'ArialGEO' : 'Helvetica';
 
 /**
  * Service pour générer le CV en PDF
@@ -120,7 +154,7 @@ export default ({ strapi }) => ({
             pageOrientation: 'portrait',
             pageMargins: [0, 0, 0, 0],
             defaultStyle: {
-                font: 'Helvetica',
+                font: defaultFont,
                 fontSize: 11,
                 lineHeight: 1.3
             },
@@ -486,12 +520,12 @@ export default ({ strapi }) => ({
      */
     getLevelIndicator(level) {
         const levels = {
-            'beginner': '●○○○',
-            'Intermediate': '●●○○',
-            'advanced': '●●●○',
-            'expert': '●●●●'
+            'beginner': '★☆☆☆',
+            'Intermediate': '★★☆☆',
+            'advanced': '★★★☆',
+            'expert': '★★★★'
         };
 
-        return levels[level] || '○○○○';
+        return levels[level] || '☆☆☆☆';
     }
 });
