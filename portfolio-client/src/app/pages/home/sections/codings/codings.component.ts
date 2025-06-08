@@ -98,6 +98,15 @@ export class CodingsComponent implements OnInit, OnChanges {
     }
   }
 
+  getLanguageLevelLabel(percentage: number): string {
+    if (percentage >= 95) return 'Langue maternelle';
+    if (percentage >= 85) return 'Courant';
+    if (percentage >= 70) return 'Avancé';
+    if (percentage >= 50) return 'Intermédiaire';
+    if (percentage >= 30) return 'Débutant';
+    return 'Notions';
+  }
+
   getLevelDots(level: string): number[] {
     return Array(4).fill(0).map((_, i) => i);
   }

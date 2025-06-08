@@ -321,9 +321,9 @@ export default ({ strapi }) => ({
         ];
 
         languages.forEach(language => {
-            const level = language.value ? ` (${language.value}%)` : '';
+            const levelLabel = this.getLanguageLevelLabel(language.value);
             languagesStack.push({
-                text: `${language.name}${level}`,
+                text: `${language.name} ${levelLabel}`,
                 style: 'skillName'
             });
         });
@@ -514,6 +514,17 @@ export default ({ strapi }) => ({
         };
 
         return categoryNames[category] || category;
+    },
+    /**
+     * Obtient le label de niveau pour une langue basé sur le pourcentage
+     */
+    getLanguageLevelLabel(percentage) {
+        if (!percentage) return '○○○○○';
+        
+        if (percentage >= 75) return '●●●●○';
+        if (percentage >= 50) return '●●●○○';
+        if (percentage >= 25) return '●●○○○';
+        return '●○○○○';
     },
     /**
      * Obtient l'indicateur de niveau

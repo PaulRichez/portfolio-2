@@ -284,6 +284,18 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
       if (metadata.category) {
         sections.push(`   📁 Catégorie: ${metadata.category}`);
       }
+      if (metadata.languages) {
+        const languageLabels = metadata.languages.split(', ').map(lang => {
+          const match = lang.match(/(.*)\s\((\d+)%\)/);
+          if (match) {
+            const [, name, percentage] = match;
+            const label = getLanguageLevelLabel(parseInt(percentage));
+            return `${name} (${label})`;
+          }
+          return lang;
+        }).join(', ');
+        sections.push(`   🌐 Langues: ${languageLabels}`);
+      }
 
       sections.push(''); // Ligne vide entre les résultats
     });
@@ -291,6 +303,15 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
     sections.push(`=== Fin des informations contextuelles (${results.length} résultat${results.length > 1 ? 's' : ''}) ===\n`);
 
     return sections.join('\n');
+  };
+
+  const getLanguageLevelLabel = (percentage: number): string => {
+    if (percentage >= 95) return 'Langue maternelle';
+    if (percentage >= 85) return 'Courant';
+    if (percentage >= 70) return 'Avancé';
+    if (percentage >= 50) return 'Intermédiaire';
+    if (percentage >= 30) return 'Débutant';
+    return 'Notions';
   };
 
   const getCollectionDisplayName = (collection: string): string => {
