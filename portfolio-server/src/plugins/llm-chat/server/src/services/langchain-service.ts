@@ -208,6 +208,79 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
     }
   };
 
+  // Méthodes utilitaires pour le RAG manuel
+  const shouldUseRAG = (message: string): boolean => {
+    const portfolioKeywords = [
+      'projet', 'projects', 'compétence', 'skills', 'expérience', 'experience',
+      'formation', 'education', 'contact', 'réalisation', 'portfolio',
+      'technologie', 'technology', 'développement', 'development',
+      'react', 'vue', 'angular', 'nodejs', 'php', 'python', 'javascript',
+      'typescript', 'html', 'css', 'bootstrap', 'tailwind',
+      'qui es-tu', 'présente', 'cv', 'profil', 'about', 'à propos',
+      'github', 'linkedin', 'email', 'téléphone', 'coordonnées',
+      'web', 'mobile', 'frontend', 'backend', 'fullstack'
+    ];
+
+    const lowerMessage = message.toLowerCase();
+    return portfolioKeywords.some(keyword => lowerMessage.includes(keyword));
+  };
+
+  const formatChromaResults = (results: any[], originalQuery: string): string => {
+    if (!results || results.length === 0) {
+      return '';
+    }
+
+    const sections: string[] = [];
+
+    sections.push(`=== Informations contextuelles pour "${originalQuery}" ===\n`);
+
+    results.forEach((result, index) => {
+      const metadata = result.metadata || {};
+      const collection = metadata.collection || 'unknown';
+      const similarity = (1 - result.distance).toFixed(3); // Convertir distance en similarité
+
+      sections.push(`${index + 1}. ${getCollectionDisplayName(collection)} (Pertinence: ${similarity})`);
+      sections.push(`   ${result.document.trim()}`);
+
+      // Ajouter des métadonnées pertinentes
+      if (metadata.github_link) {
+        sections.push(`   🔗 GitHub: ${metadata.github_link}`);
+      }
+      if (metadata.link_demo) {
+        sections.push(`   🌐 Démo: ${metadata.link_demo}`);
+      }
+      if (metadata.email) {
+        sections.push(`   📧 Email: ${metadata.email}`);
+      }
+      if (metadata.linkedin) {
+        sections.push(`   💼 LinkedIn: ${metadata.linkedin}`);
+      }
+      if (metadata.website) {
+        sections.push(`   🌐 Site web: ${metadata.website}`);
+      }
+      if (metadata.phoneNumber) {
+        sections.push(`   📞 Téléphone: ${metadata.phoneNumber}`);
+      }
+
+      sections.push(''); // Ligne vide entre les résultats
+    });
+
+    sections.push(`=== Fin des informations contextuelles (${results.length} résultat${results.length > 1 ? 's' : ''}) ===\n`);
+
+    return sections.join('\n');
+  };
+
+  const getCollectionDisplayName = (collection: string): string => {
+    const displayNames: Record<string, string> = {
+      'api::project.project': '📁 Projet',
+      'api::me.me': '👤 Profil personnel',
+      'api::article.article': '📝 Article',
+      'api::faq.faq': '❓ FAQ'
+    };
+
+    return displayNames[collection] || `📄 ${collection}`;
+  };
+
   return {
     // Créer une nouvelle conversation ou continuer une existante
     async chat(message: string, options?: ConversationOptions) {
@@ -267,17 +340,18 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
           // Décider si on utilise un agent avec outils RAG ou une conversation simple
           const useRAG = options?.useRAG !== false; // RAG activé par défaut
 
-          if (useRAG && config.provider === 'openai') {
-            console.log('🤖 Creating agent with ChromaDB tools...');
+          if (useRAG) {
+            if (config.provider === 'openai') {
+              console.log('🤖 Creating OpenAI agent with ChromaDB tools...');
 
-            // Créer les outils ChromaDB
-            const tools = [
-              new ChromaRetrievalTool(strapi),
-              new ChromaAdvancedRetrievalTool(strapi)
-            ];
+              // Créer les outils ChromaDB
+              const tools = [
+                new ChromaRetrievalTool(strapi),
+                new ChromaAdvancedRetrievalTool(strapi)
+              ];
 
-            // Prompt système pour l'agent avec RAG
-            const systemPrompt = options?.systemPrompt || `Tu es un assistant IA spécialisé dans le portfolio et les informations personnelles.
+              // Prompt système pour l'agent avec RAG
+              const systemPrompt = options?.systemPrompt || `Tu es un assistant IA spécialisé dans le portfolio et les informations personnelles.
 
 INSTRUCTIONS IMPORTANTES :
 1. Utilise l'outil 'chroma_search' pour rechercher des informations pertinentes dans la base de données quand l'utilisateur :
@@ -297,30 +371,70 @@ Tu peux rechercher des informations sur :
 - La formation
 - Les coordonnées et liens sociaux`;
 
-            const agentPrompt = ChatPromptTemplate.fromMessages([
-              ["system", systemPrompt],
-              new MessagesPlaceholder("chat_history"),
-              ["human", "{input}"],
-              new MessagesPlaceholder("agent_scratchpad"),
-            ]);
+              const agentPrompt = ChatPromptTemplate.fromMessages([
+                ["system", systemPrompt],
+                new MessagesPlaceholder("chat_history"),
+                ["human", "{input}"],
+                new MessagesPlaceholder("agent_scratchpad"),
+              ]);
 
-            // Créer l'agent OpenAI Functions
-            const agent = await createOpenAIFunctionsAgent({
-              llm: model,
-              tools,
-              prompt: agentPrompt,
-            });
+              // Créer l'agent OpenAI Functions
+              const agent = await createOpenAIFunctionsAgent({
+                llm: model,
+                tools,
+                prompt: agentPrompt,
+              });
 
-            // Créer l'exécuteur d'agent avec mémoire personnalisée
-            const agentExecutor = new AgentExecutor({
-              agent,
-              tools,
-              memory,
-              verbose: true,
-              returnIntermediateSteps: false,
-            });
+              // Créer l'exécuteur d'agent avec mémoire personnalisée
+              const agentExecutor = new AgentExecutor({
+                agent,
+                tools,
+                memory,
+                verbose: true,
+                returnIntermediateSteps: false,
+              });
 
-            conversationChains.set(sessionId, { type: 'agent', executor: agentExecutor });
+              conversationChains.set(sessionId, { type: 'agent', executor: agentExecutor });
+            } else {
+              console.log('🔧 Creating custom RAG chain with manual tool integration...');
+
+              // Pour les modèles custom (Ollama), on utilise une approche RAG manuelle
+              const chromaService = strapi.plugin('llm-chat').service('chromaVectorService');
+
+              // Prompt système pour RAG manuel
+              const systemPrompt = options?.systemPrompt || `Tu es un assistant IA spécialisé dans le portfolio et les informations personnelles.
+
+Tu as accès à une base de données de connaissances sur le portfolio. Quand l'utilisateur pose des questions sur :
+- Les projets de développement
+- Les compétences techniques
+- L'expérience professionnelle
+- La formation
+- Les coordonnées et informations de contact
+
+Tu recevras automatiquement des informations contextuelles pertinentes de la base de données.
+
+Réponds toujours en français de manière naturelle et conversationnelle.
+Utilise les informations contextuelles fournies pour donner des réponses complètes et précises.
+Si aucune information contextuelle n'est fournie, réponds avec tes connaissances générales.`;
+
+              const chatPrompt = ChatPromptTemplate.fromMessages([
+                ["system", systemPrompt],
+                new MessagesPlaceholder("history"),
+                HumanMessagePromptTemplate.fromTemplate("{context}\n\nQuestion: {input}"),
+              ]);
+
+              const chain = new ConversationChain({
+                memory: memory,
+                prompt: chatPrompt,
+                llm: model,
+              });
+
+              conversationChains.set(sessionId, {
+                type: 'rag_manual',
+                chain,
+                chromaService
+              });
+            }
           } else {
             console.log('💬 Creating simple conversation chain...');
 
@@ -354,6 +468,36 @@ Tu peux rechercher des informations sur :
           // Utiliser l'agent avec outils
           response = await conversationData.executor.call({
             input: message,
+          });
+        } else if (conversationData.type === 'rag_manual') {
+          // Utiliser RAG manuel pour les modèles custom
+          console.log('🔍 Using manual RAG for custom provider...');
+
+          // Fonction pour détecter si on a besoin de rechercher dans ChromaDB
+          const needsRAG = shouldUseRAG(message);
+
+          let context = '';
+          if (needsRAG) {
+            console.log('🕵️ Searching ChromaDB for relevant information...');
+            try {
+              const searchResults = await conversationData.chromaService.searchDocuments(message, 5);
+              if (searchResults && searchResults.length > 0) {
+                context = formatChromaResults(searchResults, message);
+                console.log(`✅ Found ${searchResults.length} relevant documents`);
+              } else {
+                console.log('ℹ️ No relevant documents found in ChromaDB');
+              }
+            } catch (searchError) {
+              console.error('❌ Error searching ChromaDB:', searchError);
+            }
+          } else {
+            console.log('ℹ️ Question does not require ChromaDB search');
+          }
+
+          // Appeler la chaîne avec le contexte
+          response = await conversationData.chain.call({
+            input: message,
+            context: context
           });
         } else {
           // Utiliser la chaîne simple
