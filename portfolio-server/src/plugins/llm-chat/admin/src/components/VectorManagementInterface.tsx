@@ -109,7 +109,8 @@ const VectorManagementInterface: React.FC = () => {
   const loadData = async () => {
     await Promise.all([
       fetchStats(),
-      fetchCollections()
+      fetchCollections(),
+      testConnections() // Automatically test connections on load
     ]);
   };
 
@@ -124,6 +125,13 @@ const VectorManagementInterface: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to fetch vector stats:', err);
       setError(err.message || 'Failed to fetch stats');
+      // Set default disconnected state on error
+      setStats(prev => ({
+        ...prev,
+        chromaConnection: false,
+        ollamaConnection: false,
+        health: 'error'
+      }));
     }
   };
 
@@ -144,12 +152,13 @@ const VectorManagementInterface: React.FC = () => {
       const response = await post(`/${PLUGIN_ID}/vectors/test-connection`, {}) as any;
       if (response?.data) {
         const connectionData = response.data;
-        // Update stats with connection status
+        // Merge connection status with existing stats
         setStats(prev => ({
           ...prev,
           chromaConnection: connectionData.details?.chroma?.status === 'connected',
           ollamaConnection: connectionData.details?.ollama?.status === 'connected',
-          health: connectionData.status === 'connected' ? 'healthy' : 'error'
+          health: connectionData.status === 'connected' ? 'healthy' :
+                  connectionData.status === 'partial' ? 'warning' : 'error'
         }));
       }
     } catch (err: any) {

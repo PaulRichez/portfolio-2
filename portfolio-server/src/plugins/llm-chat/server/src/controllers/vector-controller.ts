@@ -32,10 +32,28 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
         .service('vectorSyncService')
         .getSyncStatus();
 
+      // Test connections to get current status
+      const connectionStatus = await strapi
+        .plugin('llm-chat')
+        .service('chromaVectorService')
+        .testConnection();
+
+      // Merge connection status into stats
+      const enhancedStats = {
+        ...stats,
+        chromaConnection: connectionStatus.details?.chroma?.status === 'connected',
+        ollamaConnection: connectionStatus.details?.ollama?.status === 'connected',
+        health: connectionStatus.status === 'connected' ? 'healthy' :
+                connectionStatus.status === 'partial' ? 'warning' : 'error',
+        totalDocuments: stats.document_count,
+        collections: stats.indexed_collections
+      };
+
       ctx.body = {
         success: true,
-        stats,
-        sync: syncStatus
+        stats: enhancedStats,
+        sync: syncStatus,
+        connectionStatus
       };
     } catch (error) {
       strapi.log.error('❌ Failed to get vector stats:', error);
@@ -206,13 +224,22 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
         .service('vectorSyncService')
         .getWatchedCollections();
 
+      // Test connections to get current status
+      const connectionStatus = await strapi
+        .plugin('llm-chat')
+        .service('chromaVectorService')
+        .testConnection();
+
       ctx.body = {
         success: true,
         config: {
           chromaUrl: config.chromaUrl,
           collectionName: config.collectionName,
-          embeddingMode: 'automatic'
+          ollamaUrl: config.ollamaUrl,
+          embeddingModel: config.embeddingModel,
+          embeddingMode: 'manual_ollama'
         },
+        connectionStatus,
         indexableCollections,
         watchedCollections
       };
