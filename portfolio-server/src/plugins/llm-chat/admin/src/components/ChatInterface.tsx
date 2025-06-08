@@ -20,8 +20,10 @@ import {
 import { Play, Trash, User, Magic } from '@strapi/icons';
 import { useIntl } from 'react-intl';
 import { useFetchClient } from '@strapi/strapi/admin';
+import ReactMarkdown from 'react-markdown';
 import { PLUGIN_ID } from '../pluginId';
 import { getTranslation } from '../utils/getTranslation';
+import './ChatInterface.css';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -473,9 +475,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
                       <span style={{ marginLeft: '8px', animation: 'blink 1s infinite' }}>▋</span>
                     )}
                   </Typography>
-                  <Typography style={{ whiteSpace: 'pre-wrap' }}>
-                    {message.content}
-                  </Typography>
+                  {message.role === 'user' ? (
+                    <Typography style={{ whiteSpace: 'pre-wrap' }}>
+                      {message.content}
+                    </Typography>
+                  ) : (
+                    <div className="markdown-content">
+                      <ReactMarkdown>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                 </Box>
               </Flex>
             </Box>
