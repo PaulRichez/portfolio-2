@@ -81,26 +81,37 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
       // Essayer d'obtenir la collection existante
       try {
         collection = await chromaClient.getCollection({
-          name: config.collectionName
+          name: config.collectionName,
         });
         strapi.log.info(`✅ Collection "${config.collectionName}" exists`);
         return;
       } catch (error) {
         // Collection n'existe pas, on va la créer
+        strapi.log.debug(`Collection "${config.collectionName}" not found, creating it...`);
       }
 
       // Créer la collection si elle n'existe pas
-      // Utiliser embeddingFunction: null pour éviter l'embedding par défaut
-      collection = await chromaClient.createCollection({
-        name: config.collectionName,
-        metadata: {
-          description: 'Strapi RAG Collection',
-          created_at: new Date().toISOString()
-        },
-        embeddingFunction: null // Pas d'embedding automatique, on utilise Ollama
-      });
-
-      strapi.log.info(`✅ Collection "${config.collectionName}" created`);
+      try {
+        collection = await chromaClient.createCollection({
+          name: config.collectionName,
+          metadata: {
+            description: 'Strapi RAG Collection',
+            created_at: new Date().toISOString()
+          },
+        });
+        strapi.log.info(`✅ Collection "${config.collectionName}" created`);
+      } catch (createError: any) {
+        // Si l'erreur indique que la collection existe déjà, essayer de la récupérer
+        if (createError.message?.includes('already exists') || createError.name === 'ChromaUniqueError') {
+          strapi.log.info(`Collection "${config.collectionName}" already exists, retrieving it...`);
+          collection = await chromaClient.getCollection({
+            name: config.collectionName,
+          });
+          strapi.log.info(`✅ Collection "${config.collectionName}" retrieved successfully`);
+        } else {
+          throw createError;
+        }
+      }
     } catch (error) {
       strapi.log.error('❌ Error ensuring collection:', error);
       throw error;
@@ -231,7 +242,7 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
     for (const [collectionName, config] of Object.entries(INDEXABLE_COLLECTIONS)) {
       try {
         strapi.log.info(`📋 Processing collection: ${collectionName}`);
-          const entities = await strapi.entityService.findMany(collectionName as any, {
+        const entities = await strapi.entityService.findMany(collectionName as any, {
           populate: '*',
           pagination: { limit: -1 } // Récupérer toutes les entrées
         });

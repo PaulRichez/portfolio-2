@@ -293,7 +293,7 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
       const result = await strapi
         .plugin('llm-chat')
         .service('vectorSyncService')
-        .syncAll();
+        .syncFull();
 
       ctx.body = {
         success: true,

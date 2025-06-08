@@ -35,12 +35,16 @@ import { PLUGIN_ID } from '../pluginId';
 import { getTranslation } from '../utils/getTranslation';
 
 interface VectorStats {
-  totalDocuments: number;
-  collections: string[];
-  lastSync: string;
-  health: 'healthy' | 'warning' | 'error';
-  chromaConnection: boolean;
-  ollamaConnection: boolean;
+  collection_name?: string;
+  document_count?: number;
+  indexed_collections?: string[];
+  last_updated?: string;
+  totalDocuments?: number;
+  collections?: string[];
+  lastSync?: string;
+  health?: 'healthy' | 'warning' | 'error';
+  chromaConnection?: boolean;
+  ollamaConnection?: boolean;
 }
 
 interface CollectionInfo {
@@ -112,7 +116,9 @@ const VectorManagementInterface: React.FC = () => {
   const fetchStats = async () => {
     try {
       const response = await get(`/${PLUGIN_ID}/vectors/stats`) as any;
-      if (response?.data) {
+      if (response?.data?.stats) {
+        setStats(response.data.stats);
+      } else if (response?.data) {
         setStats(response.data);
       }
     } catch (err: any) {
@@ -137,10 +143,24 @@ const VectorManagementInterface: React.FC = () => {
     try {
       const response = await post(`/${PLUGIN_ID}/vectors/test-connection`, {}) as any;
       if (response?.data) {
-        setStats(prev => prev ? { ...prev, ...response.data } : response.data);
+        const connectionData = response.data;
+        // Update stats with connection status
+        setStats(prev => ({
+          ...prev,
+          chromaConnection: connectionData.details?.chroma?.status === 'connected',
+          ollamaConnection: connectionData.details?.ollama?.status === 'connected',
+          health: connectionData.status === 'connected' ? 'healthy' : 'error'
+        }));
       }
     } catch (err: any) {
       setError(err.message || 'Connection test failed');
+      // Update stats to show disconnected status
+      setStats(prev => ({
+        ...prev,
+        chromaConnection: false,
+        ollamaConnection: false,
+        health: 'error'
+      }));
     } finally {
       setIsLoading(false);
     }
@@ -277,7 +297,7 @@ const VectorManagementInterface: React.FC = () => {
             <Flex direction="column" alignItems="center" gap={2}>
               <Database />
               <Typography variant="beta">
-                {stats?.totalDocuments || 0}
+                {stats?.totalDocuments || stats?.document_count || 0}
               </Typography>
               <Typography variant="pi" textColor="neutral600">
                 Total Documents
@@ -291,7 +311,7 @@ const VectorManagementInterface: React.FC = () => {
             <Flex direction="column" alignItems="center" gap={2}>
               <Cog />
               <Typography variant="beta">
-                {stats?.collections?.length || 0}
+                {stats?.collections?.length || stats?.indexed_collections?.length || 0}
               </Typography>
               <Typography variant="pi" textColor="neutral600">
                 Collections
@@ -576,23 +596,23 @@ const VectorManagementInterface: React.FC = () => {
                 <Flex direction="column" gap={2} paddingBottom={4}>
                   <Flex justifyContent="space-between">
                     <Typography>Total Documents:</Typography>
-                    <Typography>{stats.totalDocuments}</Typography>
+                    <Typography>{stats.totalDocuments || stats.document_count || 0}</Typography>
                   </Flex>
                   <Flex justifyContent="space-between">
                     <Typography>Collections:</Typography>
-                    <Typography>{stats.collections.length}</Typography>
+                    <Typography>{stats.collections?.length || stats.indexed_collections?.length || 0}</Typography>
                   </Flex>
                   <Flex justifyContent="space-between">
                     <Typography>Last Sync:</Typography>
                     <Typography>
-                      {stats.lastSync ? new Date(stats.lastSync).toLocaleString() : 'Never'}
+                      {(stats.lastSync || stats.last_updated) ? new Date(stats.lastSync || stats.last_updated!).toLocaleString() : 'Never'}
                     </Typography>
                   </Flex>
                 </Flex>
 
                 <Typography variant="delta" paddingBottom={3}>Available Collections</Typography>
                 <Flex direction="column" gap={1}>
-                  {stats.collections.map(collection => (
+                  {(stats.collections || stats.indexed_collections || []).map(collection => (
                     <Typography key={collection} variant="pi">
                       • {collection}
                     </Typography>
