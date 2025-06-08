@@ -8,7 +8,7 @@ import { BaseChatMemory } from "langchain/memory";
 import { BaseMessage, AIMessage, HumanMessage } from "@langchain/core/messages";
 
 // Interface pour définir la structure de la configuration
-interface LlmChatConfig {
+export interface LlmChatConfig {
   provider: 'openai' | 'custom';
   openai: {
     apiKey: string;
@@ -24,7 +24,7 @@ interface LlmChatConfig {
 }
 
 // Interface pour les options de conversation
-interface ConversationOptions {
+export interface ConversationOptions {
   sessionId?: string;
   systemPrompt?: string;
   maxTokens?: number;

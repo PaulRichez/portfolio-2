@@ -101,21 +101,20 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    profiles: ["postgres"]
-  # Ollama AI Service
-ollama:
+    profiles: ["postgres"]  # Ollama AI Service
+  ollama:
     image: ollama/ollama:latest
-    container_name: portfolio-ollama-dev
+    container_name: portfolio-ollama
     ports:
       - "11434:11434"
     volumes:
-      - ollama_dev_data:/root/.ollama
+      - ollama_data:/root/.ollama
       - ./scripts:/scripts
     environment:
       - OLLAMA_HOST=0.0.0.0:11434
     restart: unless-stopped
     networks:
-      - portfolio_dev_network
+      - portfolio_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
       interval: 30s
@@ -131,7 +130,7 @@ ollama:
       wait"
 
   # ChromaDB Vector Database
-chromadb:
+  chromadb:
     image: chromadb/chroma:latest
     container_name: portfolio-chromadb
     ports:

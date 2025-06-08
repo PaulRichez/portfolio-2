@@ -37,6 +37,9 @@
     "@langchain/openai": "^0.5.11",
     "@strapi/design-system": "^2.0.0-rc.24",
     "@types/node": "^22.15.29",
+    "axios": "^1.7.0",
+    "chromadb": "^3.0.3",
+    "chromadb-default-embed": "^2.14.0",
     "langchain": "^0.3.27",
     "react-intl": "^7.1.11"
   },
