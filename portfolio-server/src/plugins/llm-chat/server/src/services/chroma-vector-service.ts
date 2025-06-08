@@ -1,7 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { ChromaClient, Collection } from 'chromadb';
 import axios from 'axios';
-import { INDEXABLE_COLLECTIONS } from '../config/indexable-collections';
+import { INDEXABLE_COLLECTIONS, getPopulateConfig } from '../config/indexable-collections';
 
 // Custom embedding function that doesn't do anything (we'll provide embeddings manually)
 class NullEmbeddingFunction {
@@ -326,8 +326,12 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
 
       try {
         strapi.log.info(`📋 Processing collection: ${collectionName}`);
+
+        // Configuration spécifique de populate selon la collection
+        const populateConfig = getPopulateConfig(collectionName);
+
         const entities = await strapi.entityService.findMany(collectionName as any, {
-          populate: '*',
+          populate: populateConfig,
           pagination: { limit: -1 } // Récupérer toutes les entrées
         });
 

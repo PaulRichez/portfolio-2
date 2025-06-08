@@ -1,5 +1,5 @@
 import type { Core } from '@strapi/strapi';
-import { INDEXABLE_COLLECTIONS } from '../config/indexable-collections';
+import { INDEXABLE_COLLECTIONS, getPopulateConfig } from '../config/indexable-collections';
 
 const vectorSyncService = ({ strapi }: { strapi: Core.Strapi }) => {
   // Collections à surveiller pour la synchronisation automatique
@@ -113,8 +113,11 @@ const vectorSyncService = ({ strapi }: { strapi: Core.Strapi }) => {
       throw new Error(`Collection ${collectionName} is not configured for vector sync`);
     }
 
-    try {      const entry = await strapi.entityService.findOne(collectionName as any, entryId, {
-        populate: '*'
+    try {      // Configuration spécifique de populate selon la collection
+      const populateConfig = getPopulateConfig(collectionName);
+
+      const entry = await strapi.entityService.findOne(collectionName as any, entryId, {
+        populate: populateConfig
       });
 
       if (!entry) {
@@ -140,8 +143,11 @@ const vectorSyncService = ({ strapi }: { strapi: Core.Strapi }) => {
       throw new Error(`Collection ${collectionName} is not configured for vector sync`);
     }
 
-    try {      const entries = await strapi.entityService.findMany(collectionName as any, {
-        populate: '*',
+    try {      // Configuration spécifique de populate selon la collection
+      const populateConfig = getPopulateConfig(collectionName);
+
+      const entries = await strapi.entityService.findMany(collectionName as any, {
+        populate: populateConfig,
         pagination: { limit: -1 }
       });
 
