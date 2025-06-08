@@ -520,24 +520,34 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
           await ensureCollection();
 
           // Compter les documents de ce type de contenu dans la collection
-          // Utiliser un embedding générique pour compter les documents
-          const dummyEmbedding = await generateEmbedding("count");
-          const results = await collection.query({
-            queryEmbeddings: [dummyEmbedding],
-            nResults: 1,
-            where: { collection: contentType }
+          // Utiliser collection.get() avec filtre pour obtenir le vrai nombre de documents
+          const results = await collection.get({
+            where: { collection: contentType },
+            include: ['metadatas'] // On n'a besoin que des métadonnées pour compter
           });
+
+          // Trouver la date de dernière mise à jour parmi les documents
+          let lastUpdated = null;
+          if (results.metadatas && results.metadatas.length > 0) {
+            const dates = results.metadatas
+              .map(meta => meta?.indexed_at)
+              .filter(Boolean)
+              .sort()
+              .reverse();
+            lastUpdated = dates[0] || new Date().toISOString();
+          }
 
           collections.push({
             name: contentType,
-            count: results.ids?.[0]?.length || 0,
-            lastUpdated: new Date().toISOString(),
+            count: results.ids?.length || 0,
+            lastUpdated: lastUpdated,
             enabled: true,
             contentType: contentType,
             fields: collectionConfig.fields
           });
         } catch (error) {
           // Collection ou type de contenu n'existe pas encore
+          strapi.log.warn(`⚠️ No documents found for collection ${contentType}:`, error.message);
           collections.push({
             name: contentType,
             count: 0,
