@@ -6,6 +6,9 @@ import { ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate } f
 import { ConversationChain } from "langchain/chains";
 import { BaseChatMemory } from "langchain/memory";
 import { BaseMessage, AIMessage, HumanMessage } from "@langchain/core/messages";
+// Imports pour les outils LangChain
+import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
+import { ChromaRetrievalTool, ChromaAdvancedRetrievalTool } from "../tools/chroma-retrieval-tool";
 
 // Interface pour définir la structure de la configuration
 export interface LlmChatConfig {
@@ -29,6 +32,7 @@ export interface ConversationOptions {
   systemPrompt?: string;
   maxTokens?: number;
   temperature?: number;
+  useRAG?: boolean; // Nouvelle option pour activer/désactiver RAG
 }
 
 // Mémoire personnalisée utilisant Strapi
@@ -253,40 +257,110 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
         } catch (testError) {
           console.error('❌ Failed to create test message:', testError);
           throw new Error('Database connection or content-type issue: ' + testError.message);
-        }
-
-        // Récupérer ou créer une conversation
+        }        // Récupérer ou créer une conversation
         if (!conversationChains.has(sessionId)) {
           console.log('🔗 Creating new conversation chain for session:', sessionId);
+
           // Créer une mémoire personnalisée utilisant Strapi
           const memory = new StrapiChatMemory(strapi, sessionId);
 
-          const systemPrompt = options?.systemPrompt || "You are a helpful AI assistant.";
-          const chatPrompt = ChatPromptTemplate.fromMessages([
-            ["system", systemPrompt],
-            new MessagesPlaceholder("history"),
-            HumanMessagePromptTemplate.fromTemplate("{input}"),
-          ]);
+          // Décider si on utilise un agent avec outils RAG ou une conversation simple
+          const useRAG = options?.useRAG !== false; // RAG activé par défaut
 
-          const chain = new ConversationChain({
-            memory: memory,
-            prompt: chatPrompt,
-            llm: model,
-          });
+          if (useRAG && config.provider === 'openai') {
+            console.log('🤖 Creating agent with ChromaDB tools...');
 
-          conversationChains.set(sessionId, chain);
+            // Créer les outils ChromaDB
+            const tools = [
+              new ChromaRetrievalTool(strapi),
+              new ChromaAdvancedRetrievalTool(strapi)
+            ];
+
+            // Prompt système pour l'agent avec RAG
+            const systemPrompt = options?.systemPrompt || `Tu es un assistant IA spécialisé dans le portfolio et les informations personnelles.
+
+INSTRUCTIONS IMPORTANTES :
+1. Utilise l'outil 'chroma_search' pour rechercher des informations pertinentes dans la base de données quand l'utilisateur :
+   - Pose des questions sur les projets
+   - Demande des informations personnelles, compétences, expériences
+   - Cherche des détails spécifiques sur le portfolio
+
+2. Réponds toujours en français de manière naturelle et conversationnelle
+3. Utilise les informations trouvées pour donner des réponses complètes et précises
+4. Si tu ne trouves pas d'informations pertinentes, dis-le clairement
+5. Inclus les liens et détails pertinents quand ils sont disponibles
+
+Tu peux rechercher des informations sur :
+- Les projets de développement
+- Les compétences techniques
+- L'expérience professionnelle
+- La formation
+- Les coordonnées et liens sociaux`;
+
+            const agentPrompt = ChatPromptTemplate.fromMessages([
+              ["system", systemPrompt],
+              new MessagesPlaceholder("chat_history"),
+              ["human", "{input}"],
+              new MessagesPlaceholder("agent_scratchpad"),
+            ]);
+
+            // Créer l'agent OpenAI Functions
+            const agent = await createOpenAIFunctionsAgent({
+              llm: model,
+              tools,
+              prompt: agentPrompt,
+            });
+
+            // Créer l'exécuteur d'agent avec mémoire personnalisée
+            const agentExecutor = new AgentExecutor({
+              agent,
+              tools,
+              memory,
+              verbose: true,
+              returnIntermediateSteps: false,
+            });
+
+            conversationChains.set(sessionId, { type: 'agent', executor: agentExecutor });
+          } else {
+            console.log('💬 Creating simple conversation chain...');
+
+            // Conversation simple sans outils
+            const systemPrompt = options?.systemPrompt || "Tu es un assistant IA utile qui répond en français.";
+            const chatPrompt = ChatPromptTemplate.fromMessages([
+              ["system", systemPrompt],
+              new MessagesPlaceholder("history"),
+              HumanMessagePromptTemplate.fromTemplate("{input}"),
+            ]);
+
+            const chain = new ConversationChain({
+              memory: memory,
+              prompt: chatPrompt,
+              llm: model,
+            });
+
+            conversationChains.set(sessionId, { type: 'chain', chain });
+          }
         } else {
-          console.log('♻️ Using existing conversation chain for session:', sessionId);
+          console.log('♻️ Using existing conversation for session:', sessionId);
         }
 
         // Récupérer la conversation existante
-        const chain = conversationChains.get(sessionId);
+        const conversationData = conversationChains.get(sessionId);
 
         console.log('⚡ Calling LLM...');
-        // Appeler la chaîne et obtenir une réponse
-        const response = await chain.call({
-          input: message,
-        });
+
+        let response;
+        if (conversationData.type === 'agent') {
+          // Utiliser l'agent avec outils
+          response = await conversationData.executor.call({
+            input: message,
+          });
+        } else {
+          // Utiliser la chaîne simple
+          response = await conversationData.chain.call({
+            input: message,
+          });
+        }
 
         console.log('✅ LLM response received');
 
