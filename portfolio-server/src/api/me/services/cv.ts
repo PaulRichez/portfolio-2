@@ -4,6 +4,13 @@ const PdfPrinter = require('pdfmake');
 const path = require('path');
 const fs = require('fs');
 
+// Constantes de couleurs
+const COLORS = {
+    PRIMARY: '#2c3e50',
+    WHITE: 'white',
+    GRAY: '#666666'
+};
+
 // Fonction pour vérifier si un fichier existe
 const fileExists = (filePath) => {
     try {
@@ -169,67 +176,72 @@ export default ({ strapi }) => ({
                 name: {
                     fontSize: 18,
                     bold: true,
-                    color: 'white'
+                    color: COLORS.WHITE
                 },
                 jobTitle: {
                     fontSize: 14,
-                    color: 'white',
+                    color: COLORS.WHITE,
                     margin: [0, 2, 0, 2]
                 },
                 basicInfo: {
                     fontSize: 12,
-                    color: 'white'
+                    color: COLORS.WHITE
                 },
                 sectionTitle: {
                     bold: true,
                     fontSize: 14,
                     margin: [0, 10, 0, 5],
                     decoration: 'underline',
-                    color: 'white'
+                    color: COLORS.WHITE
                 },
                 sectionTitleMain: {
                     bold: true,
                     fontSize: 14,
                     margin: [0, 10, 0, 5],
                     decoration: 'underline',
-                    color: 'black'
+                    color: COLORS.PRIMARY
                 },
                 skillName: {
                     fontSize: 10,
-                    color: 'white',
+                    color: COLORS.WHITE,
                     margin: [0, 1, 0, 1]
                 },
                 contactInfo: {
                     fontSize: 10,
-                    color: 'white',
+                    color: COLORS.WHITE,
                     margin: [0, 1, 0, 1]
                 },
                 experienceTitle: {
                     fontSize: 12,
                     bold: true,
-                    margin: [0, 3, 0, 1]
+                    margin: [0, 3, 0, 1],
+                    color: COLORS.PRIMARY
                 },
                 experienceCompany: {
                     fontSize: 11,
                     italics: true,
-                    margin: [0, 0, 0, 2]
+                    margin: [0, 0, 0, 2],
+                    color: COLORS.PRIMARY
                 },
                 experienceDate: {
                     fontSize: 10,
-                    color: '#666666'
+                    color: COLORS.PRIMARY
                 },
                 experienceDescription: {
                     fontSize: 10,
-                    margin: [0, 1, 0, 1]
+                    margin: [0, 1, 0, 1],
+                    color: COLORS.PRIMARY
                 },
                 diplomaTitle: {
                     fontSize: 12,
                     bold: true,
-                    margin: [0, 3, 0, 1]
+                    margin: [0, 3, 0, 1],
+                    color: COLORS.PRIMARY
                 },
                 diplomaDescription: {
                     fontSize: 11,
-                    margin: [0, 0, 0, 2]
+                    margin: [0, 0, 0, 2],
+                    color: COLORS.PRIMARY
                 }
             }, content: [
                 {
@@ -240,9 +252,9 @@ export default ({ strapi }) => ({
                             [
                                 {
                                     stack: leftColumn,
-                                    color: 'white',
+                                    color: COLORS.WHITE,
                                     margin: [10, 10, 10, 10],
-                                    fillColor: '#2c3e50'
+                                    fillColor: COLORS.PRIMARY
                                 },
                                 {
                                     stack: rightColumn,
@@ -253,7 +265,7 @@ export default ({ strapi }) => ({
                     },
                     layout: {
                         fillColor: function (rowIndex, node, columnIndex) {
-                            return (columnIndex === 0) ? '#2c3e50' : null;
+                            return (columnIndex === 0) ? COLORS.PRIMARY : null;
                         },
                         defaultBorder: false,
                         paddingLeft: function () { return 0; },
