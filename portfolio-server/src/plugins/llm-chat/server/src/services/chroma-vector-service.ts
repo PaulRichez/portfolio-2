@@ -322,6 +322,36 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
     }
   };
 
+  // Lister les documents indexés
+  const listDocuments = async (limit: number = 50, offset: number = 0): Promise<any[]> => {
+    try {
+      await ensureCollection();
+
+      // ChromaDB ne supporte pas directement la pagination, donc on récupère tous les documents et on pagine côté application
+      const results = await collection.get({
+        include: ['documents', 'metadatas'],
+        limit: limit + offset // Récupérer plus pour permettre l'offset
+      });
+
+      if (!results.ids || results.ids.length === 0) {
+        return [];
+      }
+
+      // Paginer les résultats côté application
+      const documents = results.ids.slice(offset, offset + limit).map((id, index) => ({
+        id,
+        document: results.documents[offset + index],
+        metadata: results.metadatas[offset + index],
+        collection: results.metadatas[offset + index]?.collection || 'unknown'
+      }));
+
+      return documents;
+    } catch (error) {
+      strapi.log.error('❌ Error listing documents:', error);
+      throw error;
+    }
+  };
+
   // Test de connexion
   const testConnection = async (): Promise<{ status: string, details: any }> => {
     try {
@@ -458,6 +488,83 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
     }
   };
 
+  // Exporter les documents d'une ou plusieurs collections
+  const exportCollections = async (collectionNames: string[] = []): Promise<string> => {
+    try {
+      await ensureCollection();
+
+      let exportText = '';
+      const exportDate = new Date().toLocaleString();
+
+      // Si aucune collection spécifiée, exporter toutes
+      if (collectionNames.length === 0) {
+        collectionNames = Object.keys(INDEXABLE_COLLECTIONS);
+      }
+
+      // En-tête du fichier d'export
+      exportText += `# Export des Collections ChromaDB\n`;
+      exportText += `Date d'export: ${exportDate}\n`;
+      exportText += `Collections exportées: ${collectionNames.join(', ')}\n\n`;
+      exportText += `${'='.repeat(80)}\n\n`;
+
+      // Exporter chaque collection
+      for (const collectionName of collectionNames) {
+        try {
+          const results = await collection.get({
+            where: { collection: collectionName },
+            limit: 1000, // Limite pour éviter les exports trop volumineux
+            include: ['documents', 'metadatas']
+          });
+
+          if (results.ids && results.ids.length > 0) {
+            exportText += `## Collection: ${collectionName}\n`;
+            exportText += `Nombre de documents: ${results.ids.length}\n\n`;
+
+            // Exporter chaque document
+            for (let i = 0; i < results.ids.length; i++) {
+              const id = results.ids[i];
+              const document = results.documents?.[i] || '';
+              const metadata = results.metadatas?.[i] || {};
+
+              exportText += `### Document ID: ${id}\n`;
+              exportText += `**Contenu:**\n${document}\n\n`;
+
+              if (Object.keys(metadata).length > 0) {
+                exportText += `**Métadonnées:**\n`;
+                for (const [key, value] of Object.entries(metadata)) {
+                  if (key !== 'collection') { // Éviter de répéter le nom de collection
+                    exportText += `- ${key}: ${value}\n`;
+                  }
+                }
+                exportText += '\n';
+              }
+
+              exportText += `${'-'.repeat(60)}\n\n`;
+            }
+          } else {
+            exportText += `## Collection: ${collectionName}\n`;
+            exportText += `Aucun document trouvé.\n\n`;
+          }
+
+          exportText += `${'='.repeat(80)}\n\n`;
+        } catch (error) {
+          exportText += `## Collection: ${collectionName}\n`;
+          exportText += `Erreur lors de l'export: ${error.message}\n\n`;
+          exportText += `${'='.repeat(80)}\n\n`;
+        }
+      }
+
+      // Pied de page
+      exportText += `Export terminé le ${new Date().toLocaleString()}\n`;
+      exportText += `Total de collections traitées: ${collectionNames.length}\n`;
+
+      return exportText;
+    } catch (error) {
+      strapi.log.error('❌ Error exporting collections:', error);
+      throw new Error(`Failed to export collections: ${error.message}`);
+    }
+  };
+
   // Initialiser au démarrage
   initialize();
 
@@ -469,10 +576,12 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
     purgeAllDocuments,
     reindexAllData,
     searchDocuments,
+    listDocuments,
     testConnection,
     getStats,
     getCollections,
     purgeCollection,
+    exportCollections, // Ajouter la méthode d'export
 
     // Getter pour la configuration
     getConfig: () => config,

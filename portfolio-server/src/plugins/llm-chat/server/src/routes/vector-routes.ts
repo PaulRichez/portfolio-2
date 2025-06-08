@@ -79,6 +79,17 @@ export default {
       },
     },
 
+    // Lister les documents indexés
+    {
+      method: 'GET',
+      path: '/vectors/documents',
+      handler: 'vectorController.listDocuments',
+      config: {
+        policies: [],
+        description: 'List indexed documents'
+      },
+    },
+
     // Génération d'embeddings
     {
       method: 'POST',
@@ -125,6 +136,17 @@ export default {
       config: {
         policies: [],
         description: 'Remove a specific entry from vector index'
+      },
+    },
+
+    // Export de collections
+    {
+      method: 'POST',
+      path: '/vectors/export',
+      handler: 'vectorController.exportCollections',
+      config: {
+        policies: [],
+        description: 'Export selected collections to text format'
       },
     },
   ],

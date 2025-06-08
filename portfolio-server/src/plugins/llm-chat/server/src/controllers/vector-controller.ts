@@ -120,8 +120,8 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
       ctx.body = {
         success: true,
         query,
-        results: results.length,
-        data: results
+        count: results.length,
+        results: results
       };
     } catch (error) {
       strapi.log.error('❌ Vector search failed:', error);
@@ -327,6 +327,53 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
     } catch (error) {
       strapi.log.error('❌ Failed to generate embedding:', error);
       ctx.throw(500, `Failed to generate embedding: ${error.message}`);
+    }
+  },
+
+  // Lister les documents indexés
+  async listDocuments(ctx) {
+    try {
+      const { limit = 50, offset = 0 } = ctx.query;
+
+      const documents = await strapi
+        .plugin('llm-chat')
+        .service('chromaVectorService')
+        .listDocuments(parseInt(limit), parseInt(offset));
+
+      ctx.body = {
+        success: true,
+        documents,
+        count: documents.length,
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      };
+    } catch (error) {
+      strapi.log.error('❌ Failed to list documents:', error);
+      ctx.throw(500, `Failed to list documents: ${error.message}`);
+    }
+  },
+
+  // Exporter les collections sélectionnées
+  async exportCollections(ctx) {
+    try {
+      const { collections = [] } = ctx.request.body;
+
+      const exportContent = await strapi
+        .plugin('llm-chat')
+        .service('chromaVectorService')
+        .exportCollections(collections);
+
+      // Retourner le contenu dans un format JSON pour que le frontend puisse le traiter
+      ctx.body = {
+        success: true,
+        content: exportContent,
+        filename: `chroma-export-${new Date().toISOString().split('T')[0]}.txt`,
+        collections: collections,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      strapi.log.error('❌ Failed to export collections:', error);
+      ctx.throw(500, `Failed to export collections: ${error.message}`);
     }
   }
 });

@@ -15,7 +15,8 @@ import {
   Modal,
   Alert,
   TextInput,
-  Divider
+  Divider,
+  Checkbox
 } from '@strapi/design-system';
 import {
   ArrowClockwise,
@@ -27,7 +28,8 @@ import {
   Information,
   Check,
   Cross,
-  Cog
+  Cog,
+  Eye
 } from '@strapi/icons';
 import { useIntl } from 'react-intl';
 import { useFetchClient } from '@strapi/strapi/admin';
@@ -66,6 +68,18 @@ interface SearchResult {
   distance: number;
 }
 
+interface DocumentItem {
+  id: string;
+  document: string;
+  metadata: {
+    strapi_id: number;
+    collection: string;
+    title?: string;
+    [key: string]: any;
+  };
+  collection: string;
+}
+
 interface SyncStatus {
   isRunning: boolean;
   progress: number;
@@ -84,6 +98,16 @@ const VectorManagementInterface: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  // États pour les documents
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [currentTab, setCurrentTab] = useState<'search' | 'documents' | 'export'>('search');
+  const [selectedCollectionDocs, setSelectedCollectionDocs] = useState<string>('');
+
+  // États pour l'export
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
+  const [exportLoading, setExportLoading] = useState(false);
 
   // États pour la synchronisation
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
@@ -143,6 +167,43 @@ const VectorManagementInterface: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Failed to fetch collections:', err);
+    }
+  };
+
+  const fetchDocuments = async () => {
+    setDocumentsLoading(true);
+    try {
+      const response = await get(`/${PLUGIN_ID}/vectors/documents?limit=50&offset=0`) as any;
+      if (response?.data?.documents) {
+        setDocuments(response.data.documents);
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch documents:', err);
+      setError(err.message || 'Failed to fetch documents');
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
+
+  const fetchCollectionDocuments = async (collectionName: string) => {
+    setDocumentsLoading(true);
+    setSelectedCollectionDocs(collectionName);
+    setCurrentTab('documents');
+
+    try {
+      const response = await get(`/${PLUGIN_ID}/vectors/documents?limit=50&offset=0`) as any;
+      if (response?.data?.documents) {
+        // Filter documents by collection
+        const filteredDocs = response.data.documents.filter((doc: DocumentItem) =>
+          doc.metadata.collection === collectionName
+        );
+        setDocuments(filteredDocs);
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch collection documents:', err);
+      setError(err.message || 'Failed to fetch collection documents');
+    } finally {
+      setDocumentsLoading(false);
     }
   };
 
@@ -247,6 +308,90 @@ const VectorManagementInterface: React.FC = () => {
       setError(err.message || 'Purge failed');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Fonctions pour l'export
+  const handleExportCollections = async () => {
+    if (selectedCollections.length === 0) {
+      setError('Please select at least one collection to export');
+      return;
+    }
+
+    setExportLoading(true);
+    try {
+      // Utiliser le client Strapi pour l'authentification automatique
+      const response = await post(`/${PLUGIN_ID}/vectors/export`, {
+        collections: selectedCollections
+      }) as any;
+
+      // Debug: log de la réponse complète
+      console.log('Export response:', response);
+      console.log('Response type:', typeof response);
+      console.log('Response data:', response?.data);
+
+      let content: string = '';
+
+      // Vérifier la nouvelle structure de réponse JSON du serveur
+      if (response?.data?.success && response?.data?.content) {
+        content = response.data.content;
+        console.log('Content from response.data.content:', content.substring(0, 100) + '...');
+      } else if (response?.data && typeof response.data === 'string' && response.data.trim()) {
+        content = response.data;
+        console.log('Content from response.data (string):', content.substring(0, 100) + '...');
+      } else if (typeof response === 'string' && response.trim()) {
+        content = response;
+        console.log('Content from response (string):', content.substring(0, 100) + '...');
+      } else if (response && typeof response === 'object') {
+        // Si c'est un objet, le sérialiser en JSON lisible
+        content = JSON.stringify(response, null, 2);
+        console.log('Content from JSON.stringify:', content.substring(0, 100) + '...');
+      }
+
+      // Vérifier si on a du contenu
+      if (!content || content.trim() === '') {
+        throw new Error('Export returned empty content. Please check if the selected collections contain data.');
+      }
+
+      // Créer et télécharger le fichier
+      const filename = response?.data?.filename || `chroma-export-${new Date().toISOString().split('T')[0]}.txt`;
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setError('');
+      setSelectedCollections([]);
+
+      // Message de succès
+      console.log(`Export successful! Downloaded ${content.length} characters as ${filename}.`);
+
+    } catch (err: any) {
+      console.error('Failed to export collections:', err);
+      setError(err.message || 'Failed to export collections');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleCollectionToggle = (collectionName: string) => {
+    setSelectedCollections(prev =>
+      prev.includes(collectionName)
+        ? prev.filter(name => name !== collectionName)
+        : [...prev, collectionName]
+    );
+  };
+
+  const handleSelectAllCollections = () => {
+    if (selectedCollections.length === collections.length) {
+      setSelectedCollections([]);
+    } else {
+      setSelectedCollections(collections.map(col => col.name));
     }
   };
 
@@ -472,6 +617,15 @@ const VectorManagementInterface: React.FC = () => {
                       </Button>
                       <Button
                         size="S"
+                        variant="tertiary"
+                        startIcon={<Eye />}
+                        onClick={() => fetchCollectionDocuments(collection.name)}
+                        disabled={documentsLoading}
+                      >
+                        View Docs
+                      </Button>
+                      <Button
+                        size="S"
                         variant="danger-light"
                         startIcon={<Trash />}
                         onClick={() => {
@@ -490,61 +644,294 @@ const VectorManagementInterface: React.FC = () => {
         )}
       </Card>
 
-      {/* Vector Search */}
+      {/* Vector Search & Documents */}
       <Card padding={4}>
-        <Typography variant="beta" paddingBottom={4}>Vector Search</Typography>
-        <Flex gap={2} paddingBottom={4}>
-          <Box grow={1}>
-            <TextInput
-              placeholder="Enter search query..."
-              value={searchQuery}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === 'Enter') handleSearch();
+        <Flex justifyContent="space-between" alignItems="center" paddingBottom={4}>
+          <Typography variant="beta">Vector Operations</Typography>
+          <Flex gap={2}>
+            <Button
+              variant={currentTab === 'search' ? 'primary' : 'secondary'}
+              onClick={() => setCurrentTab('search')}
+              size="S"
+            >
+              Search
+            </Button>
+            <Button
+              variant={currentTab === 'documents' ? 'primary' : 'secondary'}
+              onClick={() => {
+                setCurrentTab('documents');
+                if (documents.length === 0 && !selectedCollectionDocs) {
+                  fetchDocuments();
+                }
               }}
-            />
-          </Box>
-          <Button
-            startIcon={<Search />}
-            onClick={handleSearch}
-            loading={searchLoading}
-            disabled={!searchQuery.trim()}
-          >
-            Search
-          </Button>
+              size="S"
+            >
+              Documents
+            </Button>
+            <Button
+              variant={currentTab === 'export' ? 'primary' : 'secondary'}
+              onClick={() => setCurrentTab('export')}
+              size="S"
+            >
+              Export
+            </Button>
+          </Flex>
         </Flex>
 
-        {searchResults.length > 0 && (
+        {currentTab === 'search' && (
           <Box>
-            <Typography variant="delta" paddingBottom={3}>
-              Search Results ({searchResults.length})
-            </Typography>
-            {searchResults.map((result, index) => (
-              <Card key={result.id} padding={3} marginBottom={2} background="neutral100">
-                <Flex direction="column" gap={2}>
-                  <Flex justifyContent="space-between" alignItems="flex-start">
-                    <Typography variant="omega" fontWeight="semiBold">
-                      {result.metadata.title || result.metadata.collection}
-                    </Typography>
-                    <Badge>
-                      Score: {(1 - result.distance).toFixed(3)}
-                    </Badge>
-                  </Flex>
+            <Flex gap={2} paddingBottom={4}>
+              <Box grow={1}>
+                <TextInput
+                  placeholder="Enter search query..."
+                  value={searchQuery}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e: React.KeyboardEvent) => {
+                    if (e.key === 'Enter') handleSearch();
+                  }}
+                />
+              </Box>
+              <Button
+                startIcon={<Search />}
+                onClick={handleSearch}
+                loading={searchLoading}
+                disabled={!searchQuery.trim()}
+              >
+                Search
+              </Button>
+            </Flex>
+
+            {searchResults.length > 0 && (
+              <Box>
+                <Typography variant="delta" paddingBottom={3}>
+                  Search Results ({searchResults.length})
+                </Typography>
+                {searchResults.map((result, index) => (
+                  <Card key={result.id} padding={3} marginBottom={2} background="neutral100">
+                    <Flex direction="column" gap={2}>
+                      <Flex justifyContent="space-between" alignItems="flex-start">
+                        <Typography variant="omega" fontWeight="semiBold">
+                          {result.metadata.title || result.metadata.collection}
+                        </Typography>
+                        <Badge>
+                          Distance: {result.distance.toFixed(3)}
+                        </Badge>
+                      </Flex>
+                      <Typography variant="pi" textColor="neutral600">
+                        Collection: {result.metadata.collection} | ID: {result.metadata.strapi_id}
+                      </Typography>
+                      <Typography variant="pi" style={{
+                        maxHeight: '60px',
+                        overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical'
+                      }}>
+                        {result.content}
+                      </Typography>
+                    </Flex>
+                  </Card>
+                ))}
+              </Box>
+            )}
+
+            {searchQuery && searchResults.length === 0 && !searchLoading && (
+              <Box padding={4} background="neutral100" hasRadius>
+                <Typography variant="pi" textColor="neutral600">
+                  No results found for "{searchQuery}"
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {currentTab === 'documents' && (
+          <Box>
+            <Flex justifyContent="space-between" alignItems="center" paddingBottom={4}>
+              <Box>
+                <Typography variant="delta">
+                  Indexed Documents ({documents.length})
+                </Typography>
+                {selectedCollectionDocs && (
                   <Typography variant="pi" textColor="neutral600">
-                    Collection: {result.metadata.collection} | ID: {result.metadata.strapi_id}
+                    Showing documents from: {selectedCollectionDocs}
                   </Typography>
-                  <Typography variant="pi" style={{
-                    maxHeight: '60px',
-                    overflow: 'hidden',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical'
-                  }}>
-                    {result.content}
+                )}
+              </Box>
+              <Flex gap={2}>
+                {selectedCollectionDocs && (
+                  <Button
+                    variant="tertiary"
+                    onClick={() => {
+                      setSelectedCollectionDocs('');
+                      fetchDocuments();
+                    }}
+                    size="S"
+                  >
+                    Show All
+                  </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  startIcon={<ArrowClockwise />}
+                  onClick={() => {
+                    if (selectedCollectionDocs) {
+                      fetchCollectionDocuments(selectedCollectionDocs);
+                    } else {
+                      fetchDocuments();
+                    }
+                  }}
+                  loading={documentsLoading}
+                  size="S"
+                >
+                  Refresh
+                </Button>
+              </Flex>
+            </Flex>
+
+            {documentsLoading && (
+              <Box padding={4} background="neutral100" hasRadius>
+                <Typography variant="pi" textColor="neutral600">
+                  Loading documents...
+                </Typography>
+              </Box>
+            )}
+
+            {documents.length > 0 && !documentsLoading && (
+              <Box>
+                {documents.map((doc, index) => (
+                  <Card key={doc.id} padding={3} marginBottom={2} background="neutral100">
+                    <Flex direction="column" gap={2}>
+                      <Flex justifyContent="space-between" alignItems="flex-start">
+                        <Typography variant="omega" fontWeight="semiBold">
+                          {doc.metadata.title || `Document ${doc.metadata.strapi_id}`}
+                        </Typography>
+                        <Badge variant="secondary">
+                          {doc.collection}
+                        </Badge>
+                      </Flex>
+                      <Typography variant="pi" textColor="neutral600">
+                        ID: {doc.id} | Strapi ID: {doc.metadata.strapi_id}
+                      </Typography>
+                      <Typography variant="pi" style={{
+                        maxHeight: '80px',
+                        overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 4,
+                        WebkitBoxOrient: 'vertical'
+                      }}>
+                        {doc.document}
+                      </Typography>
+                      <Typography variant="pi" textColor="neutral500">
+                        Indexed: {new Date(doc.metadata.indexed_at).toLocaleString()}
+                      </Typography>
+                    </Flex>
+                  </Card>
+                ))}
+              </Box>
+            )}
+
+            {documents.length === 0 && !documentsLoading && (
+              <Box padding={4} background="neutral100" hasRadius>
+                <Typography variant="pi" textColor="neutral600">
+                  No documents indexed yet. Try running a full sync.
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {currentTab === 'export' && (
+          <Box>
+            <Typography variant="delta" paddingBottom={4}>
+              Export Collections to Text Format
+            </Typography>
+
+            {collections.length === 0 ? (
+              <Box padding={4} background="neutral100" hasRadius>
+                <Typography variant="pi" textColor="neutral600">
+                  No collections available for export.
+                </Typography>
+              </Box>
+            ) : (
+              <Box>
+                <Box paddingBottom={4}>
+                  <Flex justifyContent="space-between" alignItems="center" paddingBottom={3}>
+                    <Typography variant="pi" fontWeight="semiBold">
+                      Select collections to export:
+                    </Typography>
+                    <Button
+                      variant="tertiary"
+                      size="S"
+                      onClick={handleSelectAllCollections}
+                    >
+                      {selectedCollections.length === collections.length ? 'Deselect All' : 'Select All'}
+                    </Button>
+                  </Flex>
+
+                  <Box background="neutral100" hasRadius padding={3}>
+                    <Flex direction="column" gap={2}>
+                      {collections.map((collection) => (
+                        <Flex key={collection.name} alignItems="center" gap={3}>
+                          <Checkbox
+                            checked={selectedCollections.includes(collection.name)}
+                            onCheckedChange={() => handleCollectionToggle(collection.name)}
+                          />
+                          <Typography variant="pi" fontWeight="semiBold">
+                            {collection.name}
+                          </Typography>
+                          <Badge variant="secondary">
+                            {collection.count} docs
+                          </Badge>
+                          <Typography variant="pi" textColor="neutral600">
+                            Last updated: {collection.lastUpdated ? new Date(collection.lastUpdated).toLocaleDateString() : 'Never'}
+                          </Typography>
+                        </Flex>
+                      ))}
+                    </Flex>
+                  </Box>
+                </Box>
+
+                <Divider paddingBottom={4} />
+
+                <Box>
+                  <Typography variant="pi" textColor="neutral600" paddingBottom={3}>
+                    Export will include document content and metadata for selected collections.
+                    The file will be in plain text format (.txt) and automatically downloaded.
                   </Typography>
-                </Flex>
-              </Card>
-            ))}
+
+                  <Flex gap={3}>
+                    <Button
+                      variant="default"
+                      startIcon={<Database />}
+                      onClick={handleExportCollections}
+                      loading={exportLoading}
+                      disabled={selectedCollections.length === 0}
+                    >
+                      Export Selected Collections ({selectedCollections.length})
+                    </Button>
+
+                    {selectedCollections.length > 0 && (
+                      <Button
+                        variant="tertiary"
+                        onClick={() => setSelectedCollections([])}
+                        size="S"
+                      >
+                        Clear Selection
+                      </Button>
+                    )}
+                  </Flex>
+                </Box>
+
+                {exportLoading && (
+                  <Box paddingTop={4}>
+                    <Alert variant="default" title="Export in Progress">
+                      Preparing export file... This may take a moment for large collections.
+                    </Alert>
+                  </Box>
+                )}
+              </Box>
+            )}
           </Box>
         )}
       </Card>
