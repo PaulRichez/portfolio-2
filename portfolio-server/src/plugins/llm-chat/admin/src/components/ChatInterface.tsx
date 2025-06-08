@@ -433,7 +433,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
                     </Typography>
                   ) : (
                     <div className="markdown-content">
-                      <ReactMarkdown>
+                      <ReactMarkdown
+                        components={{
+                          a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+                            <a {...props} target="_blank" rel="noopener noreferrer">
+                              {props.children}
+                            </a>
+                          )
+                        }}
+                      >
                         {message.content}
                       </ReactMarkdown>
                     </div>
