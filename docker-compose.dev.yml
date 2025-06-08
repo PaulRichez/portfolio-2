@@ -25,9 +25,9 @@ services:  # Ollama AI Service pour développement
       "ollama serve &
       sleep 10 &&
       ollama pull qwen3:0.6b &&
+      ollama pull nomic-embed-text &&
       echo 'Modèle qwen3:0.6b téléchargé avec succès!' &&
       wait"
-
   # ChromaDB Vector Database pour développement
   chromadb:
     image: chromadb/chroma:latest
@@ -41,9 +41,12 @@ services:  # Ollama AI Service pour développement
       - CHROMA_PORT=8000
       - ALLOW_RESET=TRUE
       - CHROMA_SERVER_CORS_ALLOW_ORIGINS=["http://localhost:4200","http://localhost:1337"]
+      - ANONYMIZED_TELEMETRY=FALSE
     restart: unless-stopped
     networks:
       - portfolio_dev_network
+    depends_on:
+      - ollama
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
       interval: 30s

@@ -211,8 +211,7 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
         config: {
           chromaUrl: config.chromaUrl,
           collectionName: config.collectionName,
-          embeddingModel: config.embeddingModel,
-          ollamaUrl: config.ollamaUrl
+          embeddingMode: 'automatic'
         },
         indexableCollections,
         watchedCollections
@@ -220,32 +219,6 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
     } catch (error) {
       strapi.log.error('❌ Failed to get vector config:', error);
       ctx.throw(500, `Failed to get config: ${error.message}`);
-    }
-  },
-
-  // Générer un embedding pour un texte donné (utile pour les tests)
-  async generateEmbedding(ctx) {
-    try {
-      const { text } = ctx.request.body;
-
-      if (!text) {
-        return ctx.badRequest('Text is required');
-      }
-
-      const embedding = await strapi
-        .plugin('llm-chat')
-        .service('chromaVectorService')
-        .generateEmbedding(text);
-
-      ctx.body = {
-        success: true,
-        text,
-        embedding_length: embedding.length,
-        embedding: embedding.slice(0, 10) // Afficher seulement les 10 premiers valeurs pour éviter une réponse trop grande
-      };
-    } catch (error) {
-      strapi.log.error('❌ Failed to generate embedding:', error);
-      ctx.throw(500, `Failed to generate embedding: ${error.message}`);
     }
   },
 
@@ -302,6 +275,31 @@ const vectorController = ({ strapi }: { strapi: Core.Strapi }) => ({
     } catch (error) {
       strapi.log.error('❌ Failed to perform full sync:', error);
       ctx.throw(500, `Failed to perform full sync: ${error.message}`);
+    }
+  },
+
+  // Générer un embedding avec Ollama
+  async generateEmbedding(ctx) {
+    try {
+      const { text } = ctx.request.body;
+
+      if (!text || typeof text !== 'string') {
+        ctx.throw(400, 'Text parameter is required and must be a string');
+      }
+
+      const embedding = await strapi
+        .plugin('llm-chat')
+        .service('chromaVectorService')
+        .generateEmbedding(text);
+
+      ctx.body = {
+        success: true,
+        embedding,
+        dimensions: embedding.length
+      };
+    } catch (error) {
+      strapi.log.error('❌ Failed to generate embedding:', error);
+      ctx.throw(500, `Failed to generate embedding: ${error.message}`);
     }
   }
 });

@@ -6,8 +6,8 @@ import axios from 'axios';
 export interface ChromaConfig {
   chromaUrl: string;
   collectionName: string;
+  ollamaUrl: string;
   embeddingModel: string;
-  ollamaUrl?: string;
 }
 
 // Collections à indexer avec leurs champs
@@ -41,8 +41,8 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
     config = {
       chromaUrl: process.env.CHROMA_URL || 'http://localhost:8001',
       collectionName: process.env.CHROMA_COLLECTION || 'strapi-rag',
-      embeddingModel: process.env.EMBEDDING_MODEL || 'mxbai-embed-large',
-      ollamaUrl: process.env.OLLAMA_URL || 'http://localhost:11434'
+      ollamaUrl: process.env.OLLAMA_URL || 'http://localhost:11434',
+      embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text'
     };
 
     chromaClient = new ChromaClient({
@@ -54,25 +54,8 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
     strapi.log.info('📊 ChromaDB Vector Service initialized');
     strapi.log.info(`🔗 ChromaDB URL: ${config.chromaUrl}`);
     strapi.log.info(`📚 Collection: ${config.collectionName}`);
-  };
-
-  // Générer des embeddings via Ollama
-  const generateEmbedding = async (text: string): Promise<number[]> => {
-    try {
-      const response = await axios.post(`${config.ollamaUrl}/api/embeddings`, {
-        model: config.embeddingModel,
-        prompt: text
-      });
-
-      if (!response.data.embedding) {
-        throw new Error('No embedding returned from Ollama');
-      }
-
-      return response.data.embedding;
-    } catch (error) {
-      strapi.log.error('❌ Error generating embedding:', error);
-      throw new Error(`Failed to generate embedding: ${error.message}`);
-    }
+    strapi.log.info(`🤖 Ollama URL: ${config.ollamaUrl}`);
+    strapi.log.info(`🔤 Embedding Model: ${config.embeddingModel}`);
   };
 
   // Créer ou obtenir une collection ChromaDB
@@ -90,16 +73,17 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
         strapi.log.debug(`Collection "${config.collectionName}" not found, creating it...`);
       }
 
-      // Créer la collection si elle n'existe pas
+      // Créer la collection sans fonction d'embedding (on fournira les embeddings manuellement)
       try {
         collection = await chromaClient.createCollection({
           name: config.collectionName,
           metadata: {
             description: 'Strapi RAG Collection',
             created_at: new Date().toISOString()
-          },
+          }
+          // Pas de fonction d'embedding - on fournira les embeddings manuellement via Ollama
         });
-        strapi.log.info(`✅ Collection "${config.collectionName}" created`);
+        strapi.log.info(`✅ Collection "${config.collectionName}" created (manual embeddings)`);
       } catch (createError: any) {
         // Si l'erreur indique que la collection existe déjà, essayer de la récupérer
         if (createError.message?.includes('already exists') || createError.name === 'ChromaUniqueError') {
@@ -114,6 +98,25 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
       }
     } catch (error) {
       strapi.log.error('❌ Error ensuring collection:', error);
+      throw error;
+    }
+  };
+
+  // Générer un embedding avec Ollama
+  const generateEmbedding = async (text: string): Promise<number[]> => {
+    try {
+      const response = await axios.post(`${config.ollamaUrl}/api/embeddings`, {
+        model: config.embeddingModel,
+        prompt: text
+      });
+
+      if (response.data && response.data.embedding) {
+        return response.data.embedding;
+      } else {
+        throw new Error('Invalid embedding response from Ollama');
+      }
+    } catch (error) {
+      strapi.log.error('❌ Error generating embedding:', error);
       throw error;
     }
   };
@@ -170,19 +173,21 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
         return;
       }
 
-      const embedding = await generateEmbedding(content);
       const metadata = extractMetadata(entity, collectionName);
       const documentId = `${collectionName}-${entity.id}`;
 
       // Supprimer le document existant s'il existe
       await deleteDocument(documentId);
 
-      // Ajouter le nouveau document
+      // Générer l'embedding avec Ollama
+      const embedding = await generateEmbedding(content);
+
+      // Ajouter le nouveau document avec l'embedding généré
       await collection.add({
         ids: [documentId],
-        embeddings: [embedding],
         documents: [content],
-        metadatas: [metadata]
+        metadatas: [metadata],
+        embeddings: [embedding]
       });
 
       strapi.log.info(`✅ Indexed document: ${documentId}`);
@@ -211,7 +216,7 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
   // Purger tous les documents
   const purgeAllDocuments = async (): Promise<{ deleted: number }> => {
     try {
-      // Supprimer la collection entière
+      // Supprimer la collection entière pour résoudre les problèmes d'embedding
       try {
         await chromaClient.deleteCollection({
           name: config.collectionName
@@ -219,10 +224,24 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
         strapi.log.info(`🗑️ Deleted collection: ${config.collectionName}`);
       } catch (error) {
         // Collection n'existe pas, ignorer l'erreur
+        strapi.log.debug(`Collection ${config.collectionName} doesn't exist or already deleted`);
       }
 
-      // Recréer la collection
-      await ensureCollection();
+      // Recréer la collection pour les embeddings manuels
+      try {
+        collection = await chromaClient.createCollection({
+          name: config.collectionName,
+          metadata: {
+            description: 'Strapi RAG Collection - Recreated',
+            created_at: new Date().toISOString()
+          }
+          // Pas de fonction d'embedding - on fournira les embeddings manuellement via Ollama
+        });
+        strapi.log.info(`✅ Collection recreated for manual embeddings`);
+      } catch (error) {
+        strapi.log.error('❌ Error recreating collection:', error);
+        throw error;
+      }
 
       strapi.log.info('✅ ChromaDB purged and collection recreated');
       return { deleted: -1 }; // -1 indique que tout a été supprimé
@@ -277,8 +296,10 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
     try {
       await ensureCollection();
 
+      // Générer l'embedding pour la requête avec Ollama
       const queryEmbedding = await generateEmbedding(query);
 
+      // Utiliser la recherche par embedding de ChromaDB
       const results = await collection.query({
         queryEmbeddings: [queryEmbedding],
         nResults: limit,
@@ -308,16 +329,21 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
       const chromaResponse = await chromaClient.heartbeat();
 
       // Test Ollama
-      let ollamaStatus = 'disconnected';
+      let ollamaStatus = 'error';
+      let ollamaDetails = {};
       try {
         const ollamaResponse = await axios.get(`${config.ollamaUrl}/api/tags`);
         ollamaStatus = 'connected';
-      } catch (error) {
-        ollamaStatus = 'disconnected';
+        ollamaDetails = {
+          models: ollamaResponse.data.models?.map((m: any) => m.name) || [],
+          embedding_model: config.embeddingModel
+        };
+      } catch (ollamaError) {
+        ollamaDetails = { error: ollamaError.message };
       }
 
       return {
-        status: 'connected',
+        status: ollamaStatus === 'connected' ? 'connected' : 'partial',
         details: {
           chroma: {
             status: 'connected',
@@ -327,9 +353,10 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
           ollama: {
             status: ollamaStatus,
             url: config.ollamaUrl,
-            model: config.embeddingModel
+            ...ollamaDetails
           },
-          collection: config.collectionName
+          collection: config.collectionName,
+          embedding_mode: 'manual_ollama'
         }
       };
     } catch (error) {
@@ -377,8 +404,10 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
           await ensureCollection();
 
           // Compter les documents de ce type de contenu dans la collection
+          // Utiliser un embedding générique pour compter les documents
+          const dummyEmbedding = await generateEmbedding("count");
           const results = await collection.query({
-            queryTexts: [""],
+            queryEmbeddings: [dummyEmbedding],
             nResults: 1,
             where: { collection: contentType }
           });
@@ -434,6 +463,7 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
 
   return {
     initialize,
+    generateEmbedding,
     indexDocument,
     deleteDocument,
     purgeAllDocuments,
@@ -441,7 +471,6 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
     searchDocuments,
     testConnection,
     getStats,
-    generateEmbedding,
     getCollections,
     purgeCollection,
 

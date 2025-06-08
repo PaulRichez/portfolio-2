@@ -79,6 +79,17 @@ export default {
       },
     },
 
+    // Génération d'embeddings
+    {
+      method: 'POST',
+      path: '/vectors/embedding',
+      handler: 'vectorController.generateEmbedding',
+      config: {
+        policies: [],
+        description: 'Generate embedding using Ollama'
+      },
+    },
+
     // Synchronisation manuelle
     {
       method: 'POST',
@@ -114,17 +125,6 @@ export default {
       config: {
         policies: [],
         description: 'Remove a specific entry from vector index'
-      },
-    },
-
-    // Utilitaires
-    {
-      method: 'POST',
-      path: '/vectors/embedding',
-      handler: 'vectorController.generateEmbedding',
-      config: {
-        policies: [],
-        description: 'Generate embedding for given text'
       },
     },
   ],
