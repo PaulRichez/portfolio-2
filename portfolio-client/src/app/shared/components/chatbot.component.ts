@@ -124,15 +124,6 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: this.currentMessage.trim(),
-      timestamp: new Date().toISOString()
-    };
-
-    // Ajouter le message utilisateur localement
-    this.chatbotService.addMessage(userMessage);
-
     const messageToSend = this.currentMessage.trim();
     this.currentMessage = '';
 
@@ -140,13 +131,11 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatbotService.setLoading(true);
 
     // Envoyer le message au service avec streaming
+    // Le service se charge d'ajouter le message utilisateur et la réponse
     this.chatbotService.sendMessage(messageToSend).subscribe({
       next: (response) => {
         // Le streaming est terminé, le message final est déjà ajouté via updateStreamingMessage
         this.chatbotService.setLoading(false);
-
-        // Optionnel: recharger l'historique pour synchroniser avec le serveur
-        // this.loadHistory();
       },
       error: (error) => {
         console.error('Erreur lors de l\'envoi du message:', error);
