@@ -174,9 +174,32 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
             if (value.length > 0 && typeof value[0] === 'object') {
               // Extraire les IDs et noms pour faciliter la recherche
               metadata[`${field}_ids`] = value.map(item => item.id).filter(Boolean).join(',');
-              metadata[`${field}_names`] = value.map(item =>
-                item.name || item.coding?.name || item.title || 'Unknown'
-              ).filter(Boolean).join(',');
+
+              // Vérifier s'il y a un formatter configuré pour ce champ
+              const formatter = config.metadataFormatters?.[field];
+              if (formatter) {
+                metadata[`${field}_names`] = value.map(item => {
+                  // Récupérer la valeur du nom via le chemin configuré
+                  const nameValue = getNestedValue(item, formatter.nameField) || 'Unknown';
+
+                  // Si un champ niveau est configuré, l'utiliser
+                  if (formatter.levelField && formatter.format) {
+                    const levelValue = getNestedValue(item, formatter.levelField) || 'Unknown';
+                    if (nameValue !== 'Unknown' && levelValue !== 'Unknown') {
+                      return formatter.format
+                        .replace('{name}', nameValue)
+                        .replace('{level}', levelValue);
+                    }
+                  }
+
+                  return nameValue;
+                }).filter(name => name !== 'Unknown').join(',');
+              } else {
+                // Fallback vers l'ancienne logique pour les champs sans formatter
+                metadata[`${field}_names`] = value.map(item =>
+                  item.name || item.coding?.name || item.title || 'Unknown'
+                ).filter(Boolean).join(',');
+              }
             } else {
               metadata[field] = value.join(',');
             }
@@ -202,6 +225,13 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
     }
 
     return metadata;
+  };
+
+  // Fonction utilitaire pour récupérer des valeurs imbriquées
+  const getNestedValue = (obj: any, path: string): any => {
+    return path.split('.').reduce((current, key) => {
+      return current && current[key] !== undefined ? current[key] : null;
+    }, obj);
   };
 
   // Indexer un document

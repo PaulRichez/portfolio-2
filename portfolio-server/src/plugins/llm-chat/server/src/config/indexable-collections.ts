@@ -1,8 +1,15 @@
 // Configuration des collections à indexer avec leurs champs
+export interface MetadataFieldFormatter {
+  nameField: string; // Champ contenant le nom (ex: 'name', 'coding.name')
+  levelField?: string; // Champ contenant le niveau (optionnel)
+  format?: string; // Format de sortie (ex: '{name} ({level})')
+}
+
 export interface IndexableCollectionConfig {
   fields: string[];
   metadataFields: string[];
   populate?: any; // Configuration populate pour les relations
+  metadataFormatters?: Record<string, MetadataFieldFormatter>; // Configuration des formatters pour les champs metadata
 }
 
 export const INDEXABLE_COLLECTIONS: Record<string, IndexableCollectionConfig> = {
@@ -25,6 +32,13 @@ export const INDEXABLE_COLLECTIONS: Record<string, IndexableCollectionConfig> = 
       languages: true,
       diplomas: true,
       experiences: true
+    },
+    metadataFormatters: {
+      coding_skills: {
+        nameField: 'coding.name',
+        levelField: 'level',
+        format: '{name} ({level})'
+      }
     }
   },
   'api::coding.coding': {
