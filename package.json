@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "description": "Portfolio avec Angular, Strapi, Ollama et ChromaDB",  "scripts": {
     "start": "npm run dev & npm run client",
-    "dev": "cd portfolio-server && npm run develop",
+    "dev": "cd portfolio-server && npm run dev",
     "client": "cd portfolio-client && npm start",
     "docker:build": "docker-compose build",
     "docker:start": "docker-compose up -d",
