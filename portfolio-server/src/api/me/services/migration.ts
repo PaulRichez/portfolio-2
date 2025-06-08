@@ -159,8 +159,8 @@ export default ({ strapi }) => ({
               "Intégration de flux avec Webmethods.",
               "Création d'API rest avec Webmethods.",
               "Développement de cockpit avec Angular2+",
-              "Utiisation de Firebase",
-              "Utiisation de nodeJs"
+              "Utilisation de Firebase",
+              "Utilisation de nodeJs"
             ]
           },
           {
@@ -169,7 +169,7 @@ export default ({ strapi }) => ({
             title: "Concepteur - Développeur",
             business: "CIM",
             businessWebsite: "https://www.sa-cim.fr",
-            descriptions: ["Correction et évolution d'un prologiciel de gestion en Powerbuilder."]
+            descriptions: ["Correction et évolution d'un progiciel de gestion en Powerbuilder."]
           }
         ],
 

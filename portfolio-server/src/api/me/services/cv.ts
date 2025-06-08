@@ -498,7 +498,7 @@ export default ({ strapi }) => ({
         const startYear = start.getFullYear();
 
         if (!endDate) {
-            return `Depuis ${startYear}`;
+            return `En poste actuellement (depuis ${startYear})`;
         }
 
         const end = new Date(endDate);
