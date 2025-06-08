@@ -7,15 +7,15 @@ export interface IndexableCollectionConfig {
 export const INDEXABLE_COLLECTIONS: Record<string, IndexableCollectionConfig> = {
   'api::project.project': {
     fields: ['title', 'description'],
-    metadataFields: ['github_link', 'link_demo', 'createdAt']
+    metadataFields: ['github_link', 'link_demo', 'link_npm', 'codings']
   },
   'api::me.me': {
     fields: ['firstName', 'lastName', 'postName'],
-    metadataFields: ['email', 'phoneNumber', 'website', 'github', 'linkedin']
+    metadataFields: ['email', 'phoneNumber', 'website', 'github', 'linkedin', 'coding_skills']
   },
   'api::coding.coding': {
     fields: ['name', 'category'],
-    metadataFields: ['icon', 'createdAt']
+    metadataFields: ['project']
   }
   // Ajoutez d'autres collections selon vos besoins
   // 'api::article.article': {

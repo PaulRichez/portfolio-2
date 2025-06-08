@@ -257,6 +257,9 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
       if (metadata.link_demo) {
         sections.push(`   🌐 Démo: ${metadata.link_demo}`);
       }
+      if (metadata.link_npm) {
+        sections.push(`   📦 NPM: ${metadata.link_npm}`);
+      }
       if (metadata.email) {
         sections.push(`   📧 Email: ${metadata.email}`);
       }
@@ -266,8 +269,20 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
       if (metadata.website) {
         sections.push(`   🌐 Site web: ${metadata.website}`);
       }
+      if (metadata.github) {
+        sections.push(`   🔗 GitHub: ${metadata.github}`);
+      }
       if (metadata.phoneNumber) {
         sections.push(`   📞 Téléphone: ${metadata.phoneNumber}`);
+      }
+      if (metadata.codings_names) {
+        sections.push(`   💻 Technologies: ${metadata.codings_names}`);
+      }
+      if (metadata.coding_skills_names) {
+        sections.push(`   🎯 Compétences: ${metadata.coding_skills_names}`);
+      }
+      if (metadata.category) {
+        sections.push(`   📁 Catégorie: ${metadata.category}`);
       }
 
       sections.push(''); // Ligne vide entre les résultats

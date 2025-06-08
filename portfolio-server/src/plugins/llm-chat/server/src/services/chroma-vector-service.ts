@@ -154,7 +154,6 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
 
     return parts.join('\n');
   };
-
   // Extraire les métadonnées
   const extractMetadata = (entity: any, collectionName: string): Record<string, any> => {
     const config = INDEXABLE_COLLECTIONS[collectionName];
@@ -167,7 +166,37 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
     if (config?.metadataFields) {
       config.metadataFields.forEach(field => {
         if (entity[field] !== undefined && entity[field] !== null) {
-          metadata[field] = entity[field];
+          let value = entity[field];
+
+          // Sérialiser les relations et objets complexes
+          if (Array.isArray(value)) {
+            // Pour les relations one-to-many (ex: codings, coding_skills)
+            if (value.length > 0 && typeof value[0] === 'object') {
+              // Extraire les IDs et noms pour faciliter la recherche
+              metadata[`${field}_ids`] = value.map(item => item.id).filter(Boolean).join(',');
+              metadata[`${field}_names`] = value.map(item =>
+                item.name || item.coding?.name || item.title || 'Unknown'
+              ).filter(Boolean).join(',');
+            } else {
+              metadata[field] = value.join(',');
+            }
+          } else if (typeof value === 'object') {
+            // Pour les relations many-to-one ou objets complexes
+            if (value.id) {
+              metadata[`${field}_id`] = value.id;
+              metadata[`${field}_name`] = value.name || value.title || 'Unknown';
+            } else {
+              // Essayer de sérialiser l'objet ou ignorer
+              try {
+                metadata[field] = JSON.stringify(value);
+              } catch (error) {
+                strapi.log.warn(`Cannot serialize field ${field} for ${collectionName}:${entity.id}`);
+              }
+            }
+          } else {
+            // Valeurs primitives (string, number, boolean, date)
+            metadata[field] = value;
+          }
         }
       });
     }

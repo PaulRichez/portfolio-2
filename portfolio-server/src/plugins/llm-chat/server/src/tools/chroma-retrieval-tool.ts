@@ -118,6 +118,7 @@ export class ChromaRetrievalTool extends Tool {
     const displayNames: Record<string, string> = {
       'api::project.project': '📁 Projet',
       'api::me.me': '👤 Profil personnel',
+      'api::coding.coding': '💻 Technologie',
       'api::article.article': '📝 Article',
       'api::faq.faq': '❓ FAQ'
     };
@@ -233,6 +234,7 @@ export class ChromaAdvancedRetrievalTool extends Tool {
     const displayNames: Record<string, string> = {
       'api::project.project': '📁 Projet',
       'api::me.me': '👤 Profil personnel',
+      'api::coding.coding': '💻 Technologie',
       'api::article.article': '📝 Article',
       'api::faq.faq': '❓ FAQ'
     };
@@ -245,10 +247,15 @@ export class ChromaAdvancedRetrievalTool extends Tool {
 
     if (metadata.github_link) relevant.push(`GitHub: ${metadata.github_link}`);
     if (metadata.link_demo) relevant.push(`Démo: ${metadata.link_demo}`);
+    if (metadata.link_npm) relevant.push(`NPM: ${metadata.link_npm}`);
     if (metadata.email) relevant.push(`Email: ${metadata.email}`);
     if (metadata.phoneNumber) relevant.push(`Tél: ${metadata.phoneNumber}`);
     if (metadata.website) relevant.push(`Site: ${metadata.website}`);
     if (metadata.linkedin) relevant.push(`LinkedIn: ${metadata.linkedin}`);
+    if (metadata.github) relevant.push(`GitHub: ${metadata.github}`);
+    if (metadata.codings_names) relevant.push(`Technologies: ${metadata.codings_names}`);
+    if (metadata.coding_skills_names) relevant.push(`Compétences: ${metadata.coding_skills_names}`);
+    if (metadata.category) relevant.push(`Catégorie: ${metadata.category}`);
     if (metadata.createdAt) relevant.push(`Créé: ${new Date(metadata.createdAt).toLocaleDateString()}`);
 
     return relevant;
