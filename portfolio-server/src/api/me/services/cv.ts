@@ -533,9 +533,9 @@ export default ({ strapi }) => ({
     getLanguageLevelLabel(percentage) {
         if (!percentage) return '○○○○○';
         
-        if (percentage >= 75) return '●●●●○';
-        if (percentage >= 50) return '●●●○○';
-        if (percentage >= 25) return '●●○○○';
+        if (percentage >= 75) return '●●●○';
+        if (percentage >= 50) return '●●○○';
+        if (percentage >= 25) return '●○○○';
         return '●○○○○';
     },
     /**
