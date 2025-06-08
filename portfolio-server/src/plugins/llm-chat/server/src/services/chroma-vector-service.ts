@@ -1,6 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { ChromaClient, Collection } from 'chromadb';
 import axios from 'axios';
+import { INDEXABLE_COLLECTIONS } from '../config/indexable-collections';
 
 // Custom embedding function that doesn't do anything (we'll provide embeddings manually)
 class NullEmbeddingFunction {
@@ -32,27 +33,6 @@ export interface ChromaConfig {
   ollamaUrl: string;
   embeddingModel: string;
 }
-
-// Collections à indexer avec leurs champs
-const INDEXABLE_COLLECTIONS = {
-  'api::project.project': {
-    fields: ['title', 'description'],
-    metadataFields: ['github_link', 'link_demo', 'createdAt']
-  },
-  'api::me.me': {
-    fields: ['firstName', 'lastName', 'postName'],
-    metadataFields: ['email', 'phoneNumber', 'website', 'github', 'linkedin']
-  }
-  // Ajoutez d'autres collections selon vos besoins
-  // 'api::article.article': {
-  //   fields: ['title', 'content'],
-  //   metadataFields: ['tags', 'author', 'publishedAt']
-  // },
-  // 'api::faq.faq': {
-  //   fields: ['question', 'answer'],
-  //   metadataFields: ['category', 'createdAt']
-  // }
-};
 
 const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
   let chromaClient: ChromaClient;
