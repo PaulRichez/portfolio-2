@@ -2,6 +2,29 @@ import type { Core } from '@strapi/strapi';
 import { ChromaClient, Collection } from 'chromadb';
 import axios from 'axios';
 
+// Custom embedding function that doesn't do anything (we'll provide embeddings manually)
+class NullEmbeddingFunction {
+  private _name: string;
+
+  constructor() {
+    this._name = 'NullEmbeddingFunction';
+  }
+
+  get name(): string {
+    return this._name;
+  }
+
+  async generate(texts: string[]): Promise<number[][]> {
+    // This should not be called since we provide embeddings manually
+    throw new Error('NullEmbeddingFunction should not be used for generating embeddings');
+  }
+
+  async embed(texts: string[]): Promise<number[][]> {
+    // This should not be called since we provide embeddings manually
+    throw new Error('NullEmbeddingFunction should not be used for embedding');
+  }
+}
+
 // Configuration du service
 export interface ChromaConfig {
   chromaUrl: string;
@@ -61,10 +84,13 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
   // Créer ou obtenir une collection ChromaDB
   const ensureCollection = async (): Promise<void> => {
     try {
+      const nullEmbedding = new NullEmbeddingFunction();
+
       // Essayer d'obtenir la collection existante
       try {
         collection = await chromaClient.getCollection({
           name: config.collectionName,
+          embeddingFunction: nullEmbedding // Utiliser notre fonction d'embedding nulle
         });
         strapi.log.info(`✅ Collection "${config.collectionName}" exists`);
         return;
@@ -80,8 +106,8 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
           metadata: {
             description: 'Strapi RAG Collection',
             created_at: new Date().toISOString()
-          }
-          // Pas de fonction d'embedding - on fournira les embeddings manuellement via Ollama
+          },
+          embeddingFunction: nullEmbedding // Utiliser notre fonction d'embedding nulle
         });
         strapi.log.info(`✅ Collection "${config.collectionName}" created (manual embeddings)`);
       } catch (createError: any) {
@@ -90,6 +116,7 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
           strapi.log.info(`Collection "${config.collectionName}" already exists, retrieving it...`);
           collection = await chromaClient.getCollection({
             name: config.collectionName,
+            embeddingFunction: nullEmbedding // Utiliser notre fonction d'embedding nulle
           });
           strapi.log.info(`✅ Collection "${config.collectionName}" retrieved successfully`);
         } else {
@@ -216,6 +243,8 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
   // Purger tous les documents
   const purgeAllDocuments = async (): Promise<{ deleted: number }> => {
     try {
+      const nullEmbedding = new NullEmbeddingFunction();
+
       // Supprimer la collection entière pour résoudre les problèmes d'embedding
       try {
         await chromaClient.deleteCollection({
@@ -234,8 +263,8 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
           metadata: {
             description: 'Strapi RAG Collection - Recreated',
             created_at: new Date().toISOString()
-          }
-          // Pas de fonction d'embedding - on fournira les embeddings manuellement via Ollama
+          },
+          embeddingFunction: nullEmbedding // Utiliser notre fonction d'embedding nulle
         });
         strapi.log.info(`✅ Collection recreated for manual embeddings`);
       } catch (error) {
