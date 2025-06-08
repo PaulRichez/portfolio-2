@@ -1,14 +1,10 @@
 import type { Core } from '@strapi/strapi';
+import { INDEXABLE_COLLECTIONS } from '../config/indexable-collections';
 
 const vectorSyncService = ({ strapi }: { strapi: Core.Strapi }) => {
   // Collections à surveiller pour la synchronisation automatique
-  const WATCHED_COLLECTIONS = [
-    'api::project.project',
-    'api::me.me'
-    // Ajoutez d'autres collections selon vos besoins
-    // 'api::article.article',
-    // 'api::faq.faq'
-  ];
+  // Récupérées automatiquement depuis la configuration des collections indexables
+  const WATCHED_COLLECTIONS = Object.keys(INDEXABLE_COLLECTIONS);
 
   // Gérer la création d'une entrée
   const handleAfterCreate = async (event: any) => {

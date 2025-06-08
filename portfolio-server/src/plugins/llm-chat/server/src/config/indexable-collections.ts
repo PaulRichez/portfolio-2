@@ -12,6 +12,10 @@ export const INDEXABLE_COLLECTIONS: Record<string, IndexableCollectionConfig> = 
   'api::me.me': {
     fields: ['firstName', 'lastName', 'postName'],
     metadataFields: ['email', 'phoneNumber', 'website', 'github', 'linkedin']
+  },
+  'api::coding.coding': {
+    fields: ['name', 'category'],
+    metadataFields: ['icon', 'createdAt']
   }
   // Ajoutez d'autres collections selon vos besoins
   // 'api::article.article': {
