@@ -9,6 +9,7 @@ import { BaseMessage, AIMessage, HumanMessage } from "@langchain/core/messages";
 // Imports pour les outils LangChain
 import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
 import { ChromaRetrievalTool, ChromaAdvancedRetrievalTool } from "../tools/chroma-retrieval-tool";
+import { SYSTEM_PROMPT } from "../prompts/system-prompt";
 
 // Interface pour définir la structure de la configuration
 export interface LlmChatConfig {
@@ -29,9 +30,7 @@ export interface LlmChatConfig {
 // Interface pour les options de conversation
 export interface ConversationOptions {
   sessionId?: string;
-  systemPrompt?: string;
   maxTokens?: number;
-  temperature?: number;
   useRAG?: boolean; // Nouvelle option pour activer/désactiver RAG
 }
 
@@ -190,23 +189,22 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
   // Stocker les chaînes de conversation en cache
   const conversationChains = new Map();
 
+  // Valeurs système codées en dur
+  const SYSTEM_TEMPERATURE = 0.7;
+
   // Créer un modèle en fonction de la configuration
   const createModel = (config: LlmChatConfig, options?: ConversationOptions) => {
-    const temperature = options?.temperature !== undefined
-      ? Number(options.temperature)
-      : Number(config.provider === 'openai' ? config.openai.temperature : config.custom.temperature);
-
     if (config.provider === 'openai') {
       return new ChatOpenAI({
         modelName: config.openai.modelName,
-        temperature: temperature,
+        temperature: SYSTEM_TEMPERATURE,
         openAIApiKey: config.openai.apiKey,
         maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
       });
     } else if (config.provider === 'custom') {
       return new ChatOpenAI({
         modelName: config.custom.modelName,
-        temperature: temperature,
+        temperature: SYSTEM_TEMPERATURE,
         maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
         configuration: {
           baseURL: config.custom.baseUrl,
@@ -371,29 +369,8 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
                 new ChromaAdvancedRetrievalTool(strapi)
               ];
 
-              // Prompt système pour l'agent avec RAG
-              const systemPrompt = options?.systemPrompt || `Tu es un assistant IA spécialisé dans le portfolio et les informations personnelles.
-
-INSTRUCTIONS IMPORTANTES :
-1. Utilise l'outil 'chroma_search' pour rechercher des informations pertinentes dans la base de données quand l'utilisateur :
-   - Pose des questions sur les projets
-   - Demande des informations personnelles, compétences, expériences
-   - Cherche des détails spécifiques sur le portfolio
-
-2. Réponds toujours en français de manière naturelle et conversationnelle
-3. Utilise les informations trouvées pour donner des réponses complètes et précises
-4. Si tu ne trouves pas d'informations pertinentes, dis-le clairement
-5. Inclus les liens et détails pertinents quand ils sont disponibles
-
-Tu peux rechercher des informations sur :
-- Les projets de développement
-- Les compétences techniques
-- L'expérience professionnelle
-- La formation
-- Les coordonnées et liens sociaux`;
-
               const agentPrompt = ChatPromptTemplate.fromMessages([
-                ["system", systemPrompt],
+                ["system", SYSTEM_PROMPT],
                 new MessagesPlaceholder("chat_history"),
                 ["human", "{input}"],
                 new MessagesPlaceholder("agent_scratchpad"),
@@ -422,24 +399,8 @@ Tu peux rechercher des informations sur :
               // Pour les modèles custom (Ollama), on utilise une approche RAG manuelle
               const chromaService = strapi.plugin('llm-chat').service('chromaVectorService');
 
-              // Prompt système pour RAG manuel
-              const systemPrompt = options?.systemPrompt || `Tu es un assistant IA spécialisé dans le portfolio et les informations personnelles.
-
-Tu as accès à une base de données de connaissances sur le portfolio. Quand l'utilisateur pose des questions sur :
-- Les projets de développement
-- Les compétences techniques
-- L'expérience professionnelle
-- La formation
-- Les coordonnées et informations de contact
-
-Tu recevras automatiquement des informations contextuelles pertinentes de la base de données.
-
-Réponds toujours en français de manière naturelle et conversationnelle.
-Utilise les informations contextuelles fournies pour donner des réponses complètes et précises.
-Si aucune information contextuelle n'est fournie, réponds avec tes connaissances générales.`;
-
               const chatPrompt = ChatPromptTemplate.fromMessages([
-                ["system", systemPrompt],
+                ["system", SYSTEM_PROMPT],
                 new MessagesPlaceholder("history"),
                 HumanMessagePromptTemplate.fromTemplate("{context}\n\nQuestion: {input}"),
               ]);
@@ -460,9 +421,8 @@ Si aucune information contextuelle n'est fournie, réponds avec tes connaissance
             console.log('💬 Creating simple conversation chain...');
 
             // Conversation simple sans outils
-            const systemPrompt = options?.systemPrompt || "Tu es un assistant IA utile qui répond en français.";
             const chatPrompt = ChatPromptTemplate.fromMessages([
-              ["system", systemPrompt],
+              ["system", SYSTEM_PROMPT],
               new MessagesPlaceholder("history"),
               HumanMessagePromptTemplate.fromTemplate("{input}"),
             ]);
@@ -738,15 +698,11 @@ Si aucune information contextuelle n'est fournie, réponds avec tes connaissance
         const sessionId = options?.sessionId || 'default';
 
         // Créer le modèle avec streaming activé
-        const temperature = options?.temperature !== undefined
-          ? Number(options.temperature)
-          : Number(config.provider === 'openai' ? config.openai.temperature : config.custom.temperature);
-
         let model;
         if (config.provider === 'openai') {
           model = new ChatOpenAI({
             modelName: config.openai.modelName,
-            temperature: temperature,
+            temperature: SYSTEM_TEMPERATURE,
             openAIApiKey: config.openai.apiKey,
             maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
             streaming: true,
@@ -754,7 +710,7 @@ Si aucune information contextuelle n'est fournie, réponds avec tes connaissance
         } else if (config.provider === 'custom') {
           model = new ChatOpenAI({
             modelName: config.custom.modelName,
-            temperature: temperature,
+            temperature: SYSTEM_TEMPERATURE,
             maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
             streaming: true,
             configuration: {
@@ -770,9 +726,8 @@ Si aucune information contextuelle n'est fournie, réponds avec tes connaissance
         if (!conversationChains.has(sessionId)) {
           const memory = new StrapiChatMemory(strapi, sessionId);
 
-          const systemPrompt = options?.systemPrompt || "You are a helpful AI assistant.";
           const chatPrompt = ChatPromptTemplate.fromMessages([
-            ["system", systemPrompt],
+            ["system", SYSTEM_PROMPT],
             new MessagesPlaceholder("history"),
             HumanMessagePromptTemplate.fromTemplate("{input}"),
           ]);

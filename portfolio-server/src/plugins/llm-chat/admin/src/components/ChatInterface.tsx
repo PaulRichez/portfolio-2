@@ -47,12 +47,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sessionId, setSessionId] = useState(`session-${Date.now()}`);
-  const [systemPrompt, setSystemPrompt] = useState(defaultSystemPrompt);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [provider, setProvider] = useState('openai');
-  const [temperature, setTemperature] = useState('0.7');
-  const [showConfig, setShowConfig] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -115,8 +111,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
       const formData = new FormData();
       formData.append('message', currentInput);
       formData.append('sessionId', sessionId);
-      formData.append('systemPrompt', systemPrompt);
-      formData.append('temperature', temperature);
 
       const response = await post(`/${PLUGIN_ID}/chat`, formData) as any;
 
@@ -226,8 +220,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
       const formData = new FormData();
       formData.append('message', 'Hello, test chat');
       formData.append('sessionId', sessionId);
-      formData.append('systemPrompt', systemPrompt);
-      formData.append('temperature', temperature);
 
       const response = await post(`/${PLUGIN_ID}/chat`, formData) as any;
 
@@ -272,11 +264,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
 
   return (
     <Flex direction="column" gap={4}>
-      {/* Chat configuration panel */}
+      {/* Chat controls */}
       <Flex justifyContent="space-between" alignItems="center">
-        <Button variant="tertiary" onClick={() => setShowConfig(!showConfig)}>
-          {showConfig ? 'Hide Configuration' : 'Show Configuration'}
-        </Button>
+        <Typography variant="beta">LLM Chat Interface</Typography>
         <Flex gap={2} alignItems="center">
           <Button variant="tertiary" onClick={testStreaming}>
             Test Chat
@@ -395,44 +385,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ defaultSystemPrompt = "Yo
           </Modal.Footer>
         </Modal.Content>
       </Modal.Root>
-
-      {showConfig && (
-        <Card padding={4}>
-          <Flex direction="column" gap={2}>
-            <Typography variant="beta">Chat Configuration</Typography>
-
-            <Box>
-              <Typography variant="delta">System Prompt</Typography>
-              <Textarea
-                name="systemPrompt"
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSystemPrompt(e.target.value)}
-                value={systemPrompt}
-                placeholder="Instructions for the AI..."
-              />
-            </Box>            <Box>
-              <Typography variant="delta">Provider</Typography>
-              <TextInput
-                name="provider"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProvider(e.target.value)}
-                value={provider}
-                placeholder="openai"
-              />
-            </Box>
-
-            <Box>
-              <Typography variant="delta">Temperature ({temperature})</Typography>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={temperature}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTemperature(e.target.value)}
-                style={{ width: '100%' }}
-              />            </Box>
-          </Flex>
-        </Card>
-      )}
 
       {/* Chat messages */}
       <Box

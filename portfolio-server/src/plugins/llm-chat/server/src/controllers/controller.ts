@@ -10,7 +10,7 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
 
   async chat(ctx) {
     try {
-      const { message, sessionId, systemPrompt, maxTokens, temperature } = ctx.request.body;
+      const { message, sessionId, maxTokens } = ctx.request.body;
 
       if (!message) {
         ctx.throw(400, 'Message is required');
@@ -22,7 +22,7 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
       const result = await strapi
         .plugin('llm-chat')
         .service('langchainService')
-        .chat(message, { sessionId, systemPrompt, maxTokens, temperature });
+        .chat(message, { sessionId, maxTokens });
 
       console.timeEnd(timerId);
       ctx.body = result;
@@ -34,7 +34,7 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
 
   async stream(ctx) {
     try {
-      const { message, sessionId, systemPrompt, temperature, maxTokens } = ctx.request.body;
+      const { message, sessionId, maxTokens } = ctx.request.body;
 
       if (!message) {
         return ctx.badRequest('Message is required');
@@ -42,8 +42,6 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       const options = {
         sessionId,
-        systemPrompt,
-        temperature: temperature ? parseFloat(temperature) : undefined,
         maxTokens: maxTokens ? parseInt(maxTokens) : undefined,
       };
 
