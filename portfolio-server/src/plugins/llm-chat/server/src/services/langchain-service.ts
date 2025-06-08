@@ -785,26 +785,54 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
             let fullResponse = '';
 
             try {
-              const stream = await chain.stream(
-                { input: message },
-                {
-                  callbacks: [{
-                    handleLLMNewToken(token) {
-                      fullResponse += token;
-                      return token;
-                    }
-                  }]
-                }
-              );
+              console.log('🌊 Starting LangChain streaming...');
+
+              // Utiliser le modèle directement avec streaming
+              const stream = await model.stream(message, {
+                callbacks: [{
+                  handleLLMNewToken(token) {
+                    console.log('📝 Token received:', token);
+                    fullResponse += token;
+                  }
+                }]
+              });
 
               for await (const chunk of stream) {
-                if (chunk.response) {
-                  yield `data: ${JSON.stringify({ content: chunk.response })}\n\n`;
+                console.log('📦 Chunk received:', chunk);
+
+                // Les chunks de LangChain contiennent le contenu dans .content
+                let content = '';
+                if (chunk.content) {
+                  content = chunk.content;
+                } else if (typeof chunk === 'string') {
+                  content = chunk;
+                } else if (chunk.text) {
+                  content = chunk.text;
+                }
+
+                if (content) {
+                  // Filtrer les balises <think> si présentes
+                  const filteredContent = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+
+                  if (filteredContent) {
+                    fullResponse += filteredContent;
+                    yield `data: ${JSON.stringify({ content: filteredContent })}\n\n`;
+                  }
                 }
               }
 
+              console.log('✅ Streaming completed, full response:', fullResponse.substring(0, 100) + '...');
+
+              // Sauvegarder la conversation après le streaming
+              const memory = new StrapiChatMemory(strapi, sessionId);
+              await memory.saveContext(
+                { input: message },
+                { response: fullResponse }
+              );
+
               yield `data: [DONE]\n\n`;
             } catch (error) {
+              console.error('❌ Streaming error:', error);
               yield `data: ${JSON.stringify({ error: error.message })}\n\n`;
             }
           },

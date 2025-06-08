@@ -1,0 +1,123 @@
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [resizable]="true"
+  [draggable]="true"
+  [closeOnEscape]="true"
+  header="Assistant IA - Paul Richez"
+  [style]="{width: '450px', height: '600px'}"
+  styleClass="chatbot-dialog"
+  [maximizable]="true"
+  (onHide)="onHide()">
+
+  <!-- Messages Container -->
+  <div class="chat-container">
+    <p-scrollPanel [style]="{width: '100%', height: '400px'}" styleClass="custom-scrollpanel">
+      <div class="messages-list" #messagesContainer>
+        <div
+          *ngFor="let message of messages; trackBy: trackByIndex"
+          class="message-item"
+          [ngClass]="{'user-message': message.role === 'user', 'assistant-message': message.role === 'assistant'}">
+
+          <div class="message-content">
+            <div class="message-header">
+              <p-avatar
+                [icon]="message.role === 'user' ? 'pi pi-user' : 'pi pi-robot'"
+                [style]="{'background-color': message.role === 'user' ? 'var(--primary-color)' : 'var(--surface-600)'}"
+                size="normal">
+              </p-avatar>
+              <span class="message-author">
+                {{ message.role === 'user' ? 'Vous' : 'Assistant' }}
+              </span>
+              <span class="message-time">
+                {{ formatTime(message.timestamp) }}
+              </span>
+            </div>
+
+            <div class="message-text" [innerHTML]="formatMessage(message.content)"></div>
+          </div>
+        </div>
+
+        <!-- Loading indicator -->
+        <div *ngIf="isLoading" class="message-item assistant-message">
+          <div class="message-content">
+            <div class="message-header">
+              <p-avatar
+                icon="pi pi-robot"
+                [style]="{'background-color': 'var(--surface-600)'}"
+                size="normal">
+              </p-avatar>
+              <span class="message-author">Assistant</span>
+            </div>
+            <div class="loading-message">
+              <p-progressSpinner
+                [style]="{width: '20px', height: '20px'}"
+                strokeWidth="4">
+              </p-progressSpinner>
+              <span>En train d'écrire...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </p-scrollPanel>
+  </div>
+
+  <!-- Input Section -->
+  <div class="input-section">
+    <p-divider></p-divider>
+    <div class="input-container">
+      <textarea
+        pInputTextarea
+        [(ngModel)]="currentMessage"
+        placeholder="Tapez votre message..."
+        [rows]="2"
+        [disabled]="isLoading"
+        (keydown)="onKeyDown($event)"
+        class="message-input">
+      </textarea>
+      <div class="input-actions">
+        <p-button
+          icon="pi pi-send"
+          [disabled]="!currentMessage.trim() || isLoading"
+          (onClick)="sendMessage()"
+          size="small"
+          [rounded]="true"
+          pTooltip="Envoyer (Ctrl+Entrée)">
+        </p-button>
+        <p-button
+          icon="pi pi-trash"
+          severity="secondary"
+          (onClick)="clearChat()"
+          size="small"
+          [rounded]="true"
+          pTooltip="Effacer la conversation">
+        </p-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    <p-button
+      label="À propos de Paul"
+      size="small"
+      severity="secondary"
+      [outlined]="true"
+      (onClick)="askQuickQuestion('Peux-tu me parler de Paul Richez et de son parcours professionnel ?')">
+    </p-button>
+    <p-button
+      label="Ses projets"
+      size="small"
+      severity="secondary"
+      [outlined]="true"
+      (onClick)="askQuickQuestion('Quels sont les principaux projets de Paul Richez ?')">
+    </p-button>
+    <p-button
+      label="Compétences"
+      size="small"
+      severity="secondary"
+      [outlined]="true"
+      (onClick)="askQuickQuestion('Quelles sont les compétences techniques de Paul ?')">
+    </p-button>
+  </div>
+</p-dialog>

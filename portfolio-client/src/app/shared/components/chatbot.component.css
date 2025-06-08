@@ -1,0 +1,321 @@
+/* Chatbot Dialog Styles */
+.chatbot-dialog {
+  --chatbot-primary: #007ad9;
+  --chatbot-surface: #ffffff;
+  --chatbot-surface-50: #f8f9fa;
+  --chatbot-surface-100: #e9ecef;
+  --chatbot-surface-200: #dee2e6;
+  --chatbot-surface-600: #6c757d;
+  --chatbot-border: #dee2e6;
+  --chatbot-text: #212529;
+  --chatbot-text-secondary: #6c757d;
+  --chatbot-user-bg: #007ad9;
+  --chatbot-assistant-bg: #f8f9fa;
+  --chatbot-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Chat Container */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+}
+
+.custom-scrollpanel {
+  border: 1px solid var(--chatbot-border);
+  border-radius: 8px;
+  background: var(--chatbot-surface);
+}
+
+.messages-list {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Message Items */
+.message-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
+}
+
+.message-item.user-message {
+  align-items: flex-end;
+}
+
+.message-item.assistant-message {
+  align-items: flex-start;
+}
+
+.message-content {
+  max-width: 85%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.user-message .message-header {
+  flex-direction: row-reverse;
+}
+
+.message-author {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--chatbot-text);
+}
+
+.message-time {
+  font-size: 0.75rem;
+  color: var(--chatbot-text-secondary);
+  margin-left: auto;
+}
+
+.user-message .message-time {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* Message Text Styling */
+.message-text {
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  line-height: 1.5;
+  word-wrap: break-word;
+  font-size: 0.9rem;
+}
+
+.user-message .message-text {
+  background: var(--chatbot-user-bg);
+  color: white;
+  border-bottom-right-radius: 0.25rem;
+}
+
+.assistant-message .message-text {
+  background: var(--chatbot-assistant-bg);
+  color: var(--chatbot-text);
+  border: 1px solid var(--chatbot-border);
+  border-bottom-left-radius: 0.25rem;
+}
+
+/* Code blocks in messages */
+.message-text pre {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  font-size: 0.85rem;
+}
+
+.message-text code {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.85rem;
+}
+
+/* Loading Message */
+.loading-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--chatbot-assistant-bg);
+  border: 1px solid var(--chatbot-border);
+  border-radius: 1rem;
+  border-bottom-left-radius: 0.25rem;
+  font-style: italic;
+  color: var(--chatbot-text-secondary);
+}
+
+/* Input Section */
+.input-section {
+  margin-top: 1rem;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.message-input {
+  width: 100%;
+  min-height: 60px;
+  border: 1px solid var(--chatbot-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.message-input:focus {
+  outline: none;
+  border-color: var(--chatbot-primary);
+  box-shadow: 0 0 0 2px rgba(0, 122, 217, 0.2);
+}
+
+.message-input:disabled {
+  background-color: var(--chatbot-surface-50);
+  color: var(--chatbot-text-secondary);
+  cursor: not-allowed;
+}
+
+.input-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* Quick Actions */
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--chatbot-border);
+}
+
+.quick-actions p-button {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* Avatar Customization */
+.p-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 14px !important;
+}
+
+/* Dialog Customization */
+:host ::ng-deep .chatbot-dialog .p-dialog-header {
+  background: linear-gradient(135deg, var(--chatbot-primary) 0%, #0056b3 100%);
+  color: white;
+  border-radius: 8px 8px 0 0;
+}
+
+:host ::ng-deep .chatbot-dialog .p-dialog-header .p-dialog-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+:host ::ng-deep .chatbot-dialog .p-dialog-header .p-dialog-header-icons {
+  color: white;
+}
+
+:host ::ng-deep .chatbot-dialog .p-dialog-header .p-dialog-header-icons button {
+  color: white !important;
+}
+
+:host ::ng-deep .chatbot-dialog .p-dialog-header .p-dialog-header-icons button:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+:host ::ng-deep .chatbot-dialog.p-dialog {
+  border-radius: 12px;
+  box-shadow: var(--chatbot-shadow), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+:host ::ng-deep .chatbot-dialog .p-dialog-content {
+  padding: 1.5rem;
+  background: var(--chatbot-surface);
+}
+
+/* Scrollpanel Customization */
+:host ::ng-deep .custom-scrollpanel .p-scrollpanel-wrapper {
+  border-right: none;
+}
+
+:host ::ng-deep .custom-scrollpanel .p-scrollpanel-bar {
+  background-color: var(--chatbot-surface-200);
+  border-radius: 4px;
+  width: 6px;
+  opacity: 0.6;
+  transition: opacity 0.3s;
+}
+
+:host ::ng-deep .custom-scrollpanel:hover .p-scrollpanel-bar {
+  opacity: 1;
+}
+
+:host ::ng-deep .custom-scrollpanel .p-scrollpanel-bar:hover {
+  background-color: var(--chatbot-surface-600);
+}
+
+/* Button Customizations */
+:host ::ng-deep .p-button.p-button-rounded {
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+:host ::ng-deep .p-button.p-button-sm {
+  font-size: 0.875rem;
+  padding: 0.4375rem 0.875rem;
+}
+
+/* Responsive Design */
+@media (max-width: 576px) {
+  :host ::ng-deep .chatbot-dialog.p-dialog {
+    width: 95vw !important;
+    height: 85vh !important;
+    margin: 0;
+    top: 7.5vh !important;
+    left: 2.5vw !important;
+    transform: none !important;
+  }
+
+  .message-content {
+    max-width: 95%;
+  }
+
+  .quick-actions {
+    flex-direction: column;
+  }
+
+  .quick-actions p-button {
+    min-width: unset;
+  }
+}
+
+/* Animation Effects */
+.message-item {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.loading-message {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}

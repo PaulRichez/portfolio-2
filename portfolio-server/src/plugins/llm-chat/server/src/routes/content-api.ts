@@ -6,6 +6,7 @@ export default {
       path: '/chat',
       handler: 'controller.chat',
       config: {
+        auth: false,
         policies: [],
       },
     },
@@ -14,6 +15,7 @@ export default {
       path: '/stream',
       handler: 'controller.stream',
       config: {
+        auth: false,
         policies: [],
       },
     },
@@ -22,6 +24,7 @@ export default {
       path: '/history',
       handler: 'controller.getHistory',
       config: {
+        auth: false,
         policies: [],
       },
     },
@@ -46,6 +49,7 @@ export default {
       path: '/sessions',
       handler: 'controller.getAllSessions',
       config: {
+        auth: false,
         policies: [],
       },
     },
