@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpEventType } from '@angular/common/http';
 import { Observable, Subject, BehaviorSubject } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -57,37 +57,37 @@ export class ChatbotService {
       const streamUrl = `${this.API_URL}/stream`;
       console.log('🌐 Streaming URL:', streamUrl);
 
-      fetch(streamUrl, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Accept': 'text/event-stream',
-        }
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+      const headers = new HttpHeaders({
+        'Accept': 'text/event-stream',
+        'Cache-Control': 'no-cache'
+      });
 
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error('ReadableStream not supported');
-        }
+      // Utiliser HttpClient avec streaming
+      const request = this.http.post(streamUrl, formData, {
+        headers: headers,
+        observe: 'events',
+        responseType: 'text',
+        reportProgress: true
+      });
 
-        let currentResponse = '';
-        let sessionId = this.currentSessionId;
+      let currentResponse = '';
+      let sessionId = this.currentSessionId;
+      let buffer = '';
 
-        const processStream = async () => {
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
+      const subscription = request.subscribe({
+        next: (event: any) => {
+          if (event.type === HttpEventType.DownloadProgress) {
+            const chunk = event.partialText || '';
 
-              if (done) break;
+            // Ajouter le nouveau chunk au buffer
+            if (chunk.length > buffer.length) {
+              const newData = chunk.slice(buffer.length);
+              buffer = chunk;
 
-              // Décoder les bytes en texte
-              const chunk = new TextDecoder().decode(value);
-              console.log('📥 Raw chunk received:', chunk);
-              const lines = chunk.split('\n');
+              console.log('📥 New chunk received:', newData);
+
+              // Traiter les lignes complètes
+              const lines = newData.split('\n');
 
               for (const line of lines) {
                 console.log('📋 Processing line:', line);
@@ -101,13 +101,10 @@ export class ChatbotService {
                       console.log('🌊 Streaming started for session:', sessionId);
                     } else if (data.type === 'chunk') {
                       console.log('🧩 Chunk content received:', data.content);
-                      // Filtrer les balises <think> côté client aussi
-                      const filteredContent = data.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-                      console.log('🧹 Filtered content:', filteredContent);
 
-                      if (filteredContent) {
+                      if (data.content) {
                         // Ajouter le chunk à la réponse courante
-                        currentResponse += filteredContent;
+                        currentResponse += data.content;
                         console.log('📝 Current response:', currentResponse);
 
                         // Mettre à jour le message assistant en temps réel
@@ -140,23 +137,30 @@ export class ChatbotService {
                 }
               }
             }
-          } catch (streamError) {
-            console.error('❌ Stream processing error:', streamError);
-            observer.error(streamError);
-            this.loadingSubject.next(false);
           }
-        };
-
-        processStream();
-      })
-      .catch(error => {
-        console.error('❌ Fetch error:', error);
-        observer.error(new Error('Erreur de connexion au streaming'));
-        this.loadingSubject.next(false);
+        },
+        error: (error) => {
+          console.error('❌ HTTP error:', error);
+          observer.error(new Error('Erreur de connexion au streaming'));
+          this.loadingSubject.next(false);
+        },
+        complete: () => {
+          // S'assurer que la réponse finale est envoyée si pas déjà fait
+          if (currentResponse && !observer.closed) {
+            observer.next({
+              sessionId: sessionId,
+              response: currentResponse,
+              history: []
+            });
+            observer.complete();
+          }
+          this.loadingSubject.next(false);
+        }
       });
 
       // Cleanup function
       return () => {
+        subscription.unsubscribe();
         this.loadingSubject.next(false);
       };
     });
@@ -166,13 +170,17 @@ export class ChatbotService {
    * Met à jour le message de l'assistant pendant le streaming
    */
   private updateStreamingMessage(content: string): void {
-    const currentMessages = this.messagesSubject.value;
+    const currentMessages = [...this.messagesSubject.value]; // Créer une nouvelle référence
     const lastMessage = currentMessages[currentMessages.length - 1];
 
     if (lastMessage && lastMessage.role === 'assistant') {
-      // Mettre à jour le dernier message assistant
-      lastMessage.content = content;
-      this.messagesSubject.next([...currentMessages]);
+      // Créer un nouveau message pour forcer la détection de changement
+      const updatedMessage: ChatMessage = {
+        ...lastMessage,
+        content: content,
+        timestamp: new Date().toISOString()
+      };
+      currentMessages[currentMessages.length - 1] = updatedMessage;
     } else {
       // Créer un nouveau message assistant
       const assistantMessage: ChatMessage = {
@@ -180,8 +188,11 @@ export class ChatbotService {
         content: content,
         timestamp: new Date().toISOString()
       };
-      this.messagesSubject.next([...currentMessages, assistantMessage]);
+      currentMessages.push(assistantMessage);
     }
+
+    // Émettre le nouveau tableau pour déclencher la détection de changement
+    this.messagesSubject.next(currentMessages);
   }
 
   /**

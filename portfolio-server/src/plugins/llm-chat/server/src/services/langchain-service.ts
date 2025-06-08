@@ -811,13 +811,9 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
                 }
 
                 if (content) {
-                  // Filtrer les balises <think> si présentes
-                  const filteredContent = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-
-                  if (filteredContent) {
-                    fullResponse += filteredContent;
-                    yield `data: ${JSON.stringify({ content: filteredContent })}\n\n`;
-                  }
+                  // Pas de filtrage, garder le contenu original
+                  fullResponse += content;
+                  yield `data: ${JSON.stringify({ content: content })}\n\n`;
                 }
               }
 
