@@ -1,72 +1,36 @@
-# Dockerfile pour Angular Portfolio Client
+# Étape 1 : Build Angular avec Node
 FROM node:20-alpine AS builder
 
-# Set working directory
+# Définir le répertoire de travail
 WORKDIR /app
 
-# Copy package files
+# Copier les fichiers de dépendances
 COPY package*.json ./
 
-# Install dependencies
+# Installer les dépendances
 RUN npm ci
 
-# Copy source code
+# Copier tout le code source
 COPY . .
 
-# Build the application
+# Lancer le build de l'application Angular
 RUN npm run build
 
-# Production stage
+# Étape 2 : Image finale basée sur Nginx pour servir l'app
 FROM nginx:alpine
 
-# Copy built application
+# Copier l'application buildée dans le dossier nginx public
 COPY --from=builder /app/dist/portfolio-client /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY <<EOF /etc/nginx/conf.d/default.conf
-server {
-    listen 80;
-    server_name localhost;
-    root /usr/share/nginx/html;
-    index index.html;
+# Copier la configuration nginx personnalisée
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-    # Handle Angular routing
-    location / {
-        try_files \$uri \$uri/ /index.html;
-    }
-
-    # API proxy to Strapi
-    location /api/ {
-        proxy_pass http://strapi:1337/api/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
-    }
-
-    # Gzip compression
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 1024;
-    gzip_types text/plain text/css text/xml text/javascript application/javascript application/json;
-
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header X-Content-Type-Options "nosniff" always;
-}
-EOF
-
-# Expose port
+# Exposer le port standard HTTP
 EXPOSE 80
 
-# Health check
+# Health check (optionnel mais recommandé)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/ || exit 1
+  CMD curl -f http://localhost/ || exit 1
 
-# Start nginx
+# Commande de démarrage nginx
 CMD ["nginx", "-g", "daemon off;"]

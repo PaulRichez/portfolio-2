@@ -1,0 +1,166 @@
+version: '3.8'
+
+services:
+  # Angular Frontend
+  angular:
+    build:
+      context: ../portfolio-client
+      dockerfile: Dockerfile
+    container_name: portfolio-prod-angular
+    ports:
+      - "3000:80"
+    depends_on:
+      - strapi
+    restart: unless-stopped
+    networks:
+      - portfolio_prod_network
+
+  # Strapi Backend (SQLite)
+  strapi:
+    build:
+      context: ../portfolio-server
+      dockerfile: Dockerfile
+    container_name: portfolio-prod-strapi
+    ports:
+      - "1337:1337"
+    volumes:
+      - strapi_prod_data:/app/.tmp
+      - strapi_prod_uploads:/app/public/uploads
+    environment:
+      - NODE_ENV=production
+      - DATABASE_CLIENT=sqlite
+      - DATABASE_FILENAME=.tmp/data.db
+      - HOST=0.0.0.0
+      - PORT=1337
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET}
+      - API_TOKEN_SALT=${API_TOKEN_SALT}
+      - APP_KEYS=${APP_KEYS}
+    depends_on:
+      - ollama
+      - chromadb
+    restart: unless-stopped
+    networks:
+      - portfolio_prod_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1337/_health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Strapi with PostgreSQL
+  strapi-postgres:
+    build:
+      context: ../portfolio-server
+      dockerfile: Dockerfile
+    container_name: portfolio-prod-strapi-postgres
+    ports:
+      - "1337:1337"
+    volumes:
+      - strapi_prod_uploads:/app/public/uploads
+    environment:
+      - NODE_ENV=production
+      - DATABASE_CLIENT=postgres
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=${POSTGRES_DB}
+      - DATABASE_USERNAME=${POSTGRES_USER}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - HOST=0.0.0.0
+      - PORT=1337
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET}
+      - API_TOKEN_SALT=${API_TOKEN_SALT}
+      - APP_KEYS=${APP_KEYS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - portfolio_prod_network
+    profiles: ["postgres"]
+
+  # PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: portfolio-prod-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - portfolio_prod_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama AI
+  ollama:
+    image: ollama/ollama:latest
+    container_name: portfolio-prod-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_prod_data:/root/.ollama
+      - ../scripts:/scripts
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    restart: unless-stopped
+    networks:
+      - portfolio_prod_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    entrypoint: ["/bin/bash", "-c"]
+    command: >
+      "ollama serve &
+      sleep 10 &&
+      ollama pull qwen3:1.7b &&
+      ollama pull qwen3:0.6b &&
+      ollama pull nomic-embed-text &&
+      echo 'Modèles chargés avec succès !' &&
+      wait"
+
+  # ChromaDB
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: portfolio-prod-chromadb
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_prod_data:/chroma/chroma
+    environment:
+      - CHROMA_HOST=0.0.0.0
+      - CHROMA_PORT=8000
+      - ALLOW_RESET=TRUE
+    restart: unless-stopped
+    networks:
+      - portfolio_prod_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  strapi_prod_data:
+  strapi_prod_uploads:
+  postgres_prod_data:
+  ollama_prod_data:
+  chroma_prod_data:
+
+networks:
+  portfolio_prod_network:
+    driver: bridge
