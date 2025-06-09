@@ -44,7 +44,7 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
     config = {
       chromaUrl: process.env.CHROMA_URL || 'http://localhost:8001',
       collectionName: process.env.CHROMA_COLLECTION || 'strapi-rag',
-      ollamaUrl: process.env.OLLAMA_URL || 'http://localhost:11434',
+      ollamaUrl: process.env.CUSTOM_LLM_BASE_URL || 'http://localhost:11434',
       embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text'
     };
 
@@ -130,6 +130,7 @@ const chromaVectorService = ({ strapi }: { strapi: Core.Strapi }) => {
     } catch (error) {
       console.timeEnd(timerId);
       strapi.log.error('❌ Error generating embedding:', error);
+      strapi.log.error(`Ollama URL: ${config.ollamaUrl}`);
       throw error;
     }
   };
