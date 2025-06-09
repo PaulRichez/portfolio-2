@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://192.168.1.32:1337/api',
-  strapiUrl: 'http://192.168.1.32:1337'
+  apiUrl: 'https://api.paulrichez.fr//api',
+  strapiUrl: 'https://api.paulrichez.fr/'
 };
