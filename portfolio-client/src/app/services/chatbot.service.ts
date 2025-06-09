@@ -132,33 +132,33 @@ export class ChatbotService {
     this.loadingSubject.next(true);
 
     return new Observable<ChatResponse>(observer => {
-      // S'assurer qu'on a un sessionId valide
       if (!this.currentSessionId) {
         this.createNewSession();
       }
 
-      const formData = new FormData();
-      formData.append('message', message);
-      formData.append('sessionId', this.currentSessionId!); // Non-null assertion car on vient de vérifier
+      const payload = {
+        message,
+        sessionId: this.currentSessionId!
+      };
 
       const streamUrl = `${this.API_URL}/stream`;
       console.log('🌐 Streaming URL:', streamUrl);
 
       const headers = new HttpHeaders({
+        'Content-Type': 'application/json',
         'Accept': 'text/event-stream',
         'Cache-Control': 'no-cache'
       });
 
-      // Utiliser HttpClient avec streaming
-      const request = this.http.post(streamUrl, formData, {
-        headers: headers,
+      const request = this.http.post(streamUrl, payload, {
+        headers,
         observe: 'events',
         responseType: 'text',
         reportProgress: true
       });
 
       let currentResponse = '';
-      let sessionId = this.currentSessionId!; // Non-null assertion car on a vérifié
+      let sessionId = this.currentSessionId!;
       let buffer = '';
       let hasStarted = false;
 
@@ -167,28 +167,20 @@ export class ChatbotService {
           if (event.type === HttpEventType.DownloadProgress) {
             const chunk = event.partialText || '';
 
-            // Ajouter le nouveau chunk au buffer
             if (chunk.length > buffer.length) {
               const newData = chunk.slice(buffer.length);
               buffer = chunk;
 
-              console.log('📥 New chunk received:', newData);
-
-              // Traiter les lignes complètes
               const lines = newData.split('\n');
 
               for (const line of lines) {
-                console.log('📋 Processing line:', line);
                 if (line.startsWith('data: ')) {
                   try {
                     const data = JSON.parse(line.slice(6));
-                    console.log('📊 Parsed data:', data);
 
                     if (data.type === 'start') {
                       sessionId = data.sessionId || sessionId;
-                      console.log('🌊 Streaming started for session:', sessionId);
 
-                      // Ajouter le message utilisateur seulement au début
                       if (!hasStarted) {
                         const userMessage: ChatMessage = {
                           role: 'user',
@@ -200,39 +192,28 @@ export class ChatbotService {
                       }
 
                     } else if (data.type === 'chunk') {
-                      console.log('🧩 Chunk content received:', data.content);
-
                       if (data.content) {
-                        // Ajouter le chunk à la réponse courante
                         currentResponse += data.content;
-                        console.log('📝 Current response:', currentResponse);
-
-                        // Mettre à jour le message assistant en temps réel
                         this.updateStreamingMessage(currentResponse);
                       }
 
                     } else if (data.type === 'complete') {
-                      // Streaming terminé
-                      console.log('✅ Streaming completed');
-
                       observer.next({
-                        sessionId: sessionId as string, // Assurer le type string
+                        sessionId: sessionId,
                         response: currentResponse,
                         history: []
                       });
-
                       observer.complete();
                       this.loadingSubject.next(false);
                       return;
 
                     } else if (data.type === 'error') {
-                      console.error('❌ Streaming error:', data.message);
                       observer.error(new Error(data.message || 'Erreur de streaming'));
                       this.loadingSubject.next(false);
                       return;
                     }
                   } catch (parseError) {
-                    console.error('❌ Error parsing SSE data:', parseError, 'Line:', line);
+                    console.error('❌ Erreur de parsing SSE :', parseError, 'Ligne:', line);
                   }
                 }
               }
@@ -245,29 +226,24 @@ export class ChatbotService {
           this.loadingSubject.next(false);
         },
         complete: () => {
-          console.log('🔚 HTTP request completed');
-
-          // Finaliser le message streaming s'il existe
           this.finalizeStreamingMessage();
 
-          // S'assurer que la réponse finale est envoyée si pas déjà fait
           if (currentResponse && !observer.closed) {
             observer.next({
-              sessionId: sessionId as string,
+              sessionId: sessionId,
               response: currentResponse,
               history: []
             });
             observer.complete();
           }
+
           this.loadingSubject.next(false);
         }
       });
 
-      // Cleanup function
       return () => {
         subscription.unsubscribe();
         this.loadingSubject.next(false);
-        // Finaliser le streaming en cas d'annulation
         this.finalizeStreamingMessage();
       };
     });
