@@ -34,6 +34,11 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
 
   async stream(ctx) {
     try {
+      // Gérer les requêtes preflight CORS
+      if (ctx.request.method === 'OPTIONS') {
+        ctx.status = 204; // No Content
+        return;
+      }
       // Support des deux méthodes : GET (EventSource) et POST
       let message, sessionId, maxTokens;
       console.log(`🌐 Request method: ${ctx.request.method}`);
