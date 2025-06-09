@@ -36,6 +36,7 @@ services:
       - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET}
       - API_TOKEN_SALT=${API_TOKEN_SALT}
       - APP_KEYS=${APP_KEYS}
+      - CHROMA_URL=${CHROMA_URL}
     depends_on:
       - ollama
       - chromadb
@@ -148,7 +149,7 @@ services:
     networks:
       - portfolio_prod_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
       interval: 30s
       timeout: 10s
       retries: 3
