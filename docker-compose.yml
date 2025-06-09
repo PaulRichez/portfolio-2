@@ -104,6 +104,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # Ollama AI
   ollama:
     image: ollama/ollama:latest
     container_name: portfolio-ollama
@@ -130,7 +131,9 @@ services:
       ollama pull qwen3:0.6b &&
       ollama pull nomic-embed-text &&
       echo 'Modèle qwen3:0.6b téléchargé avec succès!' &&
-      wait"  # ChromaDB Vector Database
+      wait"
+
+  # ChromaDB Vector Database
   chromadb:
     image: chromadb/chroma:latest
     container_name: portfolio-chromadb
@@ -151,6 +154,21 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  # NGINX Reverse Proxy (public entry point)
+  nginx:
+    image: nginx:stable
+    container_name: portfolio-nginx
+    depends_on:
+      - angular
+      - strapi
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
+    networks:
+      - portfolio_network
+    restart: unless-stopped
 
 volumes:
   strapi_data:
