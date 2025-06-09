@@ -64,12 +64,24 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
       console.log(`🌊 Starting stream for session: ${sessionId}`);
 
       // Configurer les headers pour Server-Sent Events
+      const allowedOrigins = [
+        'https://paulrichez.fr',
+        'http://localhost:4201',
+        'http://localhost:3000'
+      ];
+
+      const origin = ctx.request.header.origin;
+
+      if (allowedOrigins.includes(origin)) {
+        ctx.set('Access-Control-Allow-Origin', origin);
+      }
       ctx.set({
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Cache-Control',
       });
 
       // Définir le status avant de désactiver ctx.respond
