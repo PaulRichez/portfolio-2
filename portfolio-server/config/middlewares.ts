@@ -19,6 +19,7 @@ export default [
       'Origin',
       'Accept',
       'X-Requested-With',
+      'X-Forwarded-For',
     ],
     credentials: true,
   },
