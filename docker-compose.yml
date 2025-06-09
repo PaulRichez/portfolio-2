@@ -168,6 +168,7 @@ services:
       - ./certbot/conf:/etc/letsencrypt
     ports:
       - "80:80"
+      - "443:443"
     networks:
       - portfolio_network
     restart: unless-stopped
