@@ -20,6 +20,14 @@ export default {
       },
     },
     {
+      method: 'OPTIONS',
+      path: '/stream',
+      handler: 'controller.stream', // tu peux aussi utiliser une fonction vide si nécessaire
+      config: {
+        auth: false,
+      },
+    },
+    {
       method: 'GET',
       path: '/history',
       handler: 'controller.getHistory',
