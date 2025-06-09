@@ -553,6 +553,163 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
     return displayNames[collection] || `📄 ${collection}`;
   };
 
+  // Méthode commune pour créer ou récupérer une conversation
+  const getOrCreateConversation = async (sessionId: string, config: LlmChatConfig, options?: ConversationOptions, streaming: boolean = false) => {
+    const chainTimerId = `⛓️  Chain Setup [${sessionId}]`;
+
+    if (!conversationChains.has(sessionId)) {
+      console.time(chainTimerId);
+      console.log('🔗 Creating new conversation chain for session:', sessionId);
+
+      // Créer une mémoire personnalisée utilisant Strapi
+      const memory = new StrapiChatMemory(strapi, sessionId);
+
+      // Décider si on utilise un agent avec outils RAG ou une conversation simple
+      const useRAG = options?.useRAG !== false; // RAG activé par défaut
+
+      if (useRAG) {
+        if (config.provider === 'openai') {
+          console.log(`🤖 Creating OpenAI agent with ChromaDB tools${streaming ? ' (streaming)' : ''}...`);
+
+          // Créer le modèle avec streaming si nécessaire
+          const model = new ChatOpenAI({
+            modelName: config.openai.modelName,
+            temperature: config.openai.temperature,
+            openAIApiKey: config.openai.apiKey,
+            maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
+            streaming,
+          });
+
+          // Créer les outils ChromaDB
+          const tools = [
+            new ChromaRetrievalTool(strapi),
+            new ChromaAdvancedRetrievalTool(strapi)
+          ];
+
+          const agentPrompt = ChatPromptTemplate.fromMessages([
+            ["system", SYSTEM_PROMPT],
+            new MessagesPlaceholder("chat_history"),
+            ["human", "{input}"],
+            new MessagesPlaceholder("agent_scratchpad"),
+          ]);
+
+          // Créer l'agent OpenAI Functions
+          const agent = await createOpenAIFunctionsAgent({
+            llm: model,
+            tools,
+            prompt: agentPrompt,
+          });
+
+          // Créer l'exécuteur d'agent avec mémoire personnalisée
+          const agentExecutor = new AgentExecutor({
+            agent,
+            tools,
+            memory,
+            verbose: true,
+            returnIntermediateSteps: false,
+          });
+
+          conversationChains.set(sessionId, { type: 'agent', executor: agentExecutor });
+        } else {
+          console.log(`🔧 Creating custom RAG chain with manual tool integration${streaming ? ' (streaming)' : ''}...`);
+
+          // Pour les modèles custom (Ollama), on utilise une approche RAG manuelle
+          const chromaService = strapi.plugin('llm-chat').service('chromaVectorService');
+
+          conversationChains.set(sessionId, {
+            type: 'rag_manual',
+            model: createModel(config, options),
+            chromaService,
+            memory
+          });
+        }
+      } else {
+        console.log(`💬 Creating simple conversation chain${streaming ? ' (streaming)' : ''}...`);
+
+        if (config.provider === 'openai') {
+          // Créer le modèle avec streaming si nécessaire
+          const model = new ChatOpenAI({
+            modelName: config.openai.modelName,
+            temperature: config.openai.temperature,
+            openAIApiKey: config.openai.apiKey,
+            maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
+            streaming,
+          });
+
+          // Conversation simple sans outils
+          const chatPrompt = ChatPromptTemplate.fromMessages([
+            ["system", SYSTEM_PROMPT],
+            new MessagesPlaceholder("history"),
+            HumanMessagePromptTemplate.fromTemplate("{input}"),
+          ]);
+
+          const chain = new ConversationChain({
+            memory: memory,
+            prompt: chatPrompt,
+            llm: model,
+          });
+
+          conversationChains.set(sessionId, { type: 'chain', chain });
+        } else {
+          // Pour les modèles custom, on stocke la config et la mémoire
+          conversationChains.set(sessionId, {
+            type: 'custom_simple',
+            model: createModel(config, options),
+            memory
+          });
+        }
+      }
+
+      console.timeEnd(chainTimerId);
+    } else {
+      console.log('♻️ Using existing conversation for session:', sessionId);
+    }
+
+    return conversationChains.get(sessionId);
+  };
+
+  // Méthode pour exécuter le RAG manuel
+  const executeManualRAG = async (conversationData: any, message: string) => {
+    const needsRAG = shouldUseRAG(message);
+
+    let context = '';
+    if (needsRAG) {
+      const ragTimerId = `🔍 RAG Search`;
+      console.time(ragTimerId);
+      console.log('🕵️ Searching ChromaDB for relevant information...');
+      try {
+        const searchResults = await conversationData.chromaService.searchDocuments(message, 5);
+        if (searchResults && searchResults.length > 0) {
+          context = formatChromaResults(searchResults, message);
+          console.log(`✅ Found ${searchResults.length} relevant documents`);
+        } else {
+          console.log('ℹ️ No relevant documents found in ChromaDB');
+        }
+        console.timeEnd(ragTimerId);
+      } catch (searchError) {
+        console.timeEnd(ragTimerId);
+        console.error('❌ Error searching ChromaDB:', searchError);
+      }
+    } else {
+      console.log('ℹ️ Question does not require ChromaDB search');
+    }
+
+    return context;
+  };
+
+  // Méthode pour construire le prompt avec contexte et historique
+  const buildPromptWithContext = async (memory: any, context: string, message: string, systemPrompt: string = SYSTEM_PROMPT) => {
+    const memoryVariables = await memory.loadMemoryVariables({});
+    const historyString = memoryVariables.history ?
+      memoryVariables.history.map(msg => `${msg._getType()}: ${msg.content}`).join('\n') : '';
+
+    if (context) {
+      return `${systemPrompt}\n\n${context}\n\nConversation history:\n${historyString}\n\nQuestion: ${message}\n\nAssistant:`;
+    } else {
+      return `${systemPrompt}\n\nConversation history:\n${historyString}\n\nHuman: ${message}\n\nAssistant:`;
+    }
+  };
+
   return {
     // Créer une nouvelle conversation ou continuer une existante
     async chat(message: string, options?: ConversationOptions) {
@@ -562,149 +719,35 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
       try {
         strapi.log.info('🚀 Starting chat for session:', sessionId);
-        console.log('📝 User message:', message.substring(0, 50) + '...');
 
-        // Vérifier que Strapi est correctement initialisé
+        // Validation Strapi
         if (!strapi.entityService) {
           throw new Error('Strapi entity service not available');
         }
 
         const pluginConfig = strapi.config.get('plugin::llm-chat') || strapi.plugin('llm-chat').config('default');
-
-        if (!pluginConfig) {
-          throw new Error('LLM Chat plugin configuration not found');
-        }
-
         const config = pluginConfig as LlmChatConfig;
 
-        if (!config.provider) {
+        if (!config || !config.provider) {
           throw new Error('LLM provider not configured');
         }
 
-        const model = createModel(config, options);
-
         // S'assurer qu'une session existe AVANT de créer la chaîne
-        const ensureTimerId = `🔍 Session Check [${sessionId}]`;
-        console.time(ensureTimerId);
         await this.ensureSessionExists(sessionId, message);
-        console.timeEnd(ensureTimerId);
 
-        // Test: créer un message directement pour voir si ça fonctionne
-        const testTimerId = `🧪 DB Test [${sessionId}]`;
-        console.time(testTimerId);
-        try {
-          const testMessage = await strapi.entityService.create('plugin::llm-chat.chat-message', {
-            data: {
-              sessionId: sessionId,
-              role: 'system',
-              content: 'Test message',
-              timestamp: new Date().toISOString()
-            }
-          });
-          console.log('✅ Test message created successfully:', testMessage.id);
-
-          // Supprimer le message de test
-          await strapi.entityService.delete('plugin::llm-chat.chat-message', testMessage.id);
-          console.log('✅ Test message deleted');
-          console.timeEnd(testTimerId);
-        } catch (testError) {
-          console.timeEnd(testTimerId);
-          console.error('❌ Failed to create test message:', testError);
-          throw new Error('Database connection or content-type issue: ' + testError.message);
-        }        // Récupérer ou créer une conversation
-        const chainTimerId = `⛓️  Chain Setup [${sessionId}]`;
-        if (!conversationChains.has(sessionId)) {
-          console.time(chainTimerId);
-          console.log('🔗 Creating new conversation chain for session:', sessionId);
-
-          // Créer une mémoire personnalisée utilisant Strapi
-          const memory = new StrapiChatMemory(strapi, sessionId);
-
-          // Décider si on utilise un agent avec outils RAG ou une conversation simple
-          const useRAG = options?.useRAG !== false; // RAG activé par défaut
-
-          if (useRAG) {
-            if (config.provider === 'openai') {
-              console.log('🤖 Creating OpenAI agent with ChromaDB tools...');
-
-              // Créer les outils ChromaDB
-              const tools = [
-                new ChromaRetrievalTool(strapi),
-                new ChromaAdvancedRetrievalTool(strapi)
-              ];
-
-              const agentPrompt = ChatPromptTemplate.fromMessages([
-                ["system", SYSTEM_PROMPT],
-                new MessagesPlaceholder("chat_history"),
-                ["human", "{input}"],
-                new MessagesPlaceholder("agent_scratchpad"),
-              ]);
-
-              // Créer l'agent OpenAI Functions - model est garanti d'être ChatOpenAI ici
-              const agent = await createOpenAIFunctionsAgent({
-                llm: model as ChatOpenAI,
-                tools,
-                prompt: agentPrompt,
-              });
-
-              // Créer l'exécuteur d'agent avec mémoire personnalisée
-              const agentExecutor = new AgentExecutor({
-                agent,
-                tools,
-                memory,
-                verbose: true,
-                returnIntermediateSteps: false,
-              });
-
-              conversationChains.set(sessionId, { type: 'agent', executor: agentExecutor });
-            } else {
-              console.log('🔧 Creating custom RAG chain with manual tool integration...');
-
-              // Pour les modèles custom (Ollama), on utilise une approche RAG manuelle
-              const chromaService = strapi.plugin('llm-chat').service('chromaVectorService');
-
-              conversationChains.set(sessionId, {
-                type: 'rag_manual',
-                model,
-                chromaService,
-                memory
-              });
-            }
-          } else {
-            console.log('💬 Creating simple conversation chain...');
-
-            if (config.provider === 'openai') {
-              // Conversation simple sans outils
-              const chatPrompt = ChatPromptTemplate.fromMessages([
-                ["system", SYSTEM_PROMPT],
-                new MessagesPlaceholder("history"),
-                HumanMessagePromptTemplate.fromTemplate("{input}"),
-              ]);
-
-              const chain = new ConversationChain({
-                memory: memory,
-                prompt: chatPrompt,
-                llm: model as ChatOpenAI,
-              });
-
-              conversationChains.set(sessionId, { type: 'chain', chain });
-            } else {
-              // Pour les modèles custom, on stocke la config et la mémoire
-              conversationChains.set(sessionId, {
-                type: 'custom_simple',
-                model,
-                memory
-              });
-            }
+        // Test DB rapide
+        const testMessage = await strapi.entityService.create('plugin::llm-chat.chat-message', {
+          data: {
+            sessionId: sessionId,
+            role: 'system',
+            content: 'Test message',
+            timestamp: new Date().toISOString()
           }
+        });
+        await strapi.entityService.delete('plugin::llm-chat.chat-message', testMessage.id);
 
-          console.timeEnd(chainTimerId);
-        } else {
-          console.log('♻️ Using existing conversation for session:', sessionId);
-        }
-
-        // Récupérer la conversation existante
-        const conversationData = conversationChains.get(sessionId);
+        // Récupérer ou créer une conversation
+        const conversationData = await getOrCreateConversation(sessionId, config, options, false);
 
         const llmTimerId = `🤖 LLM Call [${sessionId}]`;
         console.time(llmTimerId);
@@ -719,40 +762,20 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
           // Utiliser RAG manuel pour les modèles custom
           console.log('🔍 Using manual RAG for custom provider...');
 
-          // Fonction pour détecter si on a besoin de rechercher dans ChromaDB
-          const needsRAG = shouldUseRAG(message);
+          const context = await executeManualRAG(conversationData, message);
+          const fullPrompt = await buildPromptWithContext(conversationData.memory, context, message);
+          const responseText = await callCustomModel(conversationData.model, fullPrompt);
 
-          let context = '';
-          if (needsRAG) {
-            const ragTimerId = `🔍 RAG Search [${sessionId}]`;
-            console.time(ragTimerId);
-            console.log('🕵️ Searching ChromaDB for relevant information...');
-            try {
-              const searchResults = await conversationData.chromaService.searchDocuments(message, 5);
-              if (searchResults && searchResults.length > 0) {
-                context = formatChromaResults(searchResults, message);
-                console.log(`✅ Found ${searchResults.length} relevant documents`);
-              } else {
-                console.log('ℹ️ No relevant documents found in ChromaDB');
-              }
-              console.timeEnd(ragTimerId);
-            } catch (searchError) {
-              console.timeEnd(ragTimerId);
-              console.error('❌ Error searching ChromaDB:', searchError);
-            }
-          } else {
-            console.log('ℹ️ Question does not require ChromaDB search');
-          }
+          // Sauvegarder manuellement
+          await conversationData.memory.saveContext(
+            { input: message },
+            { response: responseText }
+          );
 
-          // Construire le prompt manuellement
-          const memory = conversationData.memory;
-          const memoryVariables = await memory.loadMemoryVariables({});
-          const historyString = memoryVariables.history ?
-            memoryVariables.history.map(msg => `${msg._getType()}: ${msg.content}`).join('\n') : '';
-
-          const fullPrompt = `${SYSTEM_PROMPT}\n\n${context}\n\nConversation history:\n${historyString}\n\nQuestion: ${message}\n\nAssistant:`;
-
-          // Appeler le modèle custom directement
+          response = { response: responseText };
+        } else if (conversationData.type === 'custom_simple') {
+          // Construire le prompt manuellement pour les modèles custom
+          const fullPrompt = await buildPromptWithContext(conversationData.memory, '', message);
           const responseText = await callCustomModel(conversationData.model, fullPrompt);
 
           // Sauvegarder manuellement
@@ -763,50 +786,18 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
           response = { response: responseText };
         } else {
-          // Utiliser la chaîne simple
-          if (conversationData.type === 'custom_simple') {
-            // Construire le prompt manuellement pour les modèles custom
-            const memory = conversationData.memory;
-            const memoryVariables = await memory.loadMemoryVariables({});
-            const historyString = memoryVariables.history ?
-              memoryVariables.history.map(msg => `${msg._getType()}: ${msg.content}`).join('\n') : '';
-
-            const fullPrompt = `${SYSTEM_PROMPT}\n\nConversation history:\n${historyString}\n\nHuman: ${message}\n\nAssistant:`;
-
-            // Appeler le modèle custom directement
-            const responseText = await callCustomModel(conversationData.model, fullPrompt);
-
-            // Sauvegarder manuellement
-            await conversationData.memory.saveContext(
-              { input: message },
-              { response: responseText }
-            );
-
-            response = { response: responseText };
-          } else {
-            response = await conversationData.chain.call({
-              input: message,
-            });
-          }
+          response = await conversationData.chain.call({
+            input: message,
+          });
         }
 
         console.timeEnd(llmTimerId);
-        console.log('✅ LLM response received');
 
-        // Vérifier que les messages ont bien été sauvegardés
+        // Vérifications finales
         const messages = await strapi.entityService.findMany('plugin::llm-chat.chat-message', {
           filters: { sessionId },
           sort: { createdAt: 'asc' }
         });
-
-        console.log('📚 Total messages in database for session:', messages.length);
-
-        // Vérifier que la session existe
-        const sessions = await strapi.entityService.findMany('plugin::llm-chat.chat-session', {
-          filters: { sessionId }
-        });
-
-        console.log('🗂️ Sessions found:', sessions.length);
 
         console.timeEnd(timerId);
         return {
@@ -817,7 +808,6 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
       } catch (error) {
         console.timeEnd(timerId);
         strapi.log.error('❌ Error in langchain chat service:', error);
-        console.error('❌ Error in langchain chat service:', error);
         throw error;
       }
     },
@@ -985,12 +975,12 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
     async streamChat(message: string, options?: ConversationOptions) {
       try {
         const pluginConfig = strapi.config.get('plugin::llm-chat') || strapi.plugin('llm-chat').config('default');
+        const config = pluginConfig as LlmChatConfig;
 
-        if (!pluginConfig) {
-          throw new Error('LLM Chat plugin configuration not found');
+        if (!config || !config.provider) {
+          throw new Error('LLM provider not configured');
         }
 
-        const config = pluginConfig as LlmChatConfig;
         const sessionId = options?.sessionId || 'default';
 
         console.log('🌊 Starting streaming chat for session:', sessionId);
@@ -998,112 +988,8 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
         // S'assurer qu'une session existe
         await this.ensureSessionExists(sessionId, message);
 
-        // Récupérer ou créer une conversation avec les mêmes outils que chat()
-        if (!conversationChains.has(sessionId)) {
-          console.log('🔗 Creating new streaming conversation chain for session:', sessionId);
-
-          // Créer une mémoire personnalisée utilisant Strapi
-          const memory = new StrapiChatMemory(strapi, sessionId);
-
-          // Décider si on utilise un agent avec outils RAG ou une conversation simple
-          const useRAG = options?.useRAG !== false; // RAG activé par défaut
-
-          if (useRAG) {
-            if (config.provider === 'openai') {
-              console.log('🤖 Creating streaming OpenAI agent with ChromaDB tools...');
-
-              // Créer le modèle avec streaming activé
-              const streamingModel = new ChatOpenAI({
-                modelName: config.openai.modelName,
-                temperature: config.openai.temperature,
-                openAIApiKey: config.openai.apiKey,
-                maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
-                streaming: true,
-              });
-
-              // Créer les outils ChromaDB
-              const tools = [
-                new ChromaRetrievalTool(strapi),
-                new ChromaAdvancedRetrievalTool(strapi)
-              ];
-
-              const agentPrompt = ChatPromptTemplate.fromMessages([
-                ["system", SYSTEM_PROMPT],
-                new MessagesPlaceholder("chat_history"),
-                ["human", "{input}"],
-                new MessagesPlaceholder("agent_scratchpad"),
-              ]);
-
-              // Créer l'agent OpenAI Functions
-              const agent = await createOpenAIFunctionsAgent({
-                llm: streamingModel,
-                tools,
-                prompt: agentPrompt,
-              });
-
-              // Créer l'exécuteur d'agent avec mémoire personnalisée
-              const agentExecutor = new AgentExecutor({
-                agent,
-                tools,
-                memory,
-                verbose: true,
-                returnIntermediateSteps: false,
-              });
-
-              conversationChains.set(sessionId, { type: 'agent', executor: agentExecutor });
-            } else {
-              console.log('🔧 Creating streaming custom RAG chain with manual tool integration...');
-
-              // Pour les modèles custom, on stocke juste la config
-              const chromaService = strapi.plugin('llm-chat').service('chromaVectorService');
-
-              conversationChains.set(sessionId, {
-                type: 'rag_manual',
-                model: createModel(config, options),
-                chromaService,
-                memory: new StrapiChatMemory(strapi, sessionId)
-              });
-            }
-          } else {
-            console.log('💬 Creating simple streaming conversation chain...');
-
-            if (config.provider === 'openai') {
-              const streamingModel = new ChatOpenAI({
-                modelName: config.openai.modelName,
-                temperature: config.openai.temperature,
-                openAIApiKey: config.openai.apiKey,
-                maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
-                streaming: true,
-              });
-
-              // Conversation simple sans outils
-              const memory = new StrapiChatMemory(strapi, sessionId);
-              const chatPrompt = ChatPromptTemplate.fromMessages([
-                ["system", SYSTEM_PROMPT],
-                new MessagesPlaceholder("history"),
-                HumanMessagePromptTemplate.fromTemplate("{input}"),
-              ]);
-
-              const chain = new ConversationChain({
-                memory: memory,
-                prompt: chatPrompt,
-                llm: streamingModel,
-              });
-
-              conversationChains.set(sessionId, { type: 'chain', chain });
-            } else {
-              // Pour les modèles custom, on stocke juste la config
-              conversationChains.set(sessionId, {
-                type: 'custom_simple',
-                model: createModel(config, options),
-                memory: new StrapiChatMemory(strapi, sessionId)
-              });
-            }
-          }
-        }
-
-        // Récupérer la conversation existante
-        const conversationData = conversationChains.get(sessionId);
+        // Récupérer ou créer une conversation avec streaming activé
+        const conversationData = await getOrCreateConversation(sessionId, config, options, true);
 
         // Retourner un générateur pour le streaming
         return {
@@ -1111,110 +997,56 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
             let fullResponse = '';
 
             try {
-              console.log('🌊 Starting LangChain streaming with tools...');
+              console.log('🌊 Starting LangChain streaming...');
 
               if (conversationData.type === 'agent') {
                 // Streaming avec agent OpenAI et outils
-                console.log('🤖 Using agent executor for streaming...');
-
-                // Pour les agents, utiliser la méthode call normale mais avec streaming callbacks
                 const result = await conversationData.executor.call({
                   input: message,
                 }, {
                   callbacks: [{
                     handleLLMNewToken(token: string) {
-                      console.log('📝 Agent token received:', token);
                       fullResponse += token;
                       return `data: ${JSON.stringify({ type: 'chunk', content: token })}\n\n`;
                     }
                   }]
                 });
 
-                // Si on n'a pas reçu de tokens via callback, envoyer la réponse complète
                 if (!fullResponse && result.output) {
                   fullResponse = result.output;
                   yield `data: ${JSON.stringify({ type: 'chunk', content: result.output })}\n\n`;
                 }
-
               } else if (conversationData.type === 'rag_manual') {
                 // Streaming avec RAG manuel pour les modèles custom
-                console.log('🔍 Using manual RAG streaming for custom provider...');
-
-                // Fonction pour détecter si on a besoin de rechercher dans ChromaDB
-                const needsRAG = shouldUseRAG(message);
-
-                let context = '';
-                if (needsRAG) {
-                  console.log('🕵️ Searching ChromaDB for relevant information...');
-                  try {
-                    const searchResults = await conversationData.chromaService.searchDocuments(message, 5);
-                    if (searchResults && searchResults.length > 0) {
-                      context = formatChromaResults(searchResults, message);
-                      console.log(`✅ Found ${searchResults.length} relevant documents`);
-                    } else {
-                      console.log('ℹ️ No relevant documents found in ChromaDB');
-                    }
-                  } catch (searchError) {
-                    console.error('❌ Error searching ChromaDB:', searchError);
-                  }
-                } else {
-                  console.log('ℹ️ Question does not require ChromaDB search');
-                }
-
-                // Construire le prompt avec contexte
-                const memory = conversationData.memory;
-                const memoryVariables = await memory.loadMemoryVariables({});
-                const historyString = memoryVariables.history ?
-                  memoryVariables.history.map(msg => `${msg._getType()}: ${msg.content}`).join('\n') : '';
-
-                const fullPrompt = `${SYSTEM_PROMPT}\n\n${context}\n\nConversation history:\n${historyString}\n\nQuestion: ${message}\n\nAssistant:`;
+                const context = await executeManualRAG(conversationData, message);
+                const fullPrompt = await buildPromptWithContext(conversationData.memory, context, message);
 
                 // Stream depuis le modèle custom
                 const stream = streamCustomModel(conversationData.model, fullPrompt);
-
                 for await (const chunk of stream) {
                   if (chunk) {
                     fullResponse += chunk;
                     yield `data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`;
                   }
                 }
-
               } else if (conversationData.type === 'custom_simple') {
                 // Streaming simple pour les modèles custom
-                console.log('💬 Using simple custom streaming...');
-
-                const memory = conversationData.memory;
-                const memoryVariables = await memory.loadMemoryVariables({});
-                const historyString = memoryVariables.history ?
-                  memoryVariables.history.map(msg => `${msg._getType()}: ${msg.content}`).join('\n') : '';
-
-                const fullPrompt = `${SYSTEM_PROMPT}\n\nConversation history:\n${historyString}\n\nHuman: ${message}\n\nAssistant:`;
+                const fullPrompt = await buildPromptWithContext(conversationData.memory, '', message);
 
                 // Stream depuis le modèle custom
                 const stream = streamCustomModel(conversationData.model, fullPrompt);
-
                 for await (const chunk of stream) {
                   if (chunk) {
                     fullResponse += chunk;
                     yield `data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`;
                   }
                 }
-
               } else {
                 // Streaming simple sans outils (OpenAI)
-                console.log('💬 Using simple chain streaming...');
-
                 const llm = conversationData.chain.llm;
-                const memory = conversationData.chain.memory;
-
-                // Charger l'historique
-                const memoryVariables = await memory.loadMemoryVariables({});
-
-                // Construire le prompt
-                const fullPrompt = `${SYSTEM_PROMPT}\n\nConversation history:\n${memoryVariables.history ? memoryVariables.history.map(msg => `${msg._getType()}: ${msg.content}`).join('\n') : ''}\n\nHuman: ${message}\n\nAssistant:`;
+                const fullPrompt = await buildPromptWithContext(conversationData.chain.memory, '', message, SYSTEM_PROMPT);
 
                 const stream = await llm.stream(fullPrompt);
-
                 for await (const chunk of stream) {
                   let content = '';
                   if (chunk.content) {
@@ -1229,8 +1061,6 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
                   }
                 }
               }
-
-              console.log('✅ Streaming completed, full response:', fullResponse.substring(0, 100) + '...');
 
               // Sauvegarder la conversation après le streaming
               let memory;
