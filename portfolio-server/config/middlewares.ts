@@ -20,6 +20,7 @@ export default [
       'Accept',
       'X-Requested-With',
       'X-Forwarded-For',
+      'Cache-Control'
     ],
     credentials: true,
   },
