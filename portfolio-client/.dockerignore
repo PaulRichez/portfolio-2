@@ -1,0 +1,18 @@
+# Dépendances
+node_modules
+npm-debug.log
+yarn.lock
+
+# Environnements
+.env
+.env.*  # Pour ignorer .env.production, .env.development, etc.
+
+# Système
+.DS_Store
+*.swp
+*.swo
+
+# IDEs / éditeurs
+.vscode
+.idea
+

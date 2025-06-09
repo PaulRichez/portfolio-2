@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://your-production-domain.com/api',
-  strapiUrl: 'https://your-production-domain.com'
+  apiUrl: 'https://portfolio.rewayz.local/api',
+  strapiUrl: 'https://portfolio.rewayz.local'
 };
