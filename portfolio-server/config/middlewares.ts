@@ -8,6 +8,7 @@ export default [
       enabled: true,
       headers: ['*'],
       origin: ['http://localhost:4201', 'http://192.168.1.32:3000', 'http://localhost:3000', 'https://paulrichez.fr'], // Add your Angular app URLs
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       credentials: true,
     },
   },
