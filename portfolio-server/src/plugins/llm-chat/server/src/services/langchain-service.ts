@@ -8,7 +8,7 @@ import { BaseChatMemory } from "langchain/memory";
 import { BaseMessage, AIMessage, HumanMessage } from "@langchain/core/messages";
 // Imports pour les outils LangChain
 import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
-import { ChromaRetrievalTool, ChromaAdvancedRetrievalTool } from "../tools/chroma-retrieval-tool";
+import { SmartRAGTool } from "../tools";
 import { SYSTEM_PROMPT } from "../prompts/system-prompt";
 
 // Interface pour définir la structure de la configuration
@@ -444,114 +444,9 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
     }
   };
 
-  // Méthodes utilitaires pour le RAG manuel
-  const shouldUseRAG = (message: string): boolean => {
-    const portfolioKeywords = [
-      'projet', 'projects', 'compétence', 'skills', 'expérience', 'experience',
-      'formation', 'education', 'contact', 'réalisation', 'portfolio',
-      'technologie', 'technology', 'développement', 'development',
-      'react', 'vue', 'angular', 'nodejs', 'php', 'python', 'javascript',
-      'typescript', 'html', 'css', 'bootstrap', 'tailwind',
-      'qui es-tu', 'présente', 'cv', 'profil', 'about', 'à propos',
-      'github', 'linkedin', 'email', 'téléphone', 'coordonnées',
-      'web', 'mobile', 'frontend', 'backend', 'fullstack', 'toi', 'paul'
-    ];
-
-    const lowerMessage = message.toLowerCase();
-    return portfolioKeywords.some(keyword => lowerMessage.includes(keyword));
-  };
-
-  const formatChromaResults = (results: any[], originalQuery: string): string => {
-    if (!results || results.length === 0) {
-      return '';
-    }
-
-    const sections: string[] = [];
-
-    sections.push(`=== Informations contextuelles pour "${originalQuery}" ===\n`);
-
-    results.forEach((result, index) => {
-      const metadata = result.metadata || {};
-      const collection = metadata.collection || 'unknown';
-      const similarity = (1 - result.distance).toFixed(3); // Convertir distance en similarité
-
-      sections.push(`${index + 1}. ${getCollectionDisplayName(collection)} (Pertinence: ${similarity})`);
-      sections.push(`   ${result.document.trim()}`);
-
-      // Ajouter des métadonnées pertinentes
-      if (metadata.github_link) {
-        sections.push(`   🔗 GitHub: ${metadata.github_link}`);
-      }
-      if (metadata.link_demo) {
-        sections.push(`   🌐 Démo: ${metadata.link_demo}`);
-      }
-      if (metadata.link_npm) {
-        sections.push(`   📦 NPM: ${metadata.link_npm}`);
-      }
-      if (metadata.email) {
-        sections.push(`   📧 Email: ${metadata.email}`);
-      }
-      if (metadata.linkedin) {
-        sections.push(`   💼 LinkedIn: ${metadata.linkedin}`);
-      }
-      if (metadata.website) {
-        sections.push(`   🌐 Site web: ${metadata.website}`);
-      }
-      if (metadata.github) {
-        sections.push(`   🔗 GitHub: ${metadata.github}`);
-      }
-      if (metadata.phoneNumber) {
-        sections.push(`   📞 Téléphone: ${metadata.phoneNumber}`);
-      }
-      if (metadata.codings_names) {
-        sections.push(`   💻 Technologies: ${metadata.codings_names}`);
-      }
-      if (metadata.coding_skills_names) {
-        sections.push(`   🎯 Compétences: ${metadata.coding_skills_names}`);
-      }
-      if (metadata.category) {
-        sections.push(`   📁 Catégorie: ${metadata.category}`);
-      }
-      if (metadata.languages) {
-        const languageLabels = metadata.languages.split(', ').map(lang => {
-          const match = lang.match(/(.*)\s\((\d+)%\)/);
-          if (match) {
-            const [, name, percentage] = match;
-            const label = getLanguageLevelLabel(parseInt(percentage));
-            return `${name} (${label})`;
-          }
-          return lang;
-        }).join(', ');
-        sections.push(`   🌐 Langues: ${languageLabels}`);
-      }
-
-      sections.push(''); // Ligne vide entre les résultats
-    });
-
-    sections.push(`=== Fin des informations contextuelles (${results.length} résultat${results.length > 1 ? 's' : ''}) ===\n`);
-
-    return sections.join('\n');
-  };
-
-  const getLanguageLevelLabel = (percentage: number): string => {
-    if (percentage >= 95) return 'Langue maternelle';
-    if (percentage >= 85) return 'Courant';
-    if (percentage >= 70) return 'Avancé';
-    if (percentage >= 50) return 'Intermédiaire';
-    if (percentage >= 30) return 'Débutant';
-    return 'Notions';
-  };
-
-  const getCollectionDisplayName = (collection: string): string => {
-    const displayNames: Record<string, string> = {
-      'api::project.project': '📁 Projet',
-      'api::me.me': '👤 Profil personnel',
-      'api::article.article': '📝 Article',
-      'api::faq.faq': '❓ FAQ'
-    };
-
-    return displayNames[collection] || `📄 ${collection}`;
-  };
+  // Note: Les méthodes shouldUseRAG, formatChromaResults, getLanguageLevelLabel
+  // et getCollectionDisplayName ont été déplacées dans SmartRAGTool
+  // pour une approche plus modulaire et réutilisable
 
   // Méthode commune pour créer ou récupérer une conversation
   const getOrCreateConversation = async (sessionId: string, config: LlmChatConfig, options?: ConversationOptions, streaming: boolean = false) => {
@@ -582,8 +477,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
           // Créer les outils ChromaDB
           const tools = [
-            new ChromaRetrievalTool(strapi),
-            new ChromaAdvancedRetrievalTool(strapi)
+            new SmartRAGTool(strapi), // Outil intelligent qui décide automatiquement quand utiliser RAG avec Ollama qwen3:0.6b
           ];
 
           const agentPrompt = ChatPromptTemplate.fromMessages([
@@ -611,15 +505,15 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
           conversationChains.set(sessionId, { type: 'agent', executor: agentExecutor });
         } else {
-          console.log(`🔧 Creating custom RAG chain with manual tool integration${streaming ? ' (streaming)' : ''}...`);
+          console.log(`🔧 Creating custom RAG chain with SmartRAGTool integration${streaming ? ' (streaming)' : ''}...`);
 
-          // Pour les modèles custom (Ollama), on utilise une approche RAG manuelle
-          const chromaService = strapi.plugin('llm-chat').service('chromaVectorService');
+          // Pour les modèles custom (Ollama), on utilise SmartRAGTool
+          const smartRAGTool = new SmartRAGTool(strapi);
 
           conversationChains.set(sessionId, {
-            type: 'rag_manual',
+            type: 'rag_smart',
             model: createModel(config, options),
-            chromaService,
+            smartRAGTool,
             memory
           });
         }
@@ -668,34 +562,8 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
     return conversationChains.get(sessionId);
   };
 
-  // Méthode pour exécuter le RAG manuel
-  const executeManualRAG = async (conversationData: any, message: string) => {
-    const needsRAG = shouldUseRAG(message);
-
-    let context = '';
-    if (needsRAG) {
-      const ragTimerId = `🔍 RAG Search`;
-      console.time(ragTimerId);
-      console.log('🕵️ Searching ChromaDB for relevant information...');
-      try {
-        const searchResults = await conversationData.chromaService.searchDocuments(message, 5);
-        if (searchResults && searchResults.length > 0) {
-          context = formatChromaResults(searchResults, message);
-          console.log(`✅ Found ${searchResults.length} relevant documents`);
-        } else {
-          console.log('ℹ️ No relevant documents found in ChromaDB');
-        }
-        console.timeEnd(ragTimerId);
-      } catch (searchError) {
-        console.timeEnd(ragTimerId);
-        console.error('❌ Error searching ChromaDB:', searchError);
-      }
-    } else {
-      console.log('ℹ️ Question does not require ChromaDB search');
-    }
-
-    return context;
-  };
+  // Note: La fonction executeManualRAG a été remplacée par SmartRAGTool
+  // qui gère automatiquement l'analyse et la recherche RAG
 
   // Méthode pour construire le prompt avec contexte et historique
   const buildPromptWithContext = async (memory: any, context: string, message: string, systemPrompt: string = SYSTEM_PROMPT) => {
@@ -758,11 +626,12 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
           response = await conversationData.executor.call({
             input: message,
           });
-        } else if (conversationData.type === 'rag_manual') {
-          // Utiliser RAG manuel pour les modèles custom
-          console.log('🔍 Using manual RAG for custom provider...');
+        } else if (conversationData.type === 'rag_smart') {
+          // Utiliser SmartRAGTool pour les modèles custom
+          console.log('🤖 Using SmartRAGTool for custom provider...');
 
-          const context = await executeManualRAG(conversationData, message);
+          // Utiliser SmartRAGTool pour analyser le message et récupérer le contexte
+          const context = await conversationData.smartRAGTool._call(message);
           const fullPrompt = await buildPromptWithContext(conversationData.memory, context, message);
           const responseText = await callCustomModel(conversationData.model, fullPrompt);
 
@@ -1016,9 +885,10 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
                   fullResponse = result.output;
                   yield `data: ${JSON.stringify({ type: 'chunk', content: result.output })}\n\n`;
                 }
-              } else if (conversationData.type === 'rag_manual') {
-                // Streaming avec RAG manuel pour les modèles custom
-                const context = await executeManualRAG(conversationData, message);
+              } else if (conversationData.type === 'rag_smart') {
+                // Streaming avec SmartRAGTool pour les modèles custom
+                console.log('🤖 Using SmartRAGTool for streaming...');
+                const context = await conversationData.smartRAGTool._call(message);
                 const fullPrompt = await buildPromptWithContext(conversationData.memory, context, message);
 
                 // Stream depuis le modèle custom
@@ -1064,7 +934,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
               // Sauvegarder la conversation après le streaming
               let memory;
-              if (conversationData.type === 'rag_manual' || conversationData.type === 'custom_simple') {
+              if (conversationData.type === 'rag_smart' || conversationData.type === 'custom_simple') {
                 memory = conversationData.memory;
               } else {
                 memory = new StrapiChatMemory(strapi, sessionId);
