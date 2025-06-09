@@ -154,7 +154,8 @@ export class ChatbotService {
         headers,
         observe: 'events',
         responseType: 'text',
-        reportProgress: true
+        reportProgress: true,
+        withCredentials: true,
       });
 
       let currentResponse = '';
