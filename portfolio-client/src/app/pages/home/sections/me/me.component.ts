@@ -25,6 +25,6 @@ export class MeComponent {
   }
 
   getCvDownloadUrl(): string {
-    return `${environment.apiUrl}/api/me/cv`;
+    return `${environment.apiUrl}/me/cv`;
   }
 }
