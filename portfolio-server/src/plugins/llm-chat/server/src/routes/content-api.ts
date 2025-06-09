@@ -20,16 +20,6 @@ export default {
       },
     },
     {
-      method: 'OPTIONS',
-      path: '/stream',
-      handler: async (ctx) => {
-        ctx.send(204); // Réponse "No Content"
-      },
-      config: {
-        auth: false,
-      },
-    },
-    {
       method: 'GET',
       path: '/history',
       handler: 'controller.getHistory',
