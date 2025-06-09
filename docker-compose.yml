@@ -81,7 +81,6 @@ services:
     restart: unless-stopped
     networks:
       - portfolio_network
-    profiles: ["postgres"]
 
   # PostgreSQL Database
   postgres:
