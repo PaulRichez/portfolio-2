@@ -36,6 +36,8 @@ services:
       - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET}
       - API_TOKEN_SALT=${API_TOKEN_SALT}
       - APP_KEYS=${APP_KEYS}
+      - CHROMA_URL=${CHROMA_URL}
+      - CUSTOM_LLM_BASE_URL=${CUSTOM_LLM_BASE_URL}
     depends_on:
       - ollama
       - chromadb
