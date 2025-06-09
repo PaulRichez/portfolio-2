@@ -24,10 +24,9 @@ services:  # Ollama AI Service pour développement
     command: >
       "ollama serve &
       sleep 10 &&
-      ollama pull qwen3:1.7b &&
       ollama pull qwen3:0.6b &&
       ollama pull nomic-embed-text &&
-      echo 'Modèle qwen3:1.7b et qwen3:0.6b téléchargé avec succès!' &&
+      echo 'Modèle qwen3:0.6b téléchargé avec succès!' &&
       wait"
   # ChromaDB Vector Database pour développement
   chromadb:
