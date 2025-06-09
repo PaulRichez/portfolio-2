@@ -22,7 +22,9 @@ export default {
     {
       method: 'OPTIONS',
       path: '/stream',
-      handler: 'controller.stream', // tu peux aussi utiliser une fonction vide si nécessaire
+      handler: async (ctx) => {
+        ctx.send(204); // Réponse "No Content"
+      },
       config: {
         auth: false,
       },
