@@ -36,7 +36,25 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
     try {
       // Gérer les requêtes preflight CORS
       if (ctx.request.method === 'OPTIONS') {
-        ctx.status = 204; // No Content
+        const allowedOrigins = [
+          'https://paulrichez.fr',
+          'http://localhost:4201',
+          'http://localhost:3000'
+        ];
+        const origin = ctx.request.header.origin;
+
+        if (allowedOrigins.includes(origin)) {
+          ctx.set('Access-Control-Allow-Origin', origin);
+        }
+
+        ctx.set({
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        });
+
+        ctx.status = 204;
+        ctx.body = ''; // facultatif mais safe
         return;
       }
       // Support des deux méthodes : GET (EventSource) et POST
