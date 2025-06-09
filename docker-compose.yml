@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # Angular Frontend
@@ -169,6 +169,17 @@ services:
     networks:
       - portfolio_network
     restart: unless-stopped
+
+  # Certbot (SSL cert generator)
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    entrypoint: ""
+    networks:
+      - portfolio_network
 
 volumes:
   strapi_data:
