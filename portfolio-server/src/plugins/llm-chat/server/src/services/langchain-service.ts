@@ -41,7 +41,7 @@ class StrapiChatMemory extends BaseChatMemory {
 
   constructor(strapi: Core.Strapi, sessionId: string) {
     super({ returnMessages: true, inputKey: "input", outputKey: "response" });
-    this.strapi = strapi;
+    strapi = strapi;
     this.sessionId = sessionId;
   }
 
@@ -60,20 +60,20 @@ class StrapiChatMemory extends BaseChatMemory {
 
     const timerId = `💾 Save Context [${this.sessionId}]`;
     console.time(timerId);
-    this.strapi.log.info('💾 Saving context for session:', this.sessionId);
+    strapi.log.info('💾 Saving context for session:', this.sessionId);
     console.log('User message:', input.substring(0, 50) + '...');
     console.log('Assistant response:', output.substring(0, 50) + '...');
 
     try {
       // Vérifier que le content-type existe
-      const messageContentType = this.strapi.contentType('plugin::llm-chat.chat-message');
+      const messageContentType = strapi.contentType('plugin::llm-chat.chat-message');
       if (!messageContentType) {
         throw new Error('Content type plugin::llm-chat.chat-message not found');
       }
       console.log('✅ Content type chat-message found');
 
       // Sauvegarder le message utilisateur
-      const userMessage = await this.strapi.entityService.create('plugin::llm-chat.chat-message', {
+      const userMessage = await strapi.entityService.create('plugin::llm-chat.chat-message', {
         data: {
           sessionId: this.sessionId,
           role: 'user',
@@ -81,11 +81,11 @@ class StrapiChatMemory extends BaseChatMemory {
           timestamp: new Date().toISOString()
         }
       });
-      this.strapi.log.info('✅ User message saved with ID:', userMessage.id);
+      strapi.log.info('✅ User message saved with ID:', userMessage.id);
       console.log('✅ User message saved with ID:', userMessage.id);
 
       // Sauvegarder la réponse de l'assistant
-      const assistantMessage = await this.strapi.entityService.create('plugin::llm-chat.chat-message', {
+      const assistantMessage = await strapi.entityService.create('plugin::llm-chat.chat-message', {
         data: {
           sessionId: this.sessionId,
           role: 'assistant',
@@ -93,7 +93,7 @@ class StrapiChatMemory extends BaseChatMemory {
           timestamp: new Date().toISOString()
         }
       });
-      this.strapi.log.info('✅ Assistant message saved with ID:', assistantMessage.id);
+      strapi.log.info('✅ Assistant message saved with ID:', assistantMessage.id);
       console.log('✅ Assistant message saved with ID:', assistantMessage.id);
 
       // Créer ou mettre à jour la session
@@ -102,7 +102,7 @@ class StrapiChatMemory extends BaseChatMemory {
       console.timeEnd(timerId);
     } catch (error) {
       console.timeEnd(timerId);
-      this.strapi.log.error('❌ Error saving messages:', error);
+      strapi.log.error('❌ Error saving messages:', error);
       console.error('❌ Error saving messages:', error);
       throw error;
     }
@@ -116,11 +116,11 @@ class StrapiChatMemory extends BaseChatMemory {
       console.log('🔄 Updating session:', this.sessionId);
 
       // Vérifier si la session existe
-      const existingSession = await this.strapi.entityService.findMany('plugin::llm-chat.chat-session', {
+      const existingSession = await strapi.entityService.findMany('plugin::llm-chat.chat-session', {
         filters: { sessionId: this.sessionId }
       }) as any[];
 
-      const messageCount = await this.strapi.entityService.count('plugin::llm-chat.chat-message', {
+      const messageCount = await strapi.entityService.count('plugin::llm-chat.chat-message', {
         filters: { sessionId: this.sessionId }
       });
 
@@ -136,14 +136,14 @@ class StrapiChatMemory extends BaseChatMemory {
       if (existingSession.length > 0) {
         // Mettre à jour la session existante
         console.log('📝 Updating existing session...');
-        await this.strapi.entityService.update('plugin::llm-chat.chat-session', existingSession[0].id, {
+        await strapi.entityService.update('plugin::llm-chat.chat-session', existingSession[0].id, {
           data: sessionData
         });
         console.log('✅ Session updated');
       } else {
         // Créer une nouvelle session
         console.log('🆕 Creating new session...');
-        const newSession = await this.strapi.entityService.create('plugin::llm-chat.chat-session', {
+        const newSession = await strapi.entityService.create('plugin::llm-chat.chat-session', {
           data: {
             ...sessionData,
             title: userMessage.substring(0, 50) + (userMessage.length > 50 ? '...' : '')
@@ -160,7 +160,7 @@ class StrapiChatMemory extends BaseChatMemory {
   }
 
   async getChatMessages(): Promise<BaseMessage[]> {
-    const messages = await this.strapi.entityService.findMany('plugin::llm-chat.chat-message', {
+    const messages = await strapi.entityService.findMany('plugin::llm-chat.chat-message', {
       filters: { sessionId: this.sessionId },
       sort: { createdAt: 'asc' }
     });
@@ -175,12 +175,12 @@ class StrapiChatMemory extends BaseChatMemory {
   }
 
   async clear() {
-    const messages = await this.strapi.entityService.findMany('plugin::llm-chat.chat-message', {
+    const messages = await strapi.entityService.findMany('plugin::llm-chat.chat-message', {
       filters: { sessionId: this.sessionId }
     }) as any[];
 
     for (const message of messages) {
-      await this.strapi.entityService.delete('plugin::llm-chat.chat-message', message.id);
+      await strapi.entityService.delete('plugin::llm-chat.chat-message', message.id);
     }
   }
 }
@@ -464,7 +464,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
       if (useRAG) {
         if (config.provider === 'openai') {
-          console.log(`🤖 Creating OpenAI agent with ChromaDB tools${streaming ? ' (streaming)' : ''}...`);
+          console.log(`🤖 Creating PaulIA OpenAI agent with ChromaDB tools${streaming ? ' (streaming)' : ''}...`);
 
           // Créer le modèle avec streaming si nécessaire
           const model = new ChatOpenAI({
@@ -475,9 +475,9 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
             streaming,
           });
 
-          // Créer les outils ChromaDB
+          // Créer les outils ChromaDB pour PaulIA
           const tools = [
-            new SmartRAGTool(strapi), // Outil intelligent qui décide automatiquement quand utiliser RAG avec Ollama qwen3:0.6b
+            new SmartRAGTool(strapi), // PaulIA utilise cet outil intelligent pour analyser et rechercher automatiquement
           ];
 
           const agentPrompt = ChatPromptTemplate.fromMessages([
@@ -505,7 +505,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
           conversationChains.set(sessionId, { type: 'agent', executor: agentExecutor });
         } else {
-          console.log(`🔧 Creating custom RAG chain with SmartRAGTool integration${streaming ? ' (streaming)' : ''}...`);
+          console.log(`🔧 Creating PaulIA custom RAG chain with SmartRAGTool integration${streaming ? ' (streaming)' : ''}...`);
 
           // Pour les modèles custom (Ollama), on utilise SmartRAGTool
           const smartRAGTool = new SmartRAGTool(strapi);
@@ -518,7 +518,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
           });
         }
       } else {
-        console.log(`💬 Creating simple conversation chain${streaming ? ' (streaming)' : ''}...`);
+        console.log(`💬 Creating PaulIA simple conversation chain${streaming ? ' (streaming)' : ''}...`);
 
         if (config.provider === 'openai') {
           // Créer le modèle avec streaming si nécessaire
@@ -556,7 +556,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
       console.timeEnd(chainTimerId);
     } else {
-      console.log('♻️ Using existing conversation for session:', sessionId);
+      console.log('♻️ Using existing PaulIA conversation for session:', sessionId);
     }
 
     return conversationChains.get(sessionId);
@@ -582,11 +582,11 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
     // Créer une nouvelle conversation ou continuer une existante
     async chat(message: string, options?: ConversationOptions) {
       const sessionId = options?.sessionId || 'default';
-      const timerId = `💬 Chat Session [${sessionId}]`;
+      const timerId = `💬 PaulIA Chat Session [${sessionId}]`;
       console.time(timerId);
 
       try {
-        strapi.log.info('🚀 Starting chat for session:', sessionId);
+        strapi.log.info('🚀 Starting PaulIA chat for session:', sessionId);
 
         // Validation Strapi
         if (!strapi.entityService) {
@@ -627,8 +627,8 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
             input: message,
           });
         } else if (conversationData.type === 'rag_smart') {
-          // Utiliser SmartRAGTool pour les modèles custom
-          console.log('🤖 Using SmartRAGTool for custom provider...');
+          // Utiliser SmartRAGTool pour les modèles custom avec PaulIA
+          console.log('🤖 PaulIA using SmartRAGTool for custom provider...');
 
           // Utiliser SmartRAGTool pour analyser le message et récupérer le contexte
           const context = await conversationData.smartRAGTool._call(message);
@@ -643,6 +643,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
           response = { response: responseText };
         } else if (conversationData.type === 'custom_simple') {
+          // PaulIA avec conversation simple pour modèles custom
           // Construire le prompt manuellement pour les modèles custom
           const fullPrompt = await buildPromptWithContext(conversationData.memory, '', message);
           const responseText = await callCustomModel(conversationData.model, fullPrompt);
@@ -676,7 +677,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
         };
       } catch (error) {
         console.timeEnd(timerId);
-        strapi.log.error('❌ Error in langchain chat service:', error);
+        strapi.log.error('❌ Error in PaulIA langchain chat service:', error);
         throw error;
       }
     },
@@ -852,7 +853,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
         const sessionId = options?.sessionId || 'default';
 
-        console.log('🌊 Starting streaming chat for session:', sessionId);
+        console.log('🌊 Starting PaulIA streaming chat for session:', sessionId);
 
         // S'assurer qu'une session existe
         await this.ensureSessionExists(sessionId, message);
@@ -866,10 +867,10 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
             let fullResponse = '';
 
             try {
-              console.log('🌊 Starting LangChain streaming...');
+              console.log('🌊 Starting PaulIA LangChain streaming...');
 
               if (conversationData.type === 'agent') {
-                // Streaming avec agent OpenAI et outils
+                // Streaming avec PaulIA agent OpenAI et outils
                 const result = await conversationData.executor.call({
                   input: message,
                 }, {
@@ -886,8 +887,8 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
                   yield `data: ${JSON.stringify({ type: 'chunk', content: result.output })}\n\n`;
                 }
               } else if (conversationData.type === 'rag_smart') {
-                // Streaming avec SmartRAGTool pour les modèles custom
-                console.log('🤖 Using SmartRAGTool for streaming...');
+                // Streaming avec PaulIA SmartRAGTool pour les modèles custom
+                console.log('🤖 PaulIA using SmartRAGTool for streaming...');
                 const context = await conversationData.smartRAGTool._call(message);
                 const fullPrompt = await buildPromptWithContext(conversationData.memory, context, message);
 
@@ -900,7 +901,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
                   }
                 }
               } else if (conversationData.type === 'custom_simple') {
-                // Streaming simple pour les modèles custom
+                // PaulIA streaming simple pour les modèles custom
                 const fullPrompt = await buildPromptWithContext(conversationData.memory, '', message);
 
                 // Stream depuis le modèle custom
@@ -912,7 +913,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
                   }
                 }
               } else {
-                // Streaming simple sans outils (OpenAI)
+                // PaulIA streaming simple sans outils (OpenAI)
                 const llm = conversationData.chain.llm;
                 const fullPrompt = await buildPromptWithContext(conversationData.chain.memory, '', message, SYSTEM_PROMPT);
 
@@ -947,14 +948,14 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
               yield `data: ${JSON.stringify({ type: 'complete' })}\n\n`;
             } catch (error) {
-              console.error('❌ Streaming error:', error);
+              console.error('❌ PaulIA streaming error:', error);
               yield `data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`;
             }
           },
           sessionId,
         };
       } catch (error) {
-        strapi.log.error('Error in langchain stream service:', error);
+        strapi.log.error('Error in PaulIA langchain stream service:', error);
         throw error;
       }
     },

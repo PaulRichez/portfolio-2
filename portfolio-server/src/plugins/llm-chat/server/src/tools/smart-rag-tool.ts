@@ -8,35 +8,36 @@ import type { Core } from '@strapi/strapi';
  */
 export class SmartRAGTool extends Tool {
   name = "smart_rag_search";
-  description = `Outil intelligent qui utilise Ollama qwen3:0.6b pour analyser automatiquement si une question nécessite une recherche
-  dans la base de données ChromaDB et effectue la recherche appropriée.
+  description = `Outil intelligent de PaulIA qui utilise Ollama qwen3:0.6b pour analyser automatiquement si une question
+  nécessite une recherche dans la base de données du portfolio de Paul et effectue la recherche appropriée.
 
-  Cet outil utilise l'intelligence artificielle pour :
-  - Analyser la pertinence de la question par rapport au portfolio
-  - Déterminer automatiquement si une recherche RAG est nécessaire
-  - Extraire les mots-clés optimaux pour la recherche
-  - Adapter le nombre de résultats selon le contexte
-  - Formater intelligemment la réponse
+  PaulIA utilise cet outil pour :
+  - Analyser la pertinence des questions sur le profil de Paul
+  - Déterminer automatiquement si une recherche dans ses données est nécessaire
+  - Extraire les mots-clés optimaux pour trouver les bonnes informations
+  - Adapter le nombre de résultats selon le contexte de la question
+  - Formater intelligemment les informations sur Paul
 
-  Particulièrement efficace pour :
-  - Questions sur le portfolio (projets, compétences, expériences)
-  - Informations personnelles et professionnelles
-  - Détails techniques et technologies utilisées
-  - Informations de contact et liens
+  Particulièrement efficace pour répondre aux questions sur :
+  - Les projets développés par Paul (technologies, réalisations, démos)
+  - Ses compétences techniques et son expertise
+  - Son parcours professionnel et ses expériences
+  - Sa formation et son background
+  - Ses informations de contact et liens professionnels
 
-  Paramètre d'entrée : la question ou requête de l'utilisateur (string)
+  Paramètre d'entrée : la question du visiteur sur Paul (string)
 
-  Le système IA décidera automatiquement :
-  1. Si la question nécessite une recherche RAG (avec niveau de confiance)
-  2. Quels mots-clés utiliser pour la recherche
-  3. Combien de résultats récupérer
-  4. Comment formater la réponse
+  PaulIA décide automatiquement :
+  1. Si la question nécessite d'accéder aux données de Paul (avec niveau de confiance)
+  2. Quels mots-clés utiliser pour trouver les bonnes informations
+  3. Combien d'éléments récupérer pour répondre complètement
+  4. Comment présenter les informations de manière engageante
 
-  Exemples d'utilisation :
-  - "Quels sont tes projets React ?" → IA détecte: RAG nécessaire, mots-clés: ["projets", "React"]
-  - "Quel temps fait-il ?" → IA détecte: RAG non nécessaire
-  - "Comment te contacter ?" → IA détecte: RAG nécessaire, mots-clés: ["contact"]
-  - "Peux-tu me parler de ton expérience ?" → IA détecte: RAG nécessaire, mots-clés: ["expérience"]`;
+  Exemples d'utilisation par PaulIA :
+  - "Quels sont les projets React de Paul ?" → IA détecte: données nécessaires, mots-clés: ["projets", "React"]
+  - "Quel temps fait-il ?" → IA détecte: données non nécessaires (hors sujet Paul)
+  - "Comment contacter Paul ?" → IA détecte: données nécessaires, mots-clés: ["contact"]
+  - "Parle-moi de l'expérience de Paul ?" → IA détecte: données nécessaires, mots-clés: ["expérience"]`;
 
   private strapi: Core.Strapi;
   private chromaService: any;
@@ -197,7 +198,7 @@ export class SmartRAGTool extends Tool {
   }
 
   /**
-   * Formate les résultats ChromaDB pour le LLM avec informations de l'analyse IA
+   * Formate les résultats ChromaDB pour PaulIA avec informations de l'analyse IA
    */
   private formatChromaResults(
     results: any[],
@@ -206,13 +207,13 @@ export class SmartRAGTool extends Tool {
     analysis: { confidence: number; reasoning: string }
   ): string {
     if (!results || results.length === 0) {
-      return `Aucune information spécifique trouvée pour "${originalQuery}". Recherche effectuée avec : "${searchQuery}". Je peux répondre avec mes connaissances générales.`;
+      return `PaulIA n'a pas trouvé d'informations spécifiques pour "${originalQuery}". Recherche effectuée avec : "${searchQuery}". Je peux quand même t'aider avec mes connaissances générales sur Paul !`;
     }
 
     const sections: string[] = [];
-    sections.push(`=== 🧠 Analyse IA et recherche contextuelle pour "${originalQuery}" ===`);
-    sections.push(`🎯 Recherche effectuée avec : "${searchQuery}"`);
-    sections.push(`🤖 Confiance IA : ${(analysis.confidence * 100).toFixed(1)}% - ${analysis.reasoning}`);
+    sections.push(`=== 🤖 PaulIA - Recherche intelligente pour "${originalQuery}" ===`);
+    sections.push(`🎯 Analyse effectuée avec : "${searchQuery}"`);
+    sections.push(`🧠 Confiance IA : ${(analysis.confidence * 100).toFixed(1)}% - ${analysis.reasoning}`);
     sections.push('');
 
     results.forEach((result, index) => {
@@ -232,8 +233,8 @@ export class SmartRAGTool extends Tool {
       sections.push(''); // Ligne vide entre les résultats
     });
 
-    sections.push(`=== ✅ ${results.length} résultat${results.length > 1 ? 's' : ''} trouvé${results.length > 1 ? 's' : ''} ===`);
-    sections.push('💡 Utilise ces informations pour répondre précisément à la question.');
+    sections.push(`=== ✅ ${results.length} élément${results.length > 1 ? 's' : ''} trouvé${results.length > 1 ? 's' : ''} sur Paul ===`);
+    sections.push('💡 PaulIA utilise ces informations pour te répondre précisément.');
 
     return sections.join('\n');
   }
@@ -301,7 +302,7 @@ export class SmartRAGTool extends Tool {
    */
   async _call(input: string): Promise<string> {
     try {
-      this.strapi.log.info('🤖 SmartRAGTool: Starting AI analysis with Ollama qwen3:0.6b');
+      this.strapi.log.info('🤖 PaulIA SmartRAGTool: Starting AI analysis with Ollama qwen3:0.6b');
 
       // 1. Analyser avec Ollama si le RAG est nécessaire
       const analysis = await this.analyzeWithOllama(input);
@@ -314,8 +315,8 @@ export class SmartRAGTool extends Tool {
       });
 
       if (!analysis.shouldUseRAG) {
-        this.strapi.log.info('ℹ️ SmartRAGTool: AI determined no ChromaDB search needed');
-        return `L'IA a déterminé que cette question ne nécessite pas de recherche dans la base de données (confiance: ${(analysis.confidence * 100).toFixed(1)}%). Raison: ${analysis.reasoning}`;
+        this.strapi.log.info('ℹ️ PaulIA: AI determined no database search needed');
+        return `PaulIA a déterminé que cette question ne nécessite pas de recherche dans les données de Paul (confiance: ${(analysis.confidence * 100).toFixed(1)}%). Raison: ${analysis.reasoning}`;
       }
 
       // 2. Construire la requête de recherche à partir des mots-clés IA
@@ -335,19 +336,19 @@ export class SmartRAGTool extends Tool {
 
       // 5. Formater et retourner les résultats avec l'analyse IA
       if (!searchResults || searchResults.length === 0) {
-        this.strapi.log.info('ℹ️ SmartRAGTool: No relevant documents found');
-        return `Aucune information spécifique trouvée pour "${input}". L'IA a recherché avec : "${searchQuery}" (confiance: ${(analysis.confidence * 100).toFixed(1)}%). Je peux répondre avec mes connaissances générales.`;
+        this.strapi.log.info('ℹ️ PaulIA: No relevant information found');
+        return `PaulIA n'a pas trouvé d'informations spécifiques pour "${input}". Recherche effectuée avec : "${searchQuery}" (confiance: ${(analysis.confidence * 100).toFixed(1)}%). Je peux quand même t'aider avec mes connaissances générales sur Paul !`;
       }
 
       const formattedResults = this.formatChromaResults(searchResults, input, searchQuery, analysis);
 
-      this.strapi.log.info(`✅ SmartRAGTool: Found ${searchResults.length} relevant documents using AI analysis`);
+      this.strapi.log.info(`✅ PaulIA: Found ${searchResults.length} relevant documents using AI analysis`);
 
       return formattedResults;
 
     } catch (error) {
-      this.strapi.log.error('❌ SmartRAGTool error:', error);
-      return `Erreur lors de l'analyse IA et de la recherche RAG pour "${input}". Je peux essayer de répondre avec mes connaissances générales.`;
+      this.strapi.log.error('❌ PaulIA SmartRAGTool error:', error);
+      return `PaulIA a rencontré une erreur lors de l'analyse pour "${input}". Je peux essayer de répondre avec mes connaissances générales sur Paul.`;
     }
   }
 }

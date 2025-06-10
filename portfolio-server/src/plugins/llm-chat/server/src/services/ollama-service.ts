@@ -45,22 +45,22 @@ const ollamaService = ({ strapi }: { strapi: Core.Strapi }) => {
         };
       }
 
-      // Prompt ultra-court optimisé pour qwen3:0.6b
+      // Prompt ultra-court optimisé pour qwen3:0.6b utilisé par PaulIA
       const analysisPrompt = `Question: "${userMessage}"
 
-Portfolio database contains: projects, skills, experience, education, contact.
+PaulIA's database contains: Paul's projects, skills, experience, education, contact info.
 
 JSON response format:
 {"shouldUseRAG": true/false, "confidence": 0.9, "keywords": ["word1", "word2"]}
 
 Examples:
-"React projects?" → {"shouldUseRAG": true, "confidence": 0.9, "keywords": ["projects", "React"]}
+"Paul's React projects?" → {"shouldUseRAG": true, "confidence": 0.9, "keywords": ["projects", "React"]}
 "Weather?" → {"shouldUseRAG": false, "confidence": 0.9, "keywords": []}
-"Contact?" → {"shouldUseRAG": true, "confidence": 0.9, "keywords": ["contact"]}
+"Contact Paul?" → {"shouldUseRAG": true, "confidence": 0.9, "keywords": ["contact"]}
 
 Response:`;
 
-      console.log('🧠 Analyzing with Ollama qwen3:0.6b...');
+      console.log('🧠 PaulIA analyzing with Ollama qwen3:0.6b...');
 
       const requestBody = {
         model: config.qwenModel,
@@ -110,22 +110,22 @@ Response:`;
         reasoning: 'Fast analysis' // Reasoning simplifié
       };
 
-      console.log('✅ Ollama analysis result:', result);
+      console.log('✅ PaulIA Ollama analysis result:', result);
       console.timeEnd(timerId);
       return result;
 
     } catch (error) {
       console.timeEnd(timerId);
-      console.error('❌ Ollama analysis failed:', error);
+      console.error('❌ PaulIA Ollama analysis failed:', error);
 
-      // Fallback à l'analyse manuelle en cas d'erreur
+      // Fallback à l'analyse manuelle pour PaulIA en cas d'erreur
       const shouldUseRAG = manualKeywordAnalysis(userMessage);
 
       return {
         shouldUseRAG,
-        confidence: 0.8, // Confiance élevée pour le fallback
+        confidence: 0.8, // Confiance élevée pour le fallback de PaulIA
         keywords: shouldUseRAG ? extractBasicKeywords(userMessage) : [],
-        reasoning: `Fallback: ${error instanceof Error ? error.message.substring(0, 50) : 'error'}`
+        reasoning: `PaulIA fallback: ${error instanceof Error ? error.message.substring(0, 50) : 'error'}`
       };
     }
   };
