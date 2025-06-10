@@ -56,10 +56,16 @@
              [class]="message.role === 'user' ? 'bg-primary text-primary-contrast' : 'bg-surface-100 dark:bg-surface-800'">
 
           <!-- Message Text -->
-          <p class="leading-6 mb-0"
-             [class]="message.role === 'user' ? 'text-primary-contrast' : 'text-color'"
-             [innerHTML]="formatMessage(message.content)">
-          </p>
+          <div *ngIf="message.role === 'user'; else assistantMessage">
+            <p class="leading-6 mb-0 text-primary-contrast"
+               [innerHTML]="formatMessage(message.content)">
+            </p>
+          </div>
+          <ng-template #assistantMessage>
+            <div class="leading-6 mb-0 text-color">
+              <app-markdown-block [markdown]="message.content"></app-markdown-block>
+            </div>
+          </ng-template>
 
           <!-- Message Time with Typing indicator -->
           <div class="flex items-center justify-between text-xs mt-1 opacity-70">

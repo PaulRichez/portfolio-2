@@ -15,6 +15,7 @@ import { DividerModule } from 'primeng/divider';
 import { MessageService } from 'primeng/api';
 
 import { ChatbotService, ChatMessage } from '../../services/chatbot.service';
+import { MarkdownBlockComponent } from './markdown-block.component';
 
 @Component({
   selector: 'app-chatbot',
@@ -31,7 +32,8 @@ import { ChatbotService, ChatMessage } from '../../services/chatbot.service';
     ProgressSpinnerModule,
     TooltipModule,
     AvatarModule,
-    DividerModule
+    DividerModule,
+    MarkdownBlockComponent
   ],
   providers: [MessageService]
 })
