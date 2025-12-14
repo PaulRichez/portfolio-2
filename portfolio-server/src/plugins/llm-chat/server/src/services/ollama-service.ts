@@ -8,10 +8,10 @@ const ollamaService = ({ strapi }: { strapi: Core.Strapi }) => {
   // Configuration par défaut d'Ollama
   const getOllamaConfig = () => {
     const pluginConfig = strapi.config.get('plugin::llm-chat') || strapi.plugin('llm-chat').config('default');
-    const config = pluginConfig as any; // Type assertion pour éviter les erreurs TypeScript
+    const config = pluginConfig as any;
     return {
-      baseUrl: config?.custom?.baseUrl || 'http://localhost:11434',
-      qwenModel: 'qwen3:0.6b'
+      baseUrl: config?.ollama?.baseUrl || 'http://localhost:11434',
+      qwenModel: config?.ollama?.modelName || 'qwen2.5:1.5b'
     };
   };
 
@@ -30,8 +30,23 @@ const ollamaService = ({ strapi }: { strapi: Core.Strapi }) => {
     try {
       const config = getOllamaConfig();
 
+      // 1. FAST PATH: Regex immediate analysis
+      // This drastically speeds up the RAG check for common queries
+      const fastPathKeywords = extractBasicKeywords(userMessage);
+      if (fastPathKeywords.length > 0) {
+        console.log('⚡ Fast Path RAG detection: Keywords found, skipping Ollama analysis');
+
+        return {
+          shouldUseRAG: true,
+          confidence: 1.0,
+          keywords: fastPathKeywords,
+          reasoning: `Fast Path detection (found: ${fastPathKeywords.join(', ')})`
+        };
+      }
+
+      // 2. SLOW PATH: Use Ollama for ambiguous queries
       // Test rapide de connexion avant d'essayer l'analyse
-      console.log('🔍 Testing Ollama connection...');
+      console.log('🔍 Testing Ollama connection for deep analysis...');
       const isConnected = await testConnectionQuick();
       if (!isConnected) {
         console.log('⚠️ Ollama not available, using fallback analysis');
@@ -60,7 +75,7 @@ Examples:
 
 Response:`;
 
-      console.log('🧠 PaulIA analyzing with Ollama qwen3:0.6b...');
+      console.log(`🧠 PaulIA analyzing with Ollama ${config.qwenModel}...`);
 
       const requestBody = {
         model: config.qwenModel,
@@ -149,19 +164,40 @@ Response:`;
    * Extraction basique de mots-clés pour le fallback
    */
   const extractBasicKeywords = (message: string): string[] => {
-    const techKeywords = ['react', 'vue', 'angular', 'php', 'python', 'javascript', 'typescript'];
-    const contextKeywords = ['projet', 'compétence', 'expérience', 'formation', 'contact'];
+    // Tech keywords
+    const techKeywords = [
+      'react', 'vue', 'angular', 'php', 'python', 'javascript', 'typescript', 'node', 'nodejs',
+      'html', 'css', 'sass', 'scss', 'tailwind', 'bootstrap', 'sql', 'mysql', 'postgres', 'mongodb',
+      'docker', 'aws', 'cloud', 'api', 'rest', 'graphql', 'git'
+    ];
+
+    // Core portfolio context keywords
+    const contextKeywords = [
+      'projet', 'project', 'réalisations', 'realisations', 'démo', 'demo',
+      'compétence', 'skill', 'techno', 'stack', 'maîtrise', 'niveau',
+      'expérience', 'experience', 'parcours', 'curriculum', 'cv', 'background',
+      'formation', 'education', 'diplôme', 'étude', 'école',
+      'contact', 'email', 'mail', 'téléphone', 'tel', 'phone', 'linkedin', 'github',
+      'mission', 'travail', 'poste', 'stage', 'alternance',
+      'qui es-tu', 'présente-toi', 'ton nom', 't\'appelles',
+      'âge', 'age', 'naissance', 'birth', 'né en', 'years old'
+    ];
 
     const lowerMessage = message.toLowerCase();
     const found: string[] = [];
 
+    // Check strict inclusion
     [...techKeywords, ...contextKeywords].forEach(keyword => {
-      if (lowerMessage.includes(keyword)) {
-        found.push(keyword);
+      // Logic for word boundaries or simple inclusion depending on keyword length
+      if (keyword.length > 3) {
+        if (lowerMessage.includes(keyword)) found.push(keyword);
+      } else {
+        // for short words like 'cv', 'git', use word boundary check
+        if (new RegExp(`\\b${keyword}\\b`, 'i').test(lowerMessage)) found.push(keyword);
       }
     });
 
-    return found;
+    return [...new Set(found)]; // Deduplicate
   };
 
   /**

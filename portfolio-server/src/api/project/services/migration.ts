@@ -19,7 +19,9 @@ This Angular directive allows you to dynamically set the CSS \`cursor\` property
 By applying the directive with an input value, you can easily control the appearance of the mouse cursor  
 (e.g. \`pointer\`, \`default\`, \`help\`, etc.) based on context or interaction needs.  
 It’s lightweight, reusable, and integrates seamlessly with Angular templates.`,
-          link_demo: "https://lib-creator.vercel.app/ng-cursor"
+          link_demo: "https://lib-creator.vercel.app/ng-cursor",
+          ranking: 6,
+          codings: ["Angular", "JavaScript"]
         },
         {
           title: "EasyTerminal",
@@ -28,6 +30,8 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
           description: `Un simple terminal écrit en vanilla JS sans aucune dépendance.`,
           github_link: "https://github.com/PaulRichez/easy-terminal",
           link_npm: "https://www.npmjs.com/package/easy-terminal",
+          ranking: 3,
+          codings: ["JavaScript", "HTML", "CSS"]
         },
         {
           title: "strapi route permissions plugin",
@@ -36,7 +40,8 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
           description: `Un plugin pour Strapi qui offre la possibilité de configurer des rôles sur les routes du serveur pour générer des autorisations.`,
           github_link: "https://github.com/PaulRichez/strapi4-plugin-route-permission",
           link_npm: "https://www.npmjs.com/package/strapi-plugin-server-route-permission",
-          myId: "strapi-route-permissions-plugin"
+          ranking: 2,
+          codings: ["Strapi", "Node.js"]
         },
         {
           title: "Easygroupware",
@@ -45,6 +50,8 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
           description: `Site web (frontEnd + backEnd) de type groupware avec gestion des mails, fichiers, contacts, calendrier.`,
           github_link: "https://github.com/PaulRichez/easygroupware",
           link_npm: null,
+          ranking: 1,
+          codings: ["Angular", "Strapi", "Node.js", "PostgreSQL", "PrimeNG"]
         },
         {
           title: "mini object path",
@@ -53,6 +60,8 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
           description: `Une petite bibliothèque pour obtenir ou définir un objet via le chemin.`,
           github_link: "https://github.com/PaulRichez/mini-object-path",
           link_npm: "https://www.npmjs.com/package/mini-object-path",
+          ranbking: 5,
+          codings: ["JavaScript"]
         },
         {
           title: "My Website",
@@ -61,6 +70,8 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
           description: "Un de mes premiers portfolios, réalisé en vue3.",
           github_link: "https://github.com/PaulRichez/MyAngVirtualCurriculumVitae",
           link_npm: null,
+          ranking: 4,
+          codings: ["Vue.js", "HTML", "CSS"]
         },
         {
           title: "animated sign pad",
@@ -69,8 +80,19 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
           description: "Module tout-en-un pour dessiner et générer facilement des signatures animées.",
           github_link: "https://github.com/PaulRichez/animated-sign-pad",
           link_npm: "https://www.npmjs.com/package/animated-sign-pad",
+          ranking: 6,
+          codings: ["JavaScript"]
+        },
+        {
+          title: "Portfolio V2",
+          image: "/portfolio-v2.png",
+          link_demo: "https://paulrichez.fr",
+          description: "Mon portfolio personnel actuel. Intègre un agent conversationnel IA (RAG) capable de répondre aux questions sur mes compétences et projets. Architecture moderne avec Strapi 5 et Angular.",
+          github_link: "https://github.com/PaulRichez/portfolio-2",
+          link_npm: null,
+          ranking: 1,
+          codings: ["Angular", "Strapi", "LangChain", "Zhipu AI", "Ollama", "ChromaDB", "PrimeNG", "Nebular", "ECharts"]
         }
-
 
       ];
 
@@ -88,6 +110,22 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
 
   async createOrUpdateProject(projectData) {
     try {
+      // Extract codings names
+      const codingNames = projectData.codings || [];
+      const codingsIds = [];
+
+      // Find coding IDs
+      for (const name of codingNames) {
+        const coding = await strapi.entityService.findMany('api::coding.coding', {
+          filters: { name: name }
+        });
+        if (coding && coding.length > 0) {
+          codingsIds.push(coding[0].id);
+        } else {
+          console.warn(`Coding "${name}" not found for project "${projectData.title}"`);
+        }
+      }
+
       // Check if project exists by title
       const existingProjects = await strapi.entityService.findMany('api::project.project', {
         filters: {
@@ -95,22 +133,40 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
         }
       });
 
+      const dataToSave = {
+        ...projectData,
+        codings: codingsIds
+      };
+
       if (existingProjects && existingProjects.length > 0) {
         // Update existing project
         const updatedProject = await strapi.entityService.update('api::project.project', existingProjects[0].id, {
-          data: projectData
+          data: dataToSave
         });
-        console.log(`Project "${projectData.title}" updated successfully`);
+
+        // Publish the project using Document Service API (Strapi 5)
+        if (updatedProject.documentId) {
+          await strapi.documents('api::project.project').publish({
+            documentId: updatedProject.documentId
+          });
+        }
+
+        console.log(`Project "${projectData.title}" updated and published successfully`);
         return updatedProject;
       } else {
         // Create new project
         const newProject = await strapi.entityService.create('api::project.project', {
-          data: {
-            ...projectData,
-            publishedAt: new Date()
-          }
+          data: dataToSave
         });
-        console.log(`Project "${projectData.title}" created successfully`);
+
+        // Publish the project using Document Service API (Strapi 5)
+        if (newProject.documentId) {
+          await strapi.documents('api::project.project').publish({
+            documentId: newProject.documentId
+          });
+        }
+
+        console.log(`Project "${projectData.title}" created and published successfully`);
         return newProject;
       }
     } catch (error) {

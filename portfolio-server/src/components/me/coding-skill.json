@@ -11,12 +11,12 @@
       "relation": "oneToOne",
       "target": "api::coding.coding"
     },
-        "level": {
+    "level": {
       "type": "enumeration",
       "required": true,
       "enum": [
         "beginner",
-        "Intermediate",
+        "intermediate",
         "advanced",
         "expert"
       ]

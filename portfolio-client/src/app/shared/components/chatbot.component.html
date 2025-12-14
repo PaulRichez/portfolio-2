@@ -1,71 +1,57 @@
-<p-dialog
-  [(visible)]="visible"
-  [modal]="true"
-  [resizable]="true"
-  [draggable]="true"
-  [closeOnEscape]="true"
-  header="Assistant IA - Paul Richez"
-  [style]="{width: '500px', height: '700px'}"
-  styleClass="chatbot-dialog"
-  [maximizable]="true"
-  (onHide)="onHide()">
+<p-dialog [(visible)]="visible" [modal]="true" [resizable]="true" [draggable]="true" [closeOnEscape]="true"
+  header="Discuter avec Paul" [style]="{width: '500px', height: '700px'}" styleClass="chatbot-dialog"
+  [maximizable]="true" (onHide)="onHide()">
 
   <!-- Messages Container -->
   <div class="flex flex-col h-full">
+    <!-- Header decoration -->
+    <div class="h-1 w-full bg-gradient-to-r from-primary-500 to-primary-300"></div>
+
     <!-- Chat Messages Area -->
-    <div class="flex-1 overflow-y-auto flex flex-col gap-4 py-4 px-2" #messagesContainer>
+    <div class="flex-1 overflow-y-auto flex flex-col gap-6 py-6 px-4" #messagesContainer>
+
+      <!-- Welcome Message if Empty -->
+      <div *ngIf="messages.length === 0"
+        class="flex flex-col items-center justify-center flex-1 opacity-60 mt-10 mb-auto">
+        <div class="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-4">
+          <i class="pi pi-user text-2xl text-primary-500"></i>
+        </div>
+        <h3 class="font-semibold text-lg">Bonjour, je suis Paul</h3>
+        <p class="text-sm text-center max-w-xs mt-2">Bienvenue sur mon portfolio. Je suis là pour répondre à toutes vos
+          questions sur mon travail !</p>
+      </div>
 
       <!-- Message Item -->
-      <div
-        *ngFor="let message of messages; trackBy: trackByIndex"
-        class="flex items-start min-w-64 w-fit max-w-[80%]"
-        [ngClass]="{
-          'ml-auto mr-0 flex-row-reverse': message.role === 'user',
-          '': message.role === 'assistant'
+      <div *ngFor="let message of messages; trackBy: trackByIndex" class="flex items-start max-w-[85%] group" [ngClass]="{
+          'ml-auto flex-row-reverse': message.role === 'user',
+          'mr-auto': message.role === 'assistant'
         }">
 
-        <!-- Message Header with Avatar and Indicator -->
-        <div class="flex items-center gap-2 sticky top-0 transition-all"
-             [ngClass]="{'flex-row-reverse': message.role === 'user'}">
-
-          <!-- Avatar -->
-          <p-avatar
-            styleClass="w-10 h-10 text-sm font-medium"
-            shape="circle"
-            [class]="message.role === 'user' ? 'bg-primary-100 text-primary-950' : ''"
+        <!-- Message Header with Avatar -->
+        <div class="flex-shrink-0" [ngClass]="message.role === 'user' ? 'ml-3' : 'mr-3'">
+          <p-avatar shape="circle" size="large"
+            [image]="message.role === 'assistant' ? 'assets/images/profile.jpg' : undefined"
             [icon]="message.role === 'user' ? 'pi pi-user' : undefined"
-            [image]="message.role === 'assistant' ? 'assets/images/profile.jpg' : undefined">
+            [styleClass]="message.role === 'user' ? 'bg-primary-100 text-primary-700' : 'bg-surface-200'">
           </p-avatar>
-
-          <!-- Speech Bubble Indicator -->
-          <div>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="7"
-              height="11"
-              viewBox="0 0 7 11"
-              fill="none"
-              [class]="message.role === 'user' ? 'fill-primary rotate-180' : 'fill-surface-100 dark:fill-surface-800'">
-              <path d="M1.79256 7.09551C0.516424 6.31565 0.516426 4.46224 1.79256 3.68238L7 0.500055L7 10.2778L1.79256 7.09551Z"></path>
-            </svg>
-          </div>
         </div>
 
         <!-- Message Content -->
         <div class="flex-1 px-3 py-2 rounded-lg"
-             [class]="message.role === 'user' ? 'bg-primary text-primary-contrast' : 'bg-surface-100 dark:bg-surface-800'">
+          [style]="message.role === 'user' ? 'background: var(--primary-color); color: var(--primary-color-text)' : (message.isError ? 'background: #fee2e2; color: #991b1b; border: 1px solid #f87171' : 'background: var(--surface-card); color: var(--text-color); border: 1px solid var(--surface-border)')"
+          [ngClass]="{'border-red-500 bg-red-50 dark:bg-red-900/20 dark:text-red-300': message.isError}">
 
           <!-- Message Text -->
           <div *ngIf="message.role === 'user'; else assistantMessage">
-            <p class="leading-6 mb-0 text-primary-contrast"
-               [innerHTML]="formatMessage(message.content)">
+            <p class="leading-6 mb-0 whitespace-pre-wrap" [innerHTML]="formatMessage(message.content)">
             </p>
           </div>
           <ng-template #assistantMessage>
-            <div class="leading-6 mb-0 text-color">
+            <div class="leading-6 mb-0 text-color whitespace-pre-wrap">
               <app-markdown-block [markdown]="message.content"></app-markdown-block>
             </div>
           </ng-template>
+
 
           <!-- Message Time with Typing indicator -->
           <div class="flex items-center justify-between text-xs mt-1 opacity-70">
@@ -87,64 +73,33 @@
     <div class="border-t border-surface-200 dark:border-surface-700 pt-4 mt-4">
       <!-- Quick Actions -->
       <div class="flex flex-wrap gap-2 mb-4" *ngIf="messages.length === 0">
-        <p-button
-          label="À propos de Paul"
-          size="small"
-          severity="secondary"
-          [outlined]="true"
-          styleClass="text-xs"
-          (onClick)="askQuickQuestion('Peux-tu me parler de Paul Richez et de son parcours professionnel ?')">
+        <p-button label="Mon parcours" size="small" severity="secondary" [outlined]="true" styleClass="text-xs"
+          (onClick)="askQuickQuestion('Peux-tu me parler de ton parcours professionnel ?')">
         </p-button>
-        <p-button
-          label="Ses projets"
-          size="small"
-          severity="secondary"
-          [outlined]="true"
-          styleClass="text-xs"
-          (onClick)="askQuickQuestion('Quels sont les principaux projets de Paul Richez ?')">
+        <p-button label="Mes projets" size="small" severity="secondary" [outlined]="true" styleClass="text-xs"
+          (onClick)="askQuickQuestion('Quels sont tes principaux projets ?')">
         </p-button>
-        <p-button
-          label="Compétences"
-          size="small"
-          severity="secondary"
-          [outlined]="true"
-          styleClass="text-xs"
-          (onClick)="askQuickQuestion('Quelles sont les compétences techniques de Paul ?')">
+        <p-button label="Mes compétences" size="small" severity="secondary" [outlined]="true" styleClass="text-xs"
+          (onClick)="askQuickQuestion('Quelles sont tes compétences techniques ?')">
         </p-button>
       </div>
 
       <!-- Input Container -->
       <div class="flex gap-2 items-end">
         <div class="flex-1">
-          <textarea
-            pInputTextarea
-            [(ngModel)]="currentMessage"
-            placeholder="Tapez votre message..."
-            [rows]="2"
-            [autoResize]="true"
-            [disabled]="isLoading"
-            (keydown)="onKeyDown($event)"
-            class="w-full min-h-[40px]"
-            style="min-height: 40px; resize: none;">
-          </textarea>
+          <div #messageInput contenteditable="true"
+            class="w-full min-h-[40px] max-h-[120px] overflow-y-auto p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+            style="background: var(--surface-card); color: var(--text-color); border: 1px solid var(--surface-border)"
+            role="textbox" aria-multiline="true" [attr.disabled]="isLoading ? '' : null" (keydown)="onKeyDown($event)"
+            (input)="onInput($event)" placeholder="Tapez votre message...">
+          </div>
         </div>
         <div class="flex gap-1 items-start pb-2">
-          <p-button
-            icon="pi pi-send"
-            [disabled]="!currentMessage.trim() || isLoading"
-            (onClick)="sendMessage()"
-            size="small"
-            [rounded]="true"
-            pTooltip="Envoyer (Ctrl+Entrée)">
+          <p-button icon="pi pi-send" [disabled]="!currentMessage.trim() || isLoading" (onClick)="sendMessage()"
+            size="small" [rounded]="true" pTooltip="Envoyer (Ctrl+Entrée)">
           </p-button>
-          <p-button
-            icon="pi pi-history"
-            severity="secondary"
-            (onClick)="clearHistory()"
-            size="small"
-            [rounded]="true"
-            [outlined]="true"
-            pTooltip="Effacer l'historique">
+          <p-button icon="pi pi-history" severity="secondary" (onClick)="clearHistory()" size="small" [rounded]="true"
+            [outlined]="true" pTooltip="Effacer l'historique">
           </p-button>
         </div>
       </div>

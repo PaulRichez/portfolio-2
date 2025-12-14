@@ -8,6 +8,7 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   isStreaming?: boolean; // Nouveau: indique si le message est en cours de streaming
+  isError?: boolean;
 }
 
 export interface ChatSession {
@@ -22,6 +23,7 @@ export interface ChatResponse {
   sessionId: string;
   response: string;
   history: ChatMessage[];
+  provider?: string;
 }
 
 @Injectable({
@@ -136,6 +138,17 @@ export class ChatbotService {
         this.createNewSession();
       }
 
+      // Initialiser le message assistant vide UI
+      // Pour avoir un feedback immédiat
+      const initialAssistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toISOString(),
+        isStreaming: true
+      };
+      // On l'ajoute plus tard au premier événement, ou tout de suite ?
+      // Attendons le 'start' du serveur pour être sûr de la session
+
       const payload = {
         message,
         sessionId: this.currentSessionId!
@@ -160,62 +173,84 @@ export class ChatbotService {
 
       let currentResponse = '';
       let sessionId = this.currentSessionId!;
-      let buffer = '';
+      let processedLength = 0; // Track processed characters
       let hasStarted = false;
 
       const subscription = request.subscribe({
         next: (event: any) => {
           if (event.type === HttpEventType.DownloadProgress) {
-            const chunk = event.partialText || '';
+            const allText = event.partialText || '';
+            const newText = allText.slice(processedLength);
 
-            if (chunk.length > buffer.length) {
-              const newData = chunk.slice(buffer.length);
-              buffer = chunk;
+            // Si pas de nouvelle données ou pas de saut de ligne (donc pas de message complet potentiel), on attend
+            if (newText.length === 0 || !newText.includes('\n')) {
+              return;
+            }
 
-              const lines = newData.split('\n');
+            // Gérer les lignes incomplètes
+            const lines = newText.split('\n');
+            let safeToProcessLength = newText.length;
 
-              for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                  try {
-                    const data = JSON.parse(line.slice(6));
+            // Si le texte ne finit pas par \n, la dernière ligne est incomplète
+            if (!newText.endsWith('\n')) {
+              const incompleteLine = lines.pop(); // On la retire pour le moment
+              if (incompleteLine) {
+                safeToProcessLength -= incompleteLine.length;
+              }
+            }
 
-                    if (data.type === 'start') {
-                      sessionId = data.sessionId || sessionId;
+            // Mise à jour de la longueur traitée pour le prochain tour
+            processedLength += safeToProcessLength;
 
-                      if (!hasStarted) {
-                        const userMessage: ChatMessage = {
-                          role: 'user',
-                          content: message,
-                          timestamp: new Date().toISOString()
-                        };
-                        this.addMessage(userMessage);
-                        hasStarted = true;
-                      }
+            for (const line of lines) {
+              if (line.trim().startsWith('data: ')) {
+                try {
+                  const jsonStr = line.trim().slice(6);
+                  // Ignorer les messages simples [DONE] s'ils arrivent format texte
+                  if (jsonStr === '[DONE]') continue;
 
-                    } else if (data.type === 'chunk') {
-                      if (data.content) {
-                        currentResponse += data.content;
-                        this.updateStreamingMessage(currentResponse);
-                      }
+                  const data = JSON.parse(jsonStr);
 
-                    } else if (data.type === 'complete') {
-                      observer.next({
-                        sessionId: sessionId,
-                        response: currentResponse,
-                        history: []
-                      });
-                      observer.complete();
-                      this.loadingSubject.next(false);
-                      return;
+                  if (data.type === 'start') {
+                    sessionId = data.sessionId || sessionId;
 
-                    } else if (data.type === 'error') {
-                      observer.error(new Error(data.message || 'Erreur de streaming'));
-                      this.loadingSubject.next(false);
-                      return;
+                    if (!hasStarted) {
+                      const userMessage: ChatMessage = {
+                        role: 'user',
+                        content: message,
+                        timestamp: new Date().toISOString()
+                      };
+                      this.addMessage(userMessage);
+                      hasStarted = true;
                     }
-                  } catch (parseError) {
-                    console.error('❌ Erreur de parsing SSE :', parseError, 'Ligne:', line);
+
+                  } else if (data.type === 'chunk') {
+                    if (data.content) {
+                      currentResponse += data.content;
+                      this.updateStreamingMessage(currentResponse);
+                    }
+
+                  } else if (data.type === 'complete') {
+                    // Update final with history if provided, or just current response
+                    this.finalizeStreamingMessage();
+
+                    observer.next({
+                      sessionId: sessionId,
+                      response: data.response || currentResponse,
+                      history: [] // On pourrait recharger l'historique ici
+                    });
+                    observer.complete();
+                    this.loadingSubject.next(false);
+                    return;
+
+                  } else if (data.type === 'error') {
+                    console.error('❌ Stream Error:', data.message);
+                    observer.error(new Error(data.message || 'Erreur de streaming'));
+                    this.loadingSubject.next(false);
+                    return;
                   }
+                } catch (parseError) {
+                  console.warn('⚠️ Erreur parsing ligne:', line, parseError);
                 }
               }
             }
@@ -223,6 +258,7 @@ export class ChatbotService {
         },
         error: (error) => {
           console.error('❌ HTTP error:', error);
+          this.finalizeStreamingMessage(); // Stop blinking cursor
           observer.error(new Error('Erreur de connexion au streaming'));
           this.loadingSubject.next(false);
         },

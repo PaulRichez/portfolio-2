@@ -48,7 +48,10 @@ export class CodingsComponent implements OnInit, OnChanges {
     });
 
     this.categorizedCodings = Array.from(categories.entries())
-      .map(([category, items]) => ({ category, items }))
+      .map(([category, items]) => ({
+        category,
+        items: items.sort((a: any, b: any) => (a.coding.ranking || 99) - (b.coding.ranking || 99))
+      }))
       .sort((a, b) => this.getCategoryOrder(a.category) - this.getCategoryOrder(b.category));
   }
 
@@ -56,9 +59,10 @@ export class CodingsComponent implements OnInit, OnChanges {
     const labels: { [key: string]: string } = {
       'frontend_languages': 'Langages Frontend',
       'frontend_frameworks': 'Frameworks Frontend',
+      'frontend_libraries': 'Bibliothèques Frontend',
       'backend': 'Backend',
+      'ai': 'Intelligence Artificielle',
       'databases': 'Bases de données',
-      'devops_tools': 'Outils DevOps',
       'tools': 'Outils',
       'other_languages': 'Autres langages'
     };
@@ -69,9 +73,10 @@ export class CodingsComponent implements OnInit, OnChanges {
     const icons: { [key: string]: string } = {
       'frontend_languages': 'pi pi-code',
       'frontend_frameworks': 'pi pi-desktop',
+      'frontend_libraries': 'pi pi-box',
       'backend': 'pi pi-server',
+      'ai': 'pi pi-microchip',
       'databases': 'pi pi-database',
-      'devops_tools': 'pi pi-cog',
       'tools': 'pi pi-wrench',
       'other_languages': 'pi pi-file'
     };
@@ -115,11 +120,12 @@ export class CodingsComponent implements OnInit, OnChanges {
     const order: { [key: string]: number } = {
       'frontend_languages': 1,
       'frontend_frameworks': 2,
-      'backend': 3,
-      'databases': 4,
-      'devops_tools': 5,
-      'tools': 6,
-      'other_languages': 7
+      'frontend_libraries': 3,
+      'backend': 4,
+      'ai': 5,
+      'databases': 6,
+      'tools': 7,
+      'other_languages': 8
     };
     return order[category] || 99;
   }

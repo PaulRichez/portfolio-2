@@ -1,16 +1,16 @@
 /* Chatbot Dialog Styles */
 .chatbot-dialog {
-  --chatbot-primary: #007ad9;
-  --chatbot-surface: #ffffff;
-  --chatbot-surface-50: #f8f9fa;
-  --chatbot-surface-100: #e9ecef;
-  --chatbot-surface-200: #dee2e6;
-  --chatbot-surface-600: #6c757d;
-  --chatbot-border: #dee2e6;
-  --chatbot-text: #212529;
-  --chatbot-text-secondary: #6c757d;
-  --chatbot-user-bg: #007ad9;
-  --chatbot-assistant-bg: #f8f9fa;
+  --chatbot-primary: var(--primary-color);
+  --chatbot-surface: var(--surface-card);
+  --chatbot-surface-50: var(--surface-50);
+  --chatbot-surface-100: var(--surface-100);
+  --chatbot-surface-200: var(--surface-200);
+  --chatbot-surface-600: var(--surface-600);
+  --chatbot-border: var(--surface-border);
+  --chatbot-text: var(--text-color);
+  --chatbot-text-secondary: var(--text-color-secondary);
+  --chatbot-user-bg: var(--primary-color);
+  --chatbot-assistant-bg: var(--surface-ground);
   --chatbot-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
@@ -96,7 +96,7 @@
 
 .user-message .message-text {
   background: var(--chatbot-user-bg);
-  color: white;
+  color: var(--primary-color-text);
   border-bottom-right-radius: 0.25rem;
 }
 
@@ -202,26 +202,32 @@
 
 /* Dialog Customization */
 :host ::ng-deep .chatbot-dialog .p-dialog-header {
-  background: linear-gradient(135deg, var(--chatbot-primary) 0%, #0056b3 100%);
-  color: white;
-  border-radius: 8px 8px 0 0;
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--surface-border);
+  border-radius: 12px 12px 0 0;
+  padding: 1.5rem;
+}
+
+:host ::ng-deep .dark .chatbot-dialog .p-dialog-header {
+  background: var(--surface-900);
 }
 
 :host ::ng-deep .chatbot-dialog .p-dialog-header .p-dialog-title {
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-:host ::ng-deep .chatbot-dialog .p-dialog-header .p-dialog-header-icons {
-  color: white;
+  font-weight: 700;
+  font-size: 1.25rem;
+  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-400) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 :host ::ng-deep .chatbot-dialog .p-dialog-header .p-dialog-header-icons button {
-  color: white !important;
+  color: var(--text-color-secondary) !important;
 }
 
 :host ::ng-deep .chatbot-dialog .p-dialog-header .p-dialog-header-icons button:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: var(--surface-hover) !important;
+  color: var(--text-color) !important;
 }
 
 :host ::ng-deep .chatbot-dialog.p-dialog {
@@ -230,8 +236,12 @@
 }
 
 :host ::ng-deep .chatbot-dialog .p-dialog-content {
-  padding: 1.5rem;
-  background: var(--chatbot-surface);
+  padding: 0;
+  background: var(--surface-card);
+}
+
+:host ::ng-deep .dark .chatbot-dialog .p-dialog-content {
+  background: var(--surface-card);
 }
 
 /* Scrollpanel Customization */
@@ -301,6 +311,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -312,10 +323,26 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
+
   50% {
     opacity: 0.7;
   }
+}
+
+/* Content Editable Placeholder */
+[contenteditable]:empty::before {
+  content: "Tapez votre message...";
+  color: var(--chatbot-text-secondary);
+  opacity: 0.7;
+  cursor: text;
+  pointer-events: none;
+  display: block;
+  /* Ensure it behaves like block to take up space */
+}
+
+/* Enforce min-height and padding on the editable area */
+[contenteditable] {
+  min-height: 48px;
+  padding: 12px;
+  line-height: 1.5;
 }

@@ -13,11 +13,15 @@ import { SYSTEM_PROMPT } from "../prompts/system-prompt";
 
 // Interface pour définir la structure de la configuration
 export interface LlmChatConfig {
-  provider: 'openai' | 'custom';
-  openai: {
+  provider: 'zhipu' | 'ollama' | 'custom';
+  providerOrder?: string[];
+  zhipu: {
     apiKey: string;
+    modelName: string; // 'glm-4-flash'
+  };
+  ollama: {
+    baseUrl: string;
     modelName: string;
-    temperature: number;
   };
   custom: {
     baseUrl: string;
@@ -41,8 +45,12 @@ class StrapiChatMemory extends BaseChatMemory {
 
   constructor(strapi: Core.Strapi, sessionId: string) {
     super({ returnMessages: true, inputKey: "input", outputKey: "response" });
-    strapi = strapi;
+    // Fallback to global strapi if injected one is undefined (sometimes happens in v4 services depending on call context)
+    this.strapi = strapi || (global as any).strapi;
     this.sessionId = sessionId;
+    if (!this.strapi) {
+      console.error('❌ FATAL: Strapi instance is undefined in StrapiChatMemory constructor!');
+    }
   }
 
   get memoryKeys() {
@@ -55,45 +63,54 @@ class StrapiChatMemory extends BaseChatMemory {
   }
 
   async saveContext(inputValues: Record<string, any>, outputValues: Record<string, any>) {
-    const input = inputValues[this.inputKey];
-    const output = outputValues[this.outputKey];
+    const input = (inputValues[this.inputKey] || '') as string;
+    const output = (outputValues[this.outputKey] || '') as string;
+    const provider = outputValues.provider || 'unknown'; // Extract provider from outputValues
 
     const timerId = `💾 Save Context [${this.sessionId}]`;
     console.time(timerId);
-    strapi.log.info('💾 Saving context for session:', this.sessionId);
+    this.strapi.log.info('💾 Saving context for session:', this.sessionId);
     console.log('User message:', input.substring(0, 50) + '...');
     console.log('Assistant response:', output.substring(0, 50) + '...');
 
     try {
       // Vérifier que le content-type existe
-      const messageContentType = strapi.contentType('plugin::llm-chat.chat-message');
+      const messageContentType = this.strapi.contentType('plugin::llm-chat.chat-message');
       if (!messageContentType) {
         throw new Error('Content type plugin::llm-chat.chat-message not found');
       }
       console.log('✅ Content type chat-message found');
 
+      // Retrieve the actual session Entity ID to verify relation
+      const sessions = await this.strapi.entityService.findMany('plugin::llm-chat.chat-session', {
+        filters: { sessionId: this.sessionId }
+      }) as any[];
+      const sessionRelation = sessions.length > 0 ? sessions[0].id : null;
+
       // Sauvegarder le message utilisateur
-      const userMessage = await strapi.entityService.create('plugin::llm-chat.chat-message', {
+      const userMessage = await this.strapi.entityService.create('plugin::llm-chat.chat-message', {
         data: {
-          sessionId: this.sessionId,
+          session: sessionRelation, // Link relation
           role: 'user',
           content: input,
           timestamp: new Date().toISOString()
         }
       });
-      strapi.log.info('✅ User message saved with ID:', userMessage.id);
+      this.strapi.log.info('✅ User message saved with ID:', userMessage.id);
       console.log('✅ User message saved with ID:', userMessage.id);
 
       // Sauvegarder la réponse de l'assistant
-      const assistantMessage = await strapi.entityService.create('plugin::llm-chat.chat-message', {
+      const assistantMessage = await this.strapi.entityService.create('plugin::llm-chat.chat-message', {
         data: {
-          sessionId: this.sessionId,
+          session: sessionRelation, // Link relation
           role: 'assistant',
           content: output,
+          provider: provider, // Save provider
+          debugResponse: outputValues.fullData || null, // Save full JSON response
           timestamp: new Date().toISOString()
         }
       });
-      strapi.log.info('✅ Assistant message saved with ID:', assistantMessage.id);
+      this.strapi.log.info('✅ Assistant message saved with ID:', assistantMessage.id);
       console.log('✅ Assistant message saved with ID:', assistantMessage.id);
 
       // Créer ou mettre à jour la session
@@ -116,12 +133,12 @@ class StrapiChatMemory extends BaseChatMemory {
       console.log('🔄 Updating session:', this.sessionId);
 
       // Vérifier si la session existe
-      const existingSession = await strapi.entityService.findMany('plugin::llm-chat.chat-session', {
+      const existingSession = await this.strapi.entityService.findMany('plugin::llm-chat.chat-session', {
         filters: { sessionId: this.sessionId }
       }) as any[];
 
-      const messageCount = await strapi.entityService.count('plugin::llm-chat.chat-message', {
-        filters: { sessionId: this.sessionId }
+      const messageCount = await this.strapi.entityService.count('plugin::llm-chat.chat-message', {
+        filters: { session: { sessionId: this.sessionId } }
       });
 
       console.log('📊 Current message count for session:', messageCount);
@@ -136,14 +153,14 @@ class StrapiChatMemory extends BaseChatMemory {
       if (existingSession.length > 0) {
         // Mettre à jour la session existante
         console.log('📝 Updating existing session...');
-        await strapi.entityService.update('plugin::llm-chat.chat-session', existingSession[0].id, {
+        await this.strapi.entityService.update('plugin::llm-chat.chat-session', existingSession[0].id, {
           data: sessionData
         });
         console.log('✅ Session updated');
       } else {
         // Créer une nouvelle session
         console.log('🆕 Creating new session...');
-        const newSession = await strapi.entityService.create('plugin::llm-chat.chat-session', {
+        const newSession = await this.strapi.entityService.create('plugin::llm-chat.chat-session', {
           data: {
             ...sessionData,
             title: userMessage.substring(0, 50) + (userMessage.length > 50 ? '...' : '')
@@ -160,27 +177,35 @@ class StrapiChatMemory extends BaseChatMemory {
   }
 
   async getChatMessages(): Promise<BaseMessage[]> {
-    const messages = await strapi.entityService.findMany('plugin::llm-chat.chat-message', {
-      filters: { sessionId: this.sessionId },
-      sort: { createdAt: 'asc' }
-    });
+    console.log(`📜 fetching history for session: ${this.sessionId}`); // DEBUG
+    try {
+      const messages = await this.strapi.entityService.findMany('plugin::llm-chat.chat-message', {
+        filters: { session: { sessionId: this.sessionId } },
+        sort: { createdAt: 'asc' }
+      });
+      console.log(`📜 found ${messages.length} messages in history`); // DEBUG
 
-    return messages.map((msg: any) => {
-      if (msg.role === 'user') {
-        return new HumanMessage(msg.content);
-      } else {
-        return new AIMessage(msg.content);
-      }
-    });
+      return messages.map((msg: any) => {
+        if (msg.role === 'user') {
+          return new HumanMessage(msg.content);
+        } else {
+          return new AIMessage(msg.content);
+        }
+      });
+    } catch (err) {
+      console.error('❌ Error fetching chat messages:', err);
+      return [];
+    }
   }
 
+
   async clear() {
-    const messages = await strapi.entityService.findMany('plugin::llm-chat.chat-message', {
-      filters: { sessionId: this.sessionId }
+    const messages = await this.strapi.entityService.findMany('plugin::llm-chat.chat-message', {
+      filters: { session: { sessionId: this.sessionId } }
     }) as any[];
 
     for (const message of messages) {
-      await strapi.entityService.delete('plugin::llm-chat.chat-message', message.id);
+      await this.strapi.entityService.delete('plugin::llm-chat.chat-message', message.id);
     }
   }
 }
@@ -189,24 +214,58 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
   // Stocker les chaînes de conversation en cache
   const conversationChains = new Map();
 
+  // Helper to get config from store (dynamic) to support runtime updates
+  const getConfig = async (): Promise<LlmChatConfig> => {
+    const pluginStore = strapi.store({
+      environment: '',
+      type: 'plugin',
+      name: 'llm-chat',
+      key: 'config',
+    });
+
+    const storedConfig = await pluginStore.get();
+    const fileConfig = (strapi.config.get('plugin::llm-chat') || strapi.plugin('llm-chat').config('default')) as LlmChatConfig;
+
+    return {
+      ...fileConfig,
+      ...(storedConfig as object)
+    };
+  };
+
+  // Configuration Zhipu AI (OpenAI Compatible)
+  const createZhipuConfig = (config: LlmChatConfig) => {
+    return {
+      apiKey: config.zhipu.apiKey,
+      baseURL: 'https://open.bigmodel.cn/api/paas/v4/',
+      model: config.zhipu.modelName || 'glm-4-flash',
+    };
+  };
+
   // Créer un modèle en fonction de la configuration
   const createModel = (config: LlmChatConfig, options?: ConversationOptions) => {
-    if (config.provider === 'openai') {
-      return new ChatOpenAI({
-        modelName: config.openai.modelName,
-        temperature: config.openai.temperature,
-        openAIApiKey: config.openai.apiKey,
+    if (config.provider === 'zhipu') {
+      const zhipuConfig = createZhipuConfig(config);
+      // Return config object for streamCustomModel instead of ChatOpenAI instance
+      // This allows uniform handling in rag_smart flow
+      return {
+        type: 'custom', // Treated as custom OpenAI-compatible
+        baseUrl: zhipuConfig.baseURL.replace(/\/$/, ''), // Ensure no trailing slash
+        modelName: zhipuConfig.model,
+        apiKey: zhipuConfig.apiKey,
+        temperature: 0.7,
         maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
-      });
-    } else if (config.provider === 'custom') {
-      // Pour les modèles custom, on va utiliser des appels HTTP directs
+      };
+    } else if (config.provider === 'custom' || config.provider === 'ollama') {
+      const baseUrl = config.provider === 'ollama' ? (config.ollama.baseUrl || 'http://localhost:11434') : config.custom.baseUrl;
+      const modelName = config.provider === 'ollama' ? (config.ollama.modelName || 'llama3') : config.custom.modelName;
+
       return {
         type: 'custom',
-        baseUrl: config.custom.baseUrl,
-        modelName: config.custom.modelName,
-        temperature: config.custom.temperature,
+        baseUrl: baseUrl.replace(/\/$/, ''),
+        modelName: modelName,
+        temperature: 0.7,
         maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
-        apiKey: config.custom.apiKey || "not-needed",
+        apiKey: config.provider === 'custom' ? config.custom.apiKey : "not-needed",
       };
     } else {
       throw new Error(`Unsupported LLM provider: ${config.provider}`);
@@ -222,7 +281,8 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
       // Essayer différents endpoints selon le type de serveur
       const endpoints = [
         '/api/generate',     // Ollama
-        '/v1/chat/completions', // OpenAI compatible
+        '/chat/completions',    // OpenAI compatible (Zhipu/Others)
+        '/v1/chat/completions', // OpenAI compatible (Standard)
         '/api/chat',         // Autre format
         '/generate'          // Endpoint simple
       ];
@@ -241,13 +301,13 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
           };
 
           // Format de requête selon l'endpoint
-          if (endpoint === '/v1/chat/completions') {
+          if (endpoint === '/v1/chat/completions' || endpoint === '/chat/completions') {
             // Format OpenAI
             requestBody = {
               model: model.modelName,
               messages: [{ role: 'user', content: prompt }],
               stream: false,
-              think:false,
+              think: false,
               temperature: model.temperature,
               max_tokens: model.maxTokens || 4096,
             };
@@ -257,7 +317,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
               model: model.modelName,
               prompt: prompt,
               stream: false,
-              think:false,
+              think: false,
               options: {
                 temperature: model.temperature,
                 num_ctx: model.maxTokens || 4096,
@@ -320,7 +380,8 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
       // Essayer différents endpoints pour le streaming
       const endpoints = [
         '/api/generate',     // Ollama
-        '/v1/chat/completions', // OpenAI compatible
+        '/chat/completions',    // OpenAI compatible (Zhipu/Others)
+        '/v1/chat/completions', // OpenAI compatible (Standard)
         '/api/chat',         // Autre format
         '/generate'          // Endpoint simple
       ];
@@ -339,13 +400,13 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
           };
 
           // Format de requête selon l'endpoint
-          if (endpoint === '/v1/chat/completions') {
+          if (endpoint === '/v1/chat/completions' || endpoint === '/chat/completions') {
             // Format OpenAI
             requestBody = {
               model: model.modelName,
               messages: [{ role: 'user', content: prompt }],
               stream: true,
-              think:false,
+              think: false,
               temperature: model.temperature,
               max_tokens: model.maxTokens || 4096,
             };
@@ -355,7 +416,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
               model: model.modelName,
               prompt: prompt,
               stream: true,
-              think:false,
+              think: false,
               options: {
                 temperature: model.temperature,
                 num_ctx: model.maxTokens || 4096,
@@ -448,13 +509,17 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
   // et getCollectionDisplayName ont été déplacées dans SmartRAGTool
   // pour une approche plus modulaire et réutilisable
 
+
+
   // Méthode commune pour créer ou récupérer une conversation
   const getOrCreateConversation = async (sessionId: string, config: LlmChatConfig, options?: ConversationOptions, streaming: boolean = false) => {
-    const chainTimerId = `⛓️  Chain Setup [${sessionId}]`;
+    // Unique key per session AND provider to avoid reusing wrong chain during failover
+    const cacheKey = `${sessionId}:${config.provider}`;
+    const chainTimerId = `⛓️  Chain Setup [${cacheKey}]`;
 
-    if (!conversationChains.has(sessionId)) {
+    if (!conversationChains.has(cacheKey)) {
       console.time(chainTimerId);
-      console.log('🔗 Creating new conversation chain for session:', sessionId);
+      console.log('🔗 Creating new conversation chain for:', cacheKey);
 
       // Créer une mémoire personnalisée utilisant Strapi
       const memory = new StrapiChatMemory(strapi, sessionId);
@@ -463,103 +528,37 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
       const useRAG = options?.useRAG !== false; // RAG activé par défaut
 
       if (useRAG) {
-        if (config.provider === 'openai') {
-          console.log(`🤖 Creating PaulIA OpenAI agent with ChromaDB tools${streaming ? ' (streaming)' : ''}...`);
+        // UNIFIED PATH: All providers use SmartRAGTool manually (rag_smart)
+        // This ensures consistent prompt construction and reliable streaming
+        console.log(`🔧 Creating PaulIA RAG chain with SmartRAGTool integration${streaming ? ' (streaming)' : ''}...`);
 
-          // Créer le modèle avec streaming si nécessaire
-          const model = new ChatOpenAI({
-            modelName: config.openai.modelName,
-            temperature: config.openai.temperature,
-            openAIApiKey: config.openai.apiKey,
-            maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
-            streaming,
-          });
+        // Pour les modèles custom (Ollama) ET Zhipu, on utilise SmartRAGTool
+        const smartRAGTool = new SmartRAGTool(strapi);
 
-          // Créer les outils ChromaDB pour PaulIA
-          const tools = [
-            new SmartRAGTool(strapi), // PaulIA utilise cet outil intelligent pour analyser et rechercher automatiquement
-          ];
+        conversationChains.set(cacheKey, {
+          type: 'rag_smart',
+          model: createModel(config, options),
+          smartRAGTool,
+          memory
+        });
 
-          const agentPrompt = ChatPromptTemplate.fromMessages([
-            ["system", SYSTEM_PROMPT],
-            new MessagesPlaceholder("chat_history"),
-            ["human", "{input}"],
-            new MessagesPlaceholder("agent_scratchpad"),
-          ]);
-
-          // Créer l'agent OpenAI Functions
-          const agent = await createOpenAIFunctionsAgent({
-            llm: model,
-            tools,
-            prompt: agentPrompt,
-          });
-
-          // Créer l'exécuteur d'agent avec mémoire personnalisée
-          const agentExecutor = new AgentExecutor({
-            agent,
-            tools,
-            memory,
-            verbose: true,
-            returnIntermediateSteps: false,
-          });
-
-          conversationChains.set(sessionId, { type: 'agent', executor: agentExecutor });
-        } else {
-          console.log(`🔧 Creating PaulIA custom RAG chain with SmartRAGTool integration${streaming ? ' (streaming)' : ''}...`);
-
-          // Pour les modèles custom (Ollama), on utilise SmartRAGTool
-          const smartRAGTool = new SmartRAGTool(strapi);
-
-          conversationChains.set(sessionId, {
-            type: 'rag_smart',
-            model: createModel(config, options),
-            smartRAGTool,
-            memory
-          });
-        }
       } else {
         console.log(`💬 Creating PaulIA simple conversation chain${streaming ? ' (streaming)' : ''}...`);
 
-        if (config.provider === 'openai') {
-          // Créer le modèle avec streaming si nécessaire
-          const model = new ChatOpenAI({
-            modelName: config.openai.modelName,
-            temperature: config.openai.temperature,
-            openAIApiKey: config.openai.apiKey,
-            maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
-            streaming,
-          });
-
-          // Conversation simple sans outils
-          const chatPrompt = ChatPromptTemplate.fromMessages([
-            ["system", SYSTEM_PROMPT],
-            new MessagesPlaceholder("history"),
-            HumanMessagePromptTemplate.fromTemplate("{input}"),
-          ]);
-
-          const chain = new ConversationChain({
-            memory: memory,
-            prompt: chatPrompt,
-            llm: model,
-          });
-
-          conversationChains.set(sessionId, { type: 'chain', chain });
-        } else {
-          // Pour les modèles custom, on stocke la config et la mémoire
-          conversationChains.set(sessionId, {
-            type: 'custom_simple',
-            model: createModel(config, options),
-            memory
-          });
-        }
+        // For non-RAG simple chat, we also use 'custom_simple' for consistency now
+        conversationChains.set(cacheKey, {
+          type: 'custom_simple',
+          model: createModel(config, options),
+          memory
+        });
       }
 
       console.timeEnd(chainTimerId);
     } else {
-      console.log('♻️ Using existing PaulIA conversation for session:', sessionId);
+      console.log('♻️ Using existing PaulIA conversation for:', cacheKey);
     }
 
-    return conversationChains.get(sessionId);
+    return conversationChains.get(cacheKey);
   };
 
   // Note: La fonction executeManualRAG a été remplacée par SmartRAGTool
@@ -569,17 +568,23 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
   const buildPromptWithContext = async (memory: any, context: string, message: string, systemPrompt: string = SYSTEM_PROMPT) => {
     const memoryVariables = await memory.loadMemoryVariables({});
     const historyString = memoryVariables.history ?
-      memoryVariables.history.map(msg => `${msg._getType()}: ${msg.content}`).join('\n') : '';
+      memoryVariables.history.map(msg => {
+        const role = msg._getType() === 'human' ? 'User' : 'Paul';
+        return `${role}: ${msg.content}`;
+      }).join('\n') : '';
+
+    const separator = "--------------------------------------------------";
 
     if (context) {
-      return `${systemPrompt}\n\n${context}\n\nConversation history:\n${historyString}\n\nQuestion: ${message}\n\nAssistant:`;
+      return `${systemPrompt}\n\n${separator}\nCONTEXTE (Informations de la base de données):\n${context}\n${separator}\n\nHISTORIQUE:\n${historyString}\n\nUser: ${message}\n\nPaul:`;
     } else {
-      return `${systemPrompt}\n\nConversation history:\n${historyString}\n\nHuman: ${message}\n\nAssistant:`;
+      return `${systemPrompt}\n\n${separator}\nHISTORIQUE:\n${historyString}\n\nUser: ${message}\n\nPaul:`;
     }
   };
 
   return {
     // Créer une nouvelle conversation ou continuer une existante
+    // Nouvelle méthode de chat avec Failover (Zhipu -> Ollama)
     async chat(message: string, options?: ConversationOptions) {
       const sessionId = options?.sessionId || 'default';
       const timerId = `💬 PaulIA Chat Session [${sessionId}]`;
@@ -588,96 +593,104 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
       try {
         strapi.log.info('🚀 Starting PaulIA chat for session:', sessionId);
 
-        // Validation Strapi
-        if (!strapi.entityService) {
-          throw new Error('Strapi entity service not available');
-        }
+        if (!strapi.entityService) throw new Error('Strapi entity service not available');
 
-        const pluginConfig = strapi.config.get('plugin::llm-chat') || strapi.plugin('llm-chat').config('default');
-        const config = pluginConfig as LlmChatConfig;
+        // Charger configuration dynamiquement
+        const config = await getConfig();
 
-        if (!config || !config.provider) {
-          throw new Error('LLM provider not configured');
-        }
-
-        // S'assurer qu'une session existe AVANT de créer la chaîne
+        // S'assurer qu'une session existe
         await this.ensureSessionExists(sessionId, message);
 
-        // Test DB rapide
-        const testMessage = await strapi.entityService.create('plugin::llm-chat.chat-message', {
-          data: {
-            sessionId: sessionId,
-            role: 'system',
-            content: 'Test message',
-            timestamp: new Date().toISOString()
+        // Récupérer la mémoire (historique)
+        const memory = new StrapiChatMemory(strapi, sessionId);
+
+        // Charge provider order from config or fallback
+        const providerOrder = config.providerOrder && config.providerOrder.length > 0
+          ? config.providerOrder
+          : ['zhipu', 'ollama', 'custom']; // Default order including custom if defined
+
+        console.log('🔄 Provider failover order:', providerOrder);
+
+        let lastError: Error | null = null;
+
+        // Iterate through providers until one succeeds
+        for (const provider of providerOrder) {
+          try {
+            // Skip if provider is not configured properly (basic check)
+            if (provider === 'zhipu' && !config.zhipu.apiKey) continue;
+
+            console.log(`🌟 Trying provider: ${provider}...`);
+
+            // Create model based on current provider in loop
+            // We reuse the existing createModel but need to trick it or adapt it 
+            // since it takes the whole config object usually. 
+            // Actually createModel uses config.provider. Let's create a temporary config object for this attempt.
+            const tempConfig = { ...config, provider: provider as any };
+
+            if (provider === 'zhipu') {
+              const zhipuConfig = createZhipuConfig(config);
+              const model = new ChatOpenAI({
+                modelName: zhipuConfig.model,
+                openAIApiKey: zhipuConfig.apiKey,
+                configuration: {
+                  baseURL: zhipuConfig.baseURL,
+                },
+                temperature: 0.7,
+                maxTokens: 4096,
+              });
+
+              const fullPrompt = await buildPromptWithContext(memory, '', message);
+              const response = await model.invoke([new HumanMessage(fullPrompt)]);
+              const responseText = response.content as string;
+
+              await memory.saveContext({ input: message }, { response: responseText });
+              console.timeEnd(timerId);
+
+              return {
+                sessionId,
+                response: responseText,
+                history: await memory.getChatMessages(),
+                provider: 'zhipu'
+              };
+            } else if (provider === 'ollama' || provider === 'custom') {
+              const modelConfig = provider === 'ollama' ? {
+                baseUrl: config.ollama?.baseUrl || 'http://localhost:11434',
+                modelName: config.ollama?.modelName || 'qwen3:0.6b',
+                apiKey: 'not-needed',
+                temperature: 0.7
+              } : {
+                baseUrl: config.custom?.baseUrl,
+                modelName: config.custom?.modelName,
+                apiKey: config.custom?.apiKey,
+                temperature: config.custom?.temperature || 0.7
+              };
+
+              const fullPrompt = await buildPromptWithContext(memory, '', message);
+              const responseText = await callCustomModel(modelConfig, fullPrompt);
+
+              await memory.saveContext({ input: message }, { response: responseText });
+              console.timeEnd(timerId);
+
+              return {
+                sessionId,
+                response: responseText,
+                history: await memory.getChatMessages(),
+                provider: provider
+              };
+            }
+          } catch (err) {
+            console.warn(`⚠️ Provider ${provider} failed:`, err);
+            lastError = err;
+            // Continue to next provider
           }
-        });
-        await strapi.entityService.delete('plugin::llm-chat.chat-message', testMessage.id);
-
-        // Récupérer ou créer une conversation
-        const conversationData = await getOrCreateConversation(sessionId, config, options, false);
-
-        const llmTimerId = `🤖 LLM Call [${sessionId}]`;
-        console.time(llmTimerId);
-
-        let response;
-        if (conversationData.type === 'agent') {
-          // Utiliser l'agent avec outils
-          response = await conversationData.executor.call({
-            input: message,
-          });
-        } else if (conversationData.type === 'rag_smart') {
-          // Utiliser SmartRAGTool pour les modèles custom avec PaulIA
-          console.log('🤖 PaulIA using SmartRAGTool for custom provider...');
-
-          // Utiliser SmartRAGTool pour analyser le message et récupérer le contexte
-          const context = await conversationData.smartRAGTool._call(message);
-          const fullPrompt = await buildPromptWithContext(conversationData.memory, context, message);
-          const responseText = await callCustomModel(conversationData.model, fullPrompt);
-
-          // Sauvegarder manuellement
-          await conversationData.memory.saveContext(
-            { input: message },
-            { response: responseText }
-          );
-
-          response = { response: responseText };
-        } else if (conversationData.type === 'custom_simple') {
-          // PaulIA avec conversation simple pour modèles custom
-          // Construire le prompt manuellement pour les modèles custom
-          const fullPrompt = await buildPromptWithContext(conversationData.memory, '', message);
-          const responseText = await callCustomModel(conversationData.model, fullPrompt);
-
-          // Sauvegarder manuellement
-          await conversationData.memory.saveContext(
-            { input: message },
-            { response: responseText }
-          );
-
-          response = { response: responseText };
-        } else {
-          response = await conversationData.chain.call({
-            input: message,
-          });
         }
 
-        console.timeEnd(llmTimerId);
+        // If we reach here, all providers failed
+        throw lastError || new Error('All configured providers failed.');
 
-        // Vérifications finales
-        const messages = await strapi.entityService.findMany('plugin::llm-chat.chat-message', {
-          filters: { sessionId },
-          sort: { createdAt: 'asc' }
-        });
-
-        console.timeEnd(timerId);
-        return {
-          sessionId,
-          response: response.response,
-          history: messages,
-        };
       } catch (error) {
         console.timeEnd(timerId);
-        strapi.log.error('❌ Error in PaulIA langchain chat service:', error);
+        strapi.log.error('❌ Error in PaulIA chat service:', error);
         throw error;
       }
     },
@@ -744,7 +757,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
     async getHistory(sessionId: string = 'default') {
       try {
         const messages = await strapi.entityService.findMany('plugin::llm-chat.chat-message', {
-          filters: { sessionId },
+          filters: { session: { sessionId } },
           sort: { createdAt: 'asc' }
         });
 
@@ -852,104 +865,174 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
         }
 
         const sessionId = options?.sessionId || 'default';
-
         console.log('🌊 Starting PaulIA streaming chat for session:', sessionId);
 
         // S'assurer qu'une session existe
         await this.ensureSessionExists(sessionId, message);
 
-        // Récupérer ou créer une conversation avec streaming activé
-        const conversationData = await getOrCreateConversation(sessionId, config, options, true);
+        // Gestion du failover pour le streaming
+        const providerOrder = config.providerOrder && config.providerOrder.length > 0
+          ? config.providerOrder
+          : ['zhipu', 'ollama', 'custom'];
 
-        // Retourner un générateur pour le streaming
+        console.log('🔄 Streaming Provider failover order:', providerOrder);
+
+        // Retourner un générateur pour le streaming qui gère le failover interne
         return {
           async *stream() {
+            let lastError: Error | null = null;
+            let success = false;
             let fullResponse = '';
 
-            try {
-              console.log('🌊 Starting PaulIA LangChain streaming...');
+            for (const provider of providerOrder) {
+              if (success) break;
 
-              if (conversationData.type === 'agent') {
-                // Streaming avec PaulIA agent OpenAI et outils
-                const result = await conversationData.executor.call({
-                  input: message,
-                }, {
-                  callbacks: [{
-                    handleLLMNewToken(token: string) {
-                      fullResponse += token;
-                      return `data: ${JSON.stringify({ type: 'chunk', content: token })}\n\n`;
+              try {
+                // Skip if not configured
+                if (provider === 'zhipu' && !config.zhipu.apiKey) continue;
+
+                console.log(`🌊 Trying streaming provider: ${provider}...`);
+
+                // Create temporary config for this attempt
+                const tempConfig = { ...config, provider: provider as any };
+
+                // Récupérer ou créer une conversation avec streaming activé pour ce provider
+                // Note: getOrCreateConversation uses config.provider, so we must be careful.
+                // Actually getOrCreateConversation respects the config passed to it.
+                const conversationData = await getOrCreateConversation(sessionId, tempConfig, options, true);
+
+                console.log('🌊 Starting PaulIA LangChain streaming...');
+
+                let capturedPrompt = '';
+
+                if (conversationData.type === 'agent') {
+                  capturedPrompt = `Agent execution with input: ${message}`;
+                  // Streaming avec PaulIA agent OpenAI et outils
+                  const result = await conversationData.executor.call({
+                    input: message,
+                  }, {
+                    callbacks: [{
+                      handleLLMNewToken(token: string) {
+                        fullResponse += token;
+                        // Cannot yield from callback, see comments in original code
+                      }
+                    }]
+                  });
+
+                  // Fallback for Agent if it doesn't stream well: just yield the final result
+                  if (result.output) {
+                    fullResponse = result.output;
+                    yield `data: ${JSON.stringify({ type: 'chunk', content: result.output })}\n\n`;
+                    success = true;
+                  }
+
+                } else if (conversationData.type === 'rag_smart') {
+                  // Streaming avec SmartRAGTool
+                  console.log('🤖 PaulIA using SmartRAGTool for streaming...');
+                  const context = await conversationData.smartRAGTool._call(message);
+                  const fullPrompt = await buildPromptWithContext(conversationData.memory, context, message);
+                  capturedPrompt = fullPrompt;
+
+                  const stream = streamCustomModel(conversationData.model, fullPrompt);
+
+                  for await (const chunk of stream) {
+                    if (chunk) {
+                      fullResponse += chunk;
+                      yield `data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`;
                     }
-                  }]
-                });
-
-                if (!fullResponse && result.output) {
-                  fullResponse = result.output;
-                  yield `data: ${JSON.stringify({ type: 'chunk', content: result.output })}\n\n`;
-                }
-              } else if (conversationData.type === 'rag_smart') {
-                // Streaming avec PaulIA SmartRAGTool pour les modèles custom
-                console.log('🤖 PaulIA using SmartRAGTool for streaming...');
-                const context = await conversationData.smartRAGTool._call(message);
-                const fullPrompt = await buildPromptWithContext(conversationData.memory, context, message);
-
-                // Stream depuis le modèle custom
-                const stream = streamCustomModel(conversationData.model, fullPrompt);
-                for await (const chunk of stream) {
-                  if (chunk) {
-                    fullResponse += chunk;
-                    yield `data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`;
                   }
-                }
-              } else if (conversationData.type === 'custom_simple') {
-                // PaulIA streaming simple pour les modèles custom
-                const fullPrompt = await buildPromptWithContext(conversationData.memory, '', message);
-
-                // Stream depuis le modèle custom
-                const stream = streamCustomModel(conversationData.model, fullPrompt);
-                for await (const chunk of stream) {
-                  if (chunk) {
-                    fullResponse += chunk;
-                    yield `data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`;
-                  }
-                }
-              } else {
-                // PaulIA streaming simple sans outils (OpenAI)
-                const llm = conversationData.chain.llm;
-                const fullPrompt = await buildPromptWithContext(conversationData.chain.memory, '', message, SYSTEM_PROMPT);
-
-                const stream = await llm.stream(fullPrompt);
-                for await (const chunk of stream) {
-                  let content = '';
-                  if (chunk.content) {
-                    content = chunk.content;
-                  } else if (typeof chunk === 'string') {
-                    content = chunk;
+                  if (fullResponse && fullResponse.length > 0) {
+                    success = true;
+                  } else {
+                    console.warn(`⚠️ Provider ${provider} (rag_smart) returned empty response`);
                   }
 
-                  if (content) {
-                    fullResponse += content;
-                    yield `data: ${JSON.stringify({ type: 'chunk', content: content })}\n\n`;
+                } else if (conversationData.type === 'custom_simple') {
+                  // Streaming simple custom
+                  const fullPrompt = await buildPromptWithContext(conversationData.memory, '', message);
+                  capturedPrompt = fullPrompt;
+
+                  const stream = streamCustomModel(conversationData.model, fullPrompt);
+
+                  for await (const chunk of stream) {
+                    if (chunk) {
+                      fullResponse += chunk;
+                      yield `data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`;
+                    }
+                  }
+                  if (fullResponse && fullResponse.length > 0) {
+                    success = true;
+                  } else {
+                    console.warn(`⚠️ Provider ${provider} (custom_simple) returned empty response`);
+                  }
+
+                } else {
+                  // Streaming simple OpenAI (Zhipu Direct)
+                  const llm = conversationData.chain.llm;
+                  const fullPrompt = await buildPromptWithContext(conversationData.chain.memory, '', message, SYSTEM_PROMPT);
+                  capturedPrompt = fullPrompt;
+
+                  const stream = await llm.stream(fullPrompt);
+
+                  for await (const chunk of stream) {
+                    let content = '';
+                    if (chunk.content) content = chunk.content as string;
+                    else if (typeof chunk === 'string') content = chunk;
+
+                    if (content) {
+                      fullResponse += content;
+                      yield `data: ${JSON.stringify({ type: 'chunk', content: content })}\n\n`;
+                    }
+                  }
+
+                  // Only mark as success if we actually got some response
+                  if (fullResponse && fullResponse.length > 0) {
+                    success = true;
+                  } else {
+                    console.warn(`⚠️ Provider ${provider} returned empty response`);
                   }
                 }
+
+                if (success) {
+                  // Save context only on success
+                  let memory;
+                  if (conversationData.type === 'rag_smart' || conversationData.type === 'custom_simple') {
+                    memory = conversationData.memory;
+                  } else {
+                    memory = new StrapiChatMemory(strapi, sessionId);
+                  }
+
+                  // Pass provider check and full details to saveContext
+                  // We pass fullResponse AND provider. the 'response' key is used for the message content.
+                  await memory.saveContext(
+                    { input: message },
+                    {
+                      response: fullResponse,
+                      provider: provider,
+                      fullData: {
+                        provider,
+                        model: tempConfig.provider === 'zhipu' ? tempConfig.zhipu.modelName : (tempConfig.provider === 'ollama' ? tempConfig.ollama.modelName : tempConfig.custom.modelName),
+                        timestamp: new Date(),
+                        request: { prompt: capturedPrompt },
+                        response: { text: fullResponse }
+                      }
+                    }
+                  );
+                  yield `data: ${JSON.stringify({ type: 'complete', provider: provider })}\n\n`;
+                  return; // Exit stream generator
+                }
+
+              } catch (err) {
+                console.warn(`🚨 PROVIDER ERROR [${provider}]:`, err);
+                console.warn(`⚠️ switching to next provider...`);
+                lastError = err;
+                // Continue to next provider
               }
+            } // end for loop
 
-              // Sauvegarder la conversation après le streaming
-              let memory;
-              if (conversationData.type === 'rag_smart' || conversationData.type === 'custom_simple') {
-                memory = conversationData.memory;
-              } else {
-                memory = new StrapiChatMemory(strapi, sessionId);
-              }
-
-              await memory.saveContext(
-                { input: message },
-                { response: fullResponse }
-              );
-
-              yield `data: ${JSON.stringify({ type: 'complete' })}\n\n`;
-            } catch (error) {
-              console.error('❌ PaulIA streaming error:', error);
-              yield `data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`;
+            if (!success) {
+              console.error('❌ All streaming providers failed');
+              yield `data: ${JSON.stringify({ type: 'error', message: lastError?.message || 'All providers failed' })}\n\n`;
             }
           },
           sessionId,
@@ -964,7 +1047,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
     async deleteSession(sessionId: string) {
       try {
         const messages = await strapi.entityService.findMany('plugin::llm-chat.chat-message', {
-          filters: { sessionId }
+          filters: { session: { sessionId } }
         }) as any[];
 
         for (const message of messages) {

@@ -73,5 +73,21 @@ export default {
         policies: [],
       },
     },
+    {
+      method: 'GET',
+      path: '/stats',
+      handler: 'modelController.getStats',
+      config: {
+        policies: [],
+      },
+    },
+    {
+      method: 'PUT',
+      path: '/config',
+      handler: 'modelController.updateConfig',
+      config: {
+        policies: [],
+      },
+    },
   ],
 };

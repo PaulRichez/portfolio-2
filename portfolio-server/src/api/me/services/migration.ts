@@ -46,21 +46,28 @@ export default ({ strapi }) => ({
           { name: "React", level: "beginner" },
           { name: "Vue.js", level: "beginner" },
           { name: "Strapi", level: "advanced" },
-          { name: "Node.js", level: "Intermediate" },
-          { name: "PostgreSQL", level: "Intermediate" },
-          { name: "Docker", level: "Intermediate" },
+          { name: "Node.js", level: "intermediate" },
+          { name: "PostgreSQL", level: "intermediate" },
+          { name: "Docker", level: "intermediate" },
           { name: "Java", level: "beginner" },
           { name: "Webmethods", level: "beginner" },
-          { name: "Powerbuilder", level: "beginner" }
+          { name: "Powerbuilder", level: "beginner" },
+          { name: "PrimeNG", level: "advanced" },
+          { name: "Nebular", level: "intermediate" },
+          { name: "ECharts", level: "intermediate" },
+          { name: "LangChain", level: "beginner" },
+          { name: "Zhipu AI", level: "beginner" },
+          { name: "Ollama", level: "intermediate" },
+          { name: "ChromaDB", level: "beginner" }
         ];
 
         const codingSkillsWithIds = [];
-        
+
         for (const skill of coding_skills) {
           const coding = await strapi.entityService.findMany('api::coding.coding', {
             filters: { name: skill.name }
           });
-          
+
           if (coding && coding.length > 0) {
             codingSkillsWithIds.push({
               coding: coding[0].id,
@@ -70,7 +77,7 @@ export default ({ strapi }) => ({
             console.warn(`Coding "${skill.name}" not found in database`);
           }
         }
-        
+
         return codingSkillsWithIds;
       };
 

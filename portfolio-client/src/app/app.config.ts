@@ -10,6 +10,7 @@ import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
+import { provideMarkdown } from 'ngx-markdown';
 
 // Register French locale data
 registerLocaleData(localeFr);
@@ -22,6 +23,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     providePrimeNG({ theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } } }),
     provideHttpClient(withFetch()),
+    provideMarkdown(),
     { provide: LOCALE_ID, useValue: 'fr' }
   ]
 };

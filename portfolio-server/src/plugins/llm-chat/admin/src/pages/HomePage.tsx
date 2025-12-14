@@ -1,25 +1,19 @@
+import React, { useState } from 'react';
 import { Box, Typography, Tabs } from '@strapi/design-system';
 import { useIntl } from 'react-intl';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Information, Database, Message } from '@strapi/icons';
+import { Information, Database, Message, Cog } from '@strapi/icons';
 
 import { getTranslation } from '../utils/getTranslation';
 import ChatInterface from '../components/ChatInterface';
 import VectorManagementInterface from '../components/VectorManagementInterface';
+import ModelManagementInterface from '../components/ModelManagementInterface';
 
 const HomePage = () => {
   const { formatMessage } = useIntl();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const currentTab = location.pathname.includes('/vectors') ? 1 : 0;
+  const [currentTab, setCurrentTab] = useState(0);
 
   const handleTabChange = (tab: number) => {
-    if (tab === 0) {
-      navigate('.');
-    } else {
-      navigate('./vectors');
-    }
+    setCurrentTab(tab);
   };
 
   return (
@@ -43,6 +37,10 @@ const HomePage = () => {
             <Database />
             Vector RAG
           </Tabs.Trigger>
+          <Tabs.Trigger value={2}>
+            <Cog />
+            Models
+          </Tabs.Trigger>
         </Tabs.List>
 
         <Tabs.Content value={0}>
@@ -56,6 +54,12 @@ const HomePage = () => {
         <Tabs.Content value={1}>
           <Box paddingTop={4}>
             <VectorManagementInterface />
+          </Box>
+        </Tabs.Content>
+
+        <Tabs.Content value={2}>
+          <Box paddingTop={4}>
+            <ModelManagementInterface />
           </Box>
         </Tabs.Content>
       </Tabs.Root>

@@ -9,7 +9,7 @@ export interface MeCodingSkill extends Struct.ComponentSchema {
   attributes: {
     coding: Schema.Attribute.Relation<'oneToOne', 'api::coding.coding'>;
     level: Schema.Attribute.Enumeration<
-      ['beginner', 'Intermediate', 'advanced', 'expert']
+      ['beginner', 'intermediate', 'advanced', 'expert']
     > &
       Schema.Attribute.Required;
   };

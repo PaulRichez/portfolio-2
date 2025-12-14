@@ -8,7 +8,7 @@ import type { Core } from '@strapi/strapi';
  */
 export class SmartRAGTool extends Tool {
   name = "smart_rag_search";
-  description = `Outil intelligent de PaulIA qui utilise Ollama qwen3:0.6b pour analyser automatiquement si une question
+  description = `Outil intelligent de PaulIA qui utilise Ollama pour analyser automatiquement si une question
   nécessite une recherche dans la base de données du portfolio de Paul et effectue la recherche appropriée.
 
   PaulIA utilise cet outil pour :
@@ -211,30 +211,30 @@ export class SmartRAGTool extends Tool {
     }
 
     const sections: string[] = [];
-    sections.push(`=== 🤖 PaulIA - Recherche intelligente pour "${originalQuery}" ===`);
-    sections.push(`🎯 Analyse effectuée avec : "${searchQuery}"`);
-    sections.push(`🧠 Confiance IA : ${(analysis.confidence * 100).toFixed(1)}% - ${analysis.reasoning}`);
-    sections.push('');
+    // Format neutre pour l'IA - on enlève le "persona" PaulIA ici pour ne pas confondre le modèle
+    sections.push(`CONTEXTE DU PORTFOLIO TROUVÉ (Analyse: ${analysis.reasoning}, Confiance: ${(analysis.confidence * 100).toFixed(1)}%)`);
+    sections.push('---');
 
     results.forEach((result, index) => {
       const metadata = result.metadata || {};
       const collection = metadata.collection || 'unknown';
-      const similarity = (1 - result.distance).toFixed(3);
 
-      sections.push(`${index + 1}. ${this.getCollectionDisplayName(collection)} (Pertinence: ${similarity})`);
-      sections.push(`   ${result.document.trim()}`);
+      // Use logical separators instead of "[Document X]" which confuses the model
+      sections.push(`--- INFORMATION #(${index + 1}) ---`);
+      sections.push(`Type: ${this.getCollectionDisplayName(collection)}`);
+      sections.push(`Contenu: "${result.document.trim()}"`);
 
       // Ajouter des métadonnées pertinentes
       const relevantMetadata = this.extractRelevantMetadata(metadata);
       if (relevantMetadata.length > 0) {
-        sections.push(`   📋 Détails: ${relevantMetadata.join(', ')}`);
+        sections.push(`Détails: ${relevantMetadata.join(', ')}`);
       }
-
-      sections.push(''); // Ligne vide entre les résultats
     });
 
-    sections.push(`=== ✅ ${results.length} élément${results.length > 1 ? 's' : ''} trouvé${results.length > 1 ? 's' : ''} sur Paul ===`);
-    sections.push('💡 PaulIA utilise ces informations pour te répondre précisément.');
+    sections.push('---');
+    sections.push(`Total: ${results.length} éléments trouvés.`);
+    sections.push('IMPORTANT: Tu DOIS reformuler ces informations à la PREMIÈRE PERSONNE ("Je", "Mon", "Mes").');
+    sections.push('Ne mentionne JAMAIS "[Document X]" ou "Document". Parle de "Mon projet", "Mon expérience".');
 
     return sections.join('\n');
   }
@@ -281,6 +281,7 @@ export class SmartRAGTool extends Tool {
       }).join(', ');
       relevant.push(`Langues: ${languageLabels}`);
     }
+    if (metadata.ranking) relevant.push(`Ranking/Priorité: ${metadata.ranking}`);
 
     return relevant;
   }

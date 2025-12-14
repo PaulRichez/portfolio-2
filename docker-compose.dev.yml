@@ -1,6 +1,7 @@
 version: '3.8'
 
-services:  # Ollama AI Service pour développement
+services:
+  # Ollama AI Service pour développement
   ollama:
     image: ollama/ollama:latest
     container_name: portfolio-ollama-dev
@@ -15,19 +16,14 @@ services:  # Ollama AI Service pour développement
     networks:
       - portfolio_dev_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/tags" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
-    entrypoint: ["/bin/bash", "-c"]
+    entrypoint: [ "/bin/bash", "-c" ]
     command: >
-      "ollama serve &
-      sleep 10 &&
-      ollama pull qwen3:0.6b &&
-      ollama pull nomic-embed-text &&
-      echo 'Modèle qwen3:0.6b téléchargé avec succès!' &&
-      wait"
+      "ollama serve & sleep 10 && ollama pull qwen2.5:1.5b && ollama pull nomic-embed-text && echo 'Modèle qwen2.5:1.5b téléchargé avec succès!' && wait"
   # ChromaDB Vector Database pour développement
   chromadb:
     image: chromadb/chroma:latest
@@ -48,7 +44,7 @@ services:  # Ollama AI Service pour développement
     depends_on:
       - ollama
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/api/v2/heartbeat"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/api/v2/heartbeat" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -70,7 +66,7 @@ services:  # Ollama AI Service pour développement
     networks:
       - portfolio_dev_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U strapi"]
+      test: [ "CMD-SHELL", "pg_isready -U strapi" ]
       interval: 10s
       timeout: 5s
       retries: 5

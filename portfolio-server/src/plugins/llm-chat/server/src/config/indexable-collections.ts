@@ -14,36 +14,32 @@ export interface IndexableCollectionConfig {
 
 export const INDEXABLE_COLLECTIONS: Record<string, IndexableCollectionConfig> = {
   'api::project.project': {
-    fields: ['title', 'description'],
-    metadataFields: ['github_link', 'link_demo', 'link_npm', 'codings'],
+    fields: ['title', 'description', 'ranking'],
+    metadataFields: ['github_link', 'link_demo', 'link_npm', 'codings', 'ranking'],
     populate: {
       codings: true
     }
   },
   'api::me.me': {
-    fields: ['firstName', 'lastName', 'postName'],
+    fields: ['firstName', 'lastName', 'postName', 'phoneNumber', 'birthDate', 'email', 'slogan', 'description', 'address'],
     metadataFields: ['email', 'phoneNumber', 'website', 'github', 'linkedin', 'coding_skills', 'languages', 'diplomas', 'experiences'],
     populate: {
+      socialLinks: true,
       coding_skills: {
         populate: {
-          coding: true
+          coding: {
+            fields: ['name', 'category', 'ranking']
+          }
         }
       },
       languages: true,
       diplomas: true,
       experiences: true
-    },
-    metadataFormatters: {
-      coding_skills: {
-        nameField: 'coding.name',
-        levelField: 'level',
-        format: '{name} ({level})'
-      }
     }
   },
   'api::coding.coding': {
-    fields: ['name', 'category'],
-    metadataFields: ['project'],
+    fields: ['name', 'category', 'ranking'],
+    metadataFields: ['project', 'ranking'],
     populate: {
       project: true
     }

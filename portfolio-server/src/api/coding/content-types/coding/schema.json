@@ -25,10 +25,11 @@
       "enum": [
         "frontend_languages",
         "frontend_frameworks",
+        "frontend_libraries",
         "backend",
         "databases",
-        "devops_tools",
         "tools",
+        "ai",
         "other_languages"
       ]
     },
@@ -37,6 +38,9 @@
       "relation": "manyToOne",
       "target": "api::project.project",
       "inversedBy": "codings"
+    },
+    "ranking": {
+      "type": "integer"
     }
   }
 }

@@ -388,10 +388,11 @@ export interface ApiCodingCoding extends Struct.CollectionTypeSchema {
       [
         'frontend_languages',
         'frontend_frameworks',
+        'frontend_libraries',
         'backend',
         'databases',
-        'devops_tools',
         'tools',
+        'ai',
         'other_languages',
       ]
     > &
@@ -409,6 +410,7 @@ export interface ApiCodingCoding extends Struct.CollectionTypeSchema {
     name: Schema.Attribute.String & Schema.Attribute.Required;
     project: Schema.Attribute.Relation<'manyToOne', 'api::project.project'>;
     publishedAt: Schema.Attribute.DateTime;
+    ranking: Schema.Attribute.Integer;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -480,6 +482,7 @@ export interface ApiProjectProject extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
+    ranking: Schema.Attribute.Integer;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -651,12 +654,14 @@ export interface PluginLlmChatChatMessage extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    debugResponse: Schema.Attribute.JSON;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'plugin::llm-chat.chat-message'
     > &
       Schema.Attribute.Private;
+    provider: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
     role: Schema.Attribute.Enumeration<['user', 'assistant', 'system']> &
       Schema.Attribute.Required;
@@ -664,7 +669,6 @@ export interface PluginLlmChatChatMessage extends Struct.CollectionTypeSchema {
       'manyToOne',
       'plugin::llm-chat.chat-session'
     >;
-    sessionId: Schema.Attribute.String & Schema.Attribute.Required;
     timestamp: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &

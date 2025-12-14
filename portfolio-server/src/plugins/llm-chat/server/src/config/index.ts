@@ -1,10 +1,14 @@
 export default {
   default: {
-    provider: 'openai',
-    openai: {
-      apiKey: '',
-      modelName: 'gpt-3.5-turbo',
-      temperature: 0.7,
+    provider: 'zhipu',
+    providerOrder: ['zhipu', 'ollama'], // Default failover order
+    zhipu: {
+      apiKey: process.env.ZHIPU_API_KEY || '',
+      modelName: 'glm-4.5-flash',
+    },
+    ollama: {
+      baseUrl: 'http://localhost:11434',
+      modelName: 'qwen2.5:1.5b',
     },
     custom: {
       baseUrl: 'http://localhost:11434/v1',
@@ -17,8 +21,11 @@ export default {
     if (!config.provider) {
       throw new Error('LLM provider is required in plugin configuration');
     }
-    if (config.provider === 'openai' && !config.openai?.apiKey) {
-      throw new Error('OpenAI API Key is required when using OpenAI provider');
+    if (config.providerOrder && !Array.isArray(config.providerOrder)) {
+      throw new Error('providerOrder must be an array of strings');
+    }
+    if (config.provider === 'zhipu' && !config.zhipu?.apiKey) {
+      throw new Error('Zhipu API Key is required when using Zhipu provider');
     }
     if (config.provider === 'custom' && !config.custom?.baseUrl) {
       throw new Error('Base URL is required when using custom provider');

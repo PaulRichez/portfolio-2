@@ -6,7 +6,6 @@ import { Subscription } from 'rxjs';
 // PrimeNG Imports
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
-import { InputTextarea } from 'primeng/inputtextarea';
 import { ScrollPanelModule } from 'primeng/scrollpanel';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TooltipModule } from 'primeng/tooltip';
@@ -27,7 +26,7 @@ import { MarkdownBlockComponent } from './markdown-block.component';
     FormsModule,
     DialogModule,
     ButtonModule,
-    InputTextarea,
+    ButtonModule,
     ScrollPanelModule,
     ProgressSpinnerModule,
     TooltipModule,
@@ -39,6 +38,7 @@ import { MarkdownBlockComponent } from './markdown-block.component';
 })
 export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
+  @ViewChild('messageInput') messageInput!: ElementRef<HTMLDivElement>;
 
   visible = false;
   messages: ChatMessage[] = [];
@@ -48,7 +48,7 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   private subscriptions: Subscription[] = [];
   private shouldScrollToBottom = false;
 
-  constructor(private chatbotService: ChatbotService, private messageService: MessageService) {}
+  constructor(private chatbotService: ChatbotService, private messageService: MessageService) { }
 
   ngOnInit(): void {
     // Subscribe to messages
@@ -129,6 +129,11 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
     const messageToSend = this.currentMessage.trim();
     this.currentMessage = '';
 
+    // Vider le div contenteditable
+    if (this.messageInput && this.messageInput.nativeElement) {
+      this.messageInput.nativeElement.innerText = '';
+    }
+
     // Activer le state de chargement
     this.chatbotService.setLoading(true);
 
@@ -143,11 +148,20 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
         console.error('Erreur lors de l\'envoi du message:', error);
         this.chatbotService.setLoading(false);
 
-        // Ajouter un message d'erreur
+        // Notification Toast
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Erreur',
+          detail: 'Une erreur est survenue lors de la communication avec l\'assistant.',
+          life: 5000
+        });
+
+        // Ajouter un message d'erreur dans le chat
         const errorMessage: ChatMessage = {
           role: 'assistant',
-          content: 'Désolé, une erreur est survenue. Veuillez réessayer.',
-          timestamp: new Date().toISOString()
+          content: '⚠️ **Erreur :** Je n\'ai pas pu traiter votre demande. Veuillez réessayer ou vérifier la connexion.',
+          timestamp: new Date().toISOString(),
+          isError: true
         };
         this.chatbotService.addMessage(errorMessage);
       }
@@ -157,8 +171,26 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   /**
    * Gère les touches du clavier
    */
+  /**
+   * Met à jour le message courant lors de la saisie
+   */
+  onInput(event: Event): void {
+    const target = event.target as HTMLElement;
+    this.currentMessage = target.innerText;
+  }
+
+  /**
+   * Gère les touches du clavier
+   */
   onKeyDown(event: KeyboardEvent): void {
-    if (event.key === 'Enter' && event.ctrlKey) {
+    // Si Entrée est pressé
+    if (event.key === 'Enter') {
+      // Si Shift ou Ctrl est maintenu, on laisse le saut de ligne par défaut
+      if (event.shiftKey || event.ctrlKey) {
+        return;
+      }
+
+      // Sinon, on envoie le message (comportement par défaut empêché)
       event.preventDefault();
       this.sendMessage();
     }
@@ -197,6 +229,7 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
    */
   askQuickQuestion(question: string): void {
     this.currentMessage = question;
+    // We don't necessarily update the div text for quick questions as they are sent immediately
     this.sendMessage();
   }
 

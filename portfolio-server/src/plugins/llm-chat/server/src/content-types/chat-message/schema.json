@@ -20,13 +20,13 @@
     }
   },
   "attributes": {
-    "sessionId": {
-      "type": "string",
-      "required": true
-    },
     "role": {
       "type": "enumeration",
-      "enum": ["user", "assistant", "system"],
+      "enum": [
+        "user",
+        "assistant",
+        "system"
+      ],
       "required": true
     },
     "content": {
@@ -42,6 +42,14 @@
       "relation": "manyToOne",
       "target": "plugin::llm-chat.chat-session",
       "inversedBy": "messages"
+    },
+    "provider": {
+      "type": "string",
+      "required": false
+    },
+    "debugResponse": {
+      "type": "json",
+      "required": false
     }
   }
 }

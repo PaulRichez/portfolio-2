@@ -45,7 +45,7 @@ services:
     networks:
       - portfolio_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:1337/_health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:1337/_health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -81,7 +81,7 @@ services:
     restart: unless-stopped
     networks:
       - portfolio_network
-    profiles: ["postgres"]
+    profiles: [ "postgres" ]
 
   # PostgreSQL Database
   postgres:
@@ -99,7 +99,7 @@ services:
     networks:
       - portfolio_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -119,19 +119,14 @@ services:
     networks:
       - portfolio_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/tags" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
-    entrypoint: ["/bin/bash", "-c"]
+    entrypoint: [ "/bin/bash", "-c" ]
     command: >
-      "ollama serve &
-      sleep 10 &&
-      ollama pull qwen3:0.6b &&
-      ollama pull nomic-embed-text &&
-      echo 'Modèle qwen3:0.6b téléchargé avec succès!' &&
-      wait"
+      "ollama serve & sleep 10 && ollama pull qwen2.5:1.5b && ollama pull nomic-embed-text && echo 'Modèle qwen2.5:1.5b téléchargé avec succès!' && wait"
 
   # ChromaDB Vector Database
   chromadb:
@@ -149,7 +144,7 @@ services:
     networks:
       - portfolio_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat" ]
       interval: 30s
       timeout: 10s
       retries: 3

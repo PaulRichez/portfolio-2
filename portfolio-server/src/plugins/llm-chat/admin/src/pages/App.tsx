@@ -8,7 +8,6 @@ const App = () => {
   return (
     <Routes>
       <Route index element={<HomePage />} />
-      <Route path="/vectors" element={<VectorPage />} />
       <Route path="*" element={<Page.Error />} />
     </Routes>
   );

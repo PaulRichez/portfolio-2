@@ -35,6 +35,9 @@
       "relation": "oneToMany",
       "target": "api::coding.coding",
       "mappedBy": "project"
+    },
+    "ranking": {
+      "type": "integer"
     }
   }
 }
