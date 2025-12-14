@@ -69,7 +69,7 @@ Example: ["Question 1?", "Question 2?", "Question 3?"]
 
             } else {
                 console.log('💡 Using Ollama/Custom (via fetch) for suggestions');
-                const baseUrl = providerConfig.ollama?.baseUrl || 'http://localhost:11434';
+                const baseUrl = providerConfig.ollama?.baseUrl || process.env.CUSTOM_LLM_BASE_URL || 'http://localhost:11434';
                 const modelName = providerConfig.ollama?.modelName || 'qwen2.5:1.5b';
 
                 // Using standard generate endpoint for Ollama

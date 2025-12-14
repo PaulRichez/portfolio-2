@@ -10,7 +10,7 @@ const ollamaService = ({ strapi }: { strapi: Core.Strapi }) => {
     const pluginConfig = strapi.config.get('plugin::llm-chat') || strapi.plugin('llm-chat').config('default');
     const config = pluginConfig as any;
     return {
-      baseUrl: config?.ollama?.baseUrl || 'http://localhost:11434',
+      baseUrl: config?.ollama?.baseUrl || process.env.CUSTOM_LLM_BASE_URL || 'http://localhost:11434',
       qwenModel: config?.ollama?.modelName || 'qwen2.5:1.5b'
     };
   };

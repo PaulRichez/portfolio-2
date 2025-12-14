@@ -257,7 +257,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
         maxTokens: options?.maxTokens ? Number(options.maxTokens) : undefined,
       };
     } else if (config.provider === 'custom' || config.provider === 'ollama') {
-      const baseUrl = config.provider === 'ollama' ? (config.ollama.baseUrl || 'http://localhost:11434') : config.custom.baseUrl;
+      const baseUrl = config.provider === 'ollama' ? (config.ollama.baseUrl || process.env.CUSTOM_LLM_BASE_URL || 'http://localhost:11434') : config.custom.baseUrl;
       const modelName = config.provider === 'ollama' ? (config.ollama.modelName || 'llama3') : config.custom.modelName;
 
       return {
@@ -655,7 +655,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
               };
             } else if (provider === 'ollama' || provider === 'custom') {
               const modelConfig = provider === 'ollama' ? {
-                baseUrl: config.ollama?.baseUrl || 'http://localhost:11434',
+                baseUrl: config.ollama?.baseUrl || process.env.CUSTOM_LLM_BASE_URL || 'http://localhost:11434',
                 modelName: config.ollama?.modelName || 'qwen3:0.6b',
                 apiKey: 'not-needed',
                 temperature: 0.7

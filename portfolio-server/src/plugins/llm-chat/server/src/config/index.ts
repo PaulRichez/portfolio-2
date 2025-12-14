@@ -7,11 +7,11 @@ export default {
       modelName: 'glm-4.5-flash',
     },
     ollama: {
-      baseUrl: 'http://localhost:11434',
+      baseUrl: process.env.CUSTOM_LLM_BASE_URL || 'http://localhost:11434',
       modelName: 'qwen2.5:1.5b',
     },
     custom: {
-      baseUrl: 'http://localhost:11434/v1',
+      baseUrl: process.env.CUSTOM_LLM_BASE_URL ? `${process.env.CUSTOM_LLM_BASE_URL}/v1` : 'http://localhost:11434/v1',
       modelName: 'llama2',
       temperature: 0.7,
       apiKey: '',
