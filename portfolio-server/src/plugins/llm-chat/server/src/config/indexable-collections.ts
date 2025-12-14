@@ -24,7 +24,6 @@ export const INDEXABLE_COLLECTIONS: Record<string, IndexableCollectionConfig> = 
     fields: ['firstName', 'lastName', 'postName', 'phoneNumber', 'birthDate', 'email', 'slogan', 'description', 'address'],
     metadataFields: ['email', 'phoneNumber', 'website', 'github', 'linkedin', 'coding_skills', 'languages', 'diplomas', 'experiences'],
     populate: {
-      socialLinks: true,
       coding_skills: {
         populate: {
           coding: {
