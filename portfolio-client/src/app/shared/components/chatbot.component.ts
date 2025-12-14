@@ -44,6 +44,7 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   messages: ChatMessage[] = [];
   currentMessage = '';
   currentStatus = '';
+  conversationSuggestions: string[] = [];
   isLoading = false;
 
   private subscriptions: Subscription[] = [];
@@ -66,6 +67,10 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.isLoading = loading;
         if (loading) {
           this.shouldScrollToBottom = true;
+          // Cacher les suggestions pendant le chargement pour éviter de cliquer dessus
+          // this.conversationSuggestions = []; 
+          // EDIT: Non, on peut laisser les anciennes suggestions visible tant que les nouvelles ne sont pas là ?
+          // Le service reset les suggestions au sendMessage.
         }
       })
     );
@@ -75,6 +80,16 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.chatbotService.status$.subscribe(status => {
         this.currentStatus = status;
         if (status) {
+          this.shouldScrollToBottom = true;
+        }
+      })
+    );
+
+    // Subscribe to suggestions
+    this.subscriptions.push(
+      this.chatbotService.suggestions$.subscribe(suggestions => {
+        this.conversationSuggestions = suggestions;
+        if (suggestions.length > 0) {
           this.shouldScrollToBottom = true;
         }
       })

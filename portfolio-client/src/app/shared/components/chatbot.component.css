@@ -247,7 +247,44 @@
 }
 
 :host ::ng-deep .dark .chatbot-dialog .p-dialog-content {
-  background: var(--surface-card);
+  background: var(--chatbot-assistant-bg);
+}
+
+/* Explicit Dark Mode Overrides for Dialog */
+:host ::ng-deep .dark .chatbot-dialog {
+  --chatbot-assistant-bg: #1f2937;
+  /* Gray-800 */
+  --chatbot-surface: #111827;
+  /* Gray-900 */
+  --chatbot-border: #374151;
+  /* Gray-700 */
+  --chatbot-text: #f9fafb;
+  /* Gray-50 */
+  --chatbot-text-secondary: #9ca3af;
+  /* Gray-400 */
+  --chatbot-user-bg: var(--primary-color);
+}
+
+/* Ensure background color applies to dialog header in dark mode */
+:host ::ng-deep .dark .chatbot-dialog .p-dialog-header {
+  background: var(--chatbot-assistant-bg);
+  border-bottom-color: var(--chatbot-border);
+}
+
+:host ::ng-deep .dark .chatbot-dialog .p-dialog-header .p-dialog-title {
+  color: var(--chatbot-text);
+}
+
+/* Ensure background color applies to message text in dark mode */
+:host ::ng-deep .dark .chatbot-dialog .assistant-message .message-text {
+  background: var(--chatbot-assistant-bg);
+  color: var(--chatbot-text);
+  border-color: var(--chatbot-border);
+}
+
+:host ::ng-deep .dark .chatbot-dialog .custom-scrollpanel {
+  background: var(--chatbot-surface);
+  border-color: var(--chatbot-border);
 }
 
 /* Scrollpanel Customization */

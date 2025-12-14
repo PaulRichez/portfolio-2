@@ -10,6 +10,7 @@ import { BaseMessage, AIMessage, HumanMessage } from "@langchain/core/messages";
 import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
 import { SmartRAGTool } from "../tools";
 import { SYSTEM_PROMPT } from "../prompts/system-prompt";
+import { SuggestionsService } from "./suggestions-service";
 
 // Interface pour définir la structure de la configuration
 export interface LlmChatConfig {
@@ -1033,7 +1034,26 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
                       }
                     }
                   );
+
+                  // Inform user we are generating suggestions
+                  yield `data: ${JSON.stringify({ type: 'status', message: 'Génération des suggestions...' })}\n\n`;
+
+                  // Generate Suggestions (Post-processing)
+                  try {
+                    const suggestionsService = new SuggestionsService(strapi);
+                    // Use tempConfig which has the correct provider info
+                    const suggestions = await suggestionsService.generateSuggestions(message, fullResponse, tempConfig);
+
+                    if (suggestions && suggestions.length > 0) {
+                      yield `data: ${JSON.stringify({ type: 'suggestions', content: suggestions })}\n\n`;
+                    }
+                  } catch (suggError) {
+                    console.warn('⚠️ Suggestion generation failed:', suggError);
+                  }
+
+                  // Signal completion finally
                   yield `data: ${JSON.stringify({ type: 'complete', provider: provider })}\n\n`;
+
                   return; // Exit stream generator
                 }
 

@@ -47,7 +47,7 @@
             </p>
           </div>
           <ng-template #assistantMessage>
-            <div class="leading-6 mb-0 text-color whitespace-pre-wrap">
+            <div class="leading-6 mb-0 text-color whitespace-pre-wrap chatbot-message-content">
               <app-markdown-block [markdown]="message.content"></app-markdown-block>
             </div>
           </ng-template>
@@ -96,16 +96,26 @@
     <!-- Input Section -->
     <div class="border-t border-surface-200 dark:border-surface-700 pt-4 mt-4">
       <!-- Quick Actions -->
-      <div class="flex flex-wrap gap-2 mb-4" *ngIf="messages.length === 0">
-        <p-button label="Mon parcours" size="small" severity="secondary" [outlined]="true" styleClass="text-xs"
-          (onClick)="askQuickQuestion('Peux-tu me parler de ton parcours professionnel ?')">
-        </p-button>
-        <p-button label="Mes projets" size="small" severity="secondary" [outlined]="true" styleClass="text-xs"
-          (onClick)="askQuickQuestion('Quels sont tes principaux projets ?')">
-        </p-button>
-        <p-button label="Mes compétences" size="small" severity="secondary" [outlined]="true" styleClass="text-xs"
-          (onClick)="askQuickQuestion('Quelles sont tes compétences techniques ?')">
-        </p-button>
+      <div class="flex flex-wrap gap-2 mb-4" *ngIf="messages.length === 0 || conversationSuggestions.length > 0">
+        <!-- Static Suggestions (Start) -->
+        <ng-container *ngIf="messages.length === 0 && conversationSuggestions.length === 0">
+          <p-button label="Mon parcours" size="small" severity="secondary" [outlined]="true" styleClass="text-xs"
+            (onClick)="askQuickQuestion('Peux-tu me parler de ton parcours professionnel ?')">
+          </p-button>
+          <p-button label="Mes projets" size="small" severity="secondary" [outlined]="true" styleClass="text-xs"
+            (onClick)="askQuickQuestion('Quels sont tes principaux projets ?')">
+          </p-button>
+          <p-button label="Mes compétences" size="small" severity="secondary" [outlined]="true" styleClass="text-xs"
+            (onClick)="askQuickQuestion('Quelles sont tes compétences techniques ?')">
+          </p-button>
+        </ng-container>
+
+        <!-- Dynamic Suggestions (Contextual) -->
+        <ng-container *ngIf="conversationSuggestions.length > 0">
+          <p-button *ngFor="let suggestion of conversationSuggestions" [label]="suggestion" size="small" severity="help"
+            [outlined]="true" styleClass="text-xs animate-fade-in" (onClick)="askQuickQuestion(suggestion)">
+          </p-button>
+        </ng-container>
       </div>
 
       <!-- Input Container -->

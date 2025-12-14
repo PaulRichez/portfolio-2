@@ -35,11 +35,13 @@ export class ChatbotService {
   private messagesSubject = new BehaviorSubject<ChatMessage[]>([]);
   private loadingSubject = new BehaviorSubject<boolean>(false);
   private statusSubject = new BehaviorSubject<string>('');
+  private suggestionsSubject = new BehaviorSubject<string[]>([]);
   private currentSessionId: string | null = null;
 
   public messages$ = this.messagesSubject.asObservable();
   public loading$ = this.loadingSubject.asObservable();
   public status$ = this.statusSubject.asObservable();
+  public suggestions$ = this.suggestionsSubject.asObservable();
 
   constructor(private http: HttpClient) {
     // Initialiser avec une session existante ou en créer une nouvelle
@@ -61,6 +63,8 @@ export class ChatbotService {
       this.createNewSession();
     }
   }
+
+  // ... (rest of methods) ...
 
   /**
    * Sauvegarde le sessionId dans localStorage
@@ -235,6 +239,11 @@ export class ChatbotService {
                   } else if (data.type === 'status') {
                     this.statusSubject.next(data.message);
 
+                  } else if (data.type === 'suggestions') {
+                    if (data.content && Array.isArray(data.content)) {
+                      this.suggestionsSubject.next(data.content);
+                    }
+
                   } else if (data.type === 'complete') {
                     // Update final with history if provided, or just current response
                     this.finalizeStreamingMessage();
@@ -300,7 +309,30 @@ export class ChatbotService {
 
     if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
       // Mettre à jour le contenu du message en cours
-      lastMessage.content = content;
+      // Check for suggestions tag
+      const suggestionRegex = /\[\[SUGGESTIONS:(.*?)\]\]/;
+      const match = content.match(suggestionRegex);
+
+      let displayContent = content;
+
+      if (match) {
+        try {
+          const rawSuggestions = match[1];
+          const suggestions = rawSuggestions.split('|').map(s => s.trim().replace(/^\?+/, '').replace(/\?+$/, '?')); // Ensure distinct items and maybe single '?'
+
+          // Emit suggestions only if we haven't already (or just update)
+          // We can just next it.
+          this.suggestionsSubject.next(suggestions);
+
+          // Remove tag from content for display
+          displayContent = content.replace(match[0], '').trim();
+        } catch (e) {
+          console.warn('Error parsing suggestions:', e);
+        }
+      }
+
+      lastMessage.content = displayContent;
+      // Force update reference to trigger change detection if needed, or simple mutation
       this.messagesSubject.next([...messages]);
     } else {
       // Créer un nouveau message streaming
