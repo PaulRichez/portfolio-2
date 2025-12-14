@@ -28,7 +28,7 @@ COPY . .
 ENV NODE_ENV=production
 
 # ✅ Install dependencies with workspace awareness
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --legacy-peer-deps
 
 # ✅ Build Strapi (and any plugins if needed)
 RUN npm run build
@@ -67,7 +67,7 @@ USER strapi
 
 # Healthcheck (optional but useful)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:1337/_health || exit 1
+    CMD curl -f http://localhost:1337/_health || exit 1
 
 EXPOSE 1337
 
