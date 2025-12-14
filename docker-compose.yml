@@ -38,6 +38,7 @@ services:
       - APP_KEYS=${APP_KEYS}
       - CHROMA_URL=${CHROMA_URL}
       - CUSTOM_LLM_BASE_URL=${CUSTOM_LLM_BASE_URL}
+      - ZHIPU_API_KEY=${ZHIPU_API_KEY}
     depends_on:
       - ollama
       - chromadb
