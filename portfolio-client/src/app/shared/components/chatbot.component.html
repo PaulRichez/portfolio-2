@@ -58,11 +58,35 @@
             <span>{{ formatTime(message.timestamp) }}</span>
 
             <!-- Typing indicator for assistant messages being streamed -->
-            <div *ngIf="message.role === 'assistant' && message.isStreaming" class="flex gap-1">
+            <!-- Typing indicator for assistant messages being streamed -->
+            <div *ngIf="message.role === 'assistant' && message.isStreaming" class="flex flex-col gap-1">
+              <div class="flex gap-1">
+                <div class="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style="animation-delay: 0ms;"></div>
+                <div class="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style="animation-delay: 150ms;"></div>
+                <div class="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style="animation-delay: 300ms;"></div>
+              </div>
+              <div *ngIf="currentStatus" class="status-message">{{ currentStatus }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Standalone Status for "Thinking..." phase -->
+      <div *ngIf="isLoading && (messages.length > 0 && messages[messages.length - 1].role === 'user')"
+        class="flex items-start max-w-[85%] mr-auto group animate-fade-in">
+        <div class="flex-shrink-0 mr-3">
+          <p-avatar shape="circle" size="large" image="assets/images/profile.jpg" styleClass="bg-surface-200">
+          </p-avatar>
+        </div>
+        <div class="flex-1 px-3 py-2 rounded-lg"
+          style="background: var(--surface-card); color: var(--text-color); border: 1px solid var(--surface-border)">
+          <div class="flex items-center gap-2">
+            <div class="flex gap-1">
               <div class="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style="animation-delay: 0ms;"></div>
               <div class="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style="animation-delay: 150ms;"></div>
               <div class="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style="animation-delay: 300ms;"></div>
             </div>
+            <span class="text-xs italic opacity-70">{{ currentStatus || 'Réflexion en cours...' }}</span>
           </div>
         </div>
       </div>

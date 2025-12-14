@@ -33,6 +33,22 @@ const ollamaService = ({ strapi }: { strapi: Core.Strapi }) => {
       // 1. FAST PATH: Regex immediate analysis
       // This drastically speeds up the RAG check for common queries
       const fastPathKeywords = extractBasicKeywords(userMessage);
+
+      // Check for common non-RAG queries (greetings, simple tests) to skip RAG immediately
+      const skipKeywords = ['test', 'bonjour', 'salut', 'hello', 'coucou', 'hola', 'hi', 'ça va', 'ca va'];
+      const lowerMsg = userMessage.toLowerCase().trim();
+      const shouldSkipRAG = skipKeywords.some(k => lowerMsg === k || lowerMsg.startsWith(k + ' ') || lowerMsg.endsWith(' ' + k));
+
+      if (shouldSkipRAG) {
+        console.log('⚡ Fast Path: Skip RAG detected (greeting/test)');
+        return {
+          shouldUseRAG: false,
+          confidence: 1.0,
+          keywords: [],
+          reasoning: 'Fast path: greeting or test detected'
+        };
+      }
+
       if (fastPathKeywords.length > 0) {
         console.log('⚡ Fast Path RAG detection: Keywords found, skipping Ollama analysis');
 
@@ -45,20 +61,10 @@ const ollamaService = ({ strapi }: { strapi: Core.Strapi }) => {
       }
 
       // 2. SLOW PATH: Use Ollama for ambiguous queries
-      // Test rapide de connexion avant d'essayer l'analyse
-      console.log('🔍 Testing Ollama connection for deep analysis...');
-      const isConnected = await testConnectionQuick();
-      if (!isConnected) {
-        console.log('⚠️ Ollama not available, using fallback analysis');
-        const shouldUseRAG = manualKeywordAnalysis(userMessage);
-        console.timeEnd(timerId);
-        return {
-          shouldUseRAG,
-          confidence: 0.8,
-          keywords: shouldUseRAG ? extractBasicKeywords(userMessage) : [],
-          reasoning: 'Fallback analysis'
-        };
-      }
+      // Removed connection test to save latency - let it fail into catch block if offline
+      // console.log('🔍 Testing Ollama connection for deep analysis...');
+      // const isConnected = await testConnectionQuick();
+      // ...
 
       // Prompt ultra-court optimisé pour qwen3:0.6b utilisé par PaulIA
       const analysisPrompt = `Question: "${userMessage}"

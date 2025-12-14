@@ -43,6 +43,7 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   visible = false;
   messages: ChatMessage[] = [];
   currentMessage = '';
+  currentStatus = '';
   isLoading = false;
 
   private subscriptions: Subscription[] = [];
@@ -64,6 +65,16 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.chatbotService.loading$.subscribe(loading => {
         this.isLoading = loading;
         if (loading) {
+          this.shouldScrollToBottom = true;
+        }
+      })
+    );
+
+    // Subscribe to status updates
+    this.subscriptions.push(
+      this.chatbotService.status$.subscribe(status => {
+        this.currentStatus = status;
+        if (status) {
           this.shouldScrollToBottom = true;
         }
       })

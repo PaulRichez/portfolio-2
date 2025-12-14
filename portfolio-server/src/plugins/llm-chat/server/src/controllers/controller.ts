@@ -134,6 +134,14 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
             }
           } else if (typeof chunk === 'object' && chunk !== null) {
             // Objet direct
+            if (chunk.type === 'status') {
+              // Pass-through status events
+              ctx.res.write(`data: ${JSON.stringify({
+                type: 'status',
+                message: chunk.message
+              })}\n\n`);
+              continue; // Skip the rest (don't treat as text content)
+            }
             chunkContent = chunk.content || chunk.text || '';
           }
 

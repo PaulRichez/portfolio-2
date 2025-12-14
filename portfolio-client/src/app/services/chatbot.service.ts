@@ -34,10 +34,12 @@ export class ChatbotService {
   private readonly SESSION_STORAGE_KEY = 'chatbot-session-id';
   private messagesSubject = new BehaviorSubject<ChatMessage[]>([]);
   private loadingSubject = new BehaviorSubject<boolean>(false);
+  private statusSubject = new BehaviorSubject<string>('');
   private currentSessionId: string | null = null;
 
   public messages$ = this.messagesSubject.asObservable();
   public loading$ = this.loadingSubject.asObservable();
+  public status$ = this.statusSubject.asObservable();
 
   constructor(private http: HttpClient) {
     // Initialiser avec une session existante ou en créer une nouvelle
@@ -230,6 +232,9 @@ export class ChatbotService {
                       this.updateStreamingMessage(currentResponse);
                     }
 
+                  } else if (data.type === 'status') {
+                    this.statusSubject.next(data.message);
+
                   } else if (data.type === 'complete') {
                     // Update final with history if provided, or just current response
                     this.finalizeStreamingMessage();
@@ -318,6 +323,7 @@ export class ChatbotService {
 
     if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
       lastMessage.isStreaming = false;
+      this.statusSubject.next('');
       this.messagesSubject.next([...messages]);
       console.log('✅ Streaming message finalized');
     }

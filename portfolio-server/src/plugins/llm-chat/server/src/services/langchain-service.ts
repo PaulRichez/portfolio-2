@@ -929,9 +929,18 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
                 } else if (conversationData.type === 'rag_smart') {
                   // Streaming avec SmartRAGTool
                   console.log('🤖 PaulIA using SmartRAGTool for streaming...');
+
+                  yield `data: ${JSON.stringify({ type: 'status', message: 'Analyse et recherche...' })}\n\n`;
+
+                  // Note: SmartRAGTool fait l'analyse ET la recherche (si nécessaire)
                   const context = await conversationData.smartRAGTool._call(message);
+
+                  yield `data: ${JSON.stringify({ type: 'status', message: 'Lecture du contexte...' })}\n\n`;
+
                   const fullPrompt = await buildPromptWithContext(conversationData.memory, context, message);
                   capturedPrompt = fullPrompt;
+
+                  yield `data: ${JSON.stringify({ type: 'status', message: 'Génération de la réponse...' })}\n\n`;
 
                   const stream = streamCustomModel(conversationData.model, fullPrompt);
 
@@ -949,8 +958,12 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
                 } else if (conversationData.type === 'custom_simple') {
                   // Streaming simple custom
+                  yield `data: ${JSON.stringify({ type: 'status', message: 'Lecture de l\'historique...' })}\n\n`;
+
                   const fullPrompt = await buildPromptWithContext(conversationData.memory, '', message);
                   capturedPrompt = fullPrompt;
+
+                  yield `data: ${JSON.stringify({ type: 'status', message: 'Génération de la réponse...' })}\n\n`;
 
                   const stream = streamCustomModel(conversationData.model, fullPrompt);
 
@@ -968,6 +981,8 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
                 } else {
                   // Streaming simple OpenAI (Zhipu Direct)
+                  yield `data: ${JSON.stringify({ type: 'status', message: 'Génération de la réponse...' })}\n\n`;
+
                   const llm = conversationData.chain.llm;
                   const fullPrompt = await buildPromptWithContext(conversationData.chain.memory, '', message, SYSTEM_PROMPT);
                   capturedPrompt = fullPrompt;

@@ -138,6 +138,15 @@
   color: var(--chatbot-text-secondary);
 }
 
+.status-message {
+  font-size: 0.8rem;
+  color: var(--chatbot-text-secondary);
+  padding-left: 1rem;
+  margin-top: 0.25rem;
+  font-style: italic;
+  animation: pulse 2s infinite;
+}
+
 /* Input Section */
 .input-section {
   margin-top: 1rem;
@@ -215,10 +224,7 @@
 :host ::ng-deep .chatbot-dialog .p-dialog-header .p-dialog-title {
   font-weight: 700;
   font-size: 1.25rem;
-  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-400) 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-color);
 }
 
 :host ::ng-deep .chatbot-dialog .p-dialog-header .p-dialog-header-icons button {
