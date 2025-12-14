@@ -85,7 +85,7 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
         },
         {
           title: "Portfolio V2",
-          image: "/portfolio-v2.png",
+          image: "assets/images/portfolio-v2.png",
           link_demo: "https://paulrichez.fr",
           description: "Mon portfolio personnel actuel. Intègre un agent conversationnel IA (RAG) capable de répondre aux questions sur mes compétences et projets. Architecture moderne avec Strapi 5 et Angular.",
           github_link: "https://github.com/PaulRichez/portfolio-2",
