@@ -36,12 +36,12 @@ services:
       - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET}
       - API_TOKEN_SALT=${API_TOKEN_SALT}
       - APP_KEYS=${APP_KEYS}
-      - CHROMA_URL=${CHROMA_URL}
-      - CUSTOM_LLM_BASE_URL=${CUSTOM_LLM_BASE_URL}
+      # --- LLM chatbot ---
+      # Chat = Zhipu GLM-4-Flash (cloud). Le CV complet est injecté dans le prompt
+      # (pas de RAG, pas de ChromaDB, aucun modèle local).
+      - LLM_PROVIDER=${LLM_PROVIDER:-zhipu}
       - ZHIPU_API_KEY=${ZHIPU_API_KEY}
-    depends_on:
-      - ollama
-      - chromadb
+      - ZHIPU_MODEL_NAME=${ZHIPU_MODEL_NAME:-glm-4-flash}
     restart: unless-stopped
     networks:
       - portfolio_network
@@ -105,79 +105,14 @@ services:
       timeout: 5s
       retries: 5
 
-  # Ollama AI
-  ollama:
-    image: ollama/ollama:latest
-    container_name: portfolio-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-      - ./scripts:/scripts
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    restart: unless-stopped
-    networks:
-      - portfolio_network
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/tags" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    entrypoint: [ "/bin/bash", "-c" ]
-    command: >
-      "ollama serve & sleep 10 && ollama pull qwen2.5:1.5b && ollama pull nomic-embed-text && echo 'Modèle qwen2.5:1.5b téléchargé avec succès!' && wait"
+  # NOTE: Ollama + ChromaDB removed — the chatbot no longer uses RAG/embeddings.
+  # The full CV is injected into the prompt and chat generation runs on Zhipu (cloud),
+  # so the host runs no local AI model.
 
-  # ChromaDB Vector Database
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: portfolio-chromadb
-    ports:
-      - "8001:8000"
-    volumes:
-      - chroma_data:/chroma/chroma
-    environment:
-      - CHROMA_HOST=0.0.0.0
-      - CHROMA_PORT=8000
-      - ALLOW_RESET=TRUE
-    restart: unless-stopped
-    networks:
-      - portfolio_network
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-
-  # NGINX Reverse Proxy (public entry point)
-  nginx:
-    image: nginx:stable
-    container_name: portfolio-nginx
-    depends_on:
-      - angular
-      - strapi
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
-    ports:
-      - "80:80"
-      - "443:443"
-    networks:
-      - portfolio_network
-    restart: unless-stopped
-
-  # Certbot (SSL cert generator)
-  certbot:
-    image: certbot/certbot
-    container_name: certbot
-    volumes:
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
-    networks:
-      - portfolio_network
+  # NOTE: reverse proxy + SSL are handled by Coolify (Traefik + Let's Encrypt).
+  # The old nginx + certbot services were removed — they would clash with
+  # Coolify's Traefik on ports 80/443. Coolify routes the domains to the
+  # `angular` (port 80) and `strapi` (port 1337) services directly.
 
 volumes:
   strapi_data:
@@ -185,10 +120,6 @@ volumes:
   strapi_uploads:
     driver: local
   postgres_data:
-    driver: local
-  ollama_data:
-    driver: local
-  chroma_data:
     driver: local
 
 networks:

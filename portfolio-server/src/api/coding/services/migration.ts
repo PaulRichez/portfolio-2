@@ -127,6 +127,36 @@ export default ({ strapi }) => ({
           category: "frontend_libraries",
           icon: "https://cdn.simpleicons.org/apacheecharts",
           ranking: 2
+        },
+        {
+          name: "TypeScript",
+          category: "frontend_languages",
+          icon: "https://cdn.simpleicons.org/typescript",
+          ranking: 2
+        },
+        {
+          name: "Astro",
+          category: "frontend_frameworks",
+          icon: "https://cdn.simpleicons.org/astro",
+          ranking: 3
+        },
+        {
+          name: "Next.js",
+          category: "frontend_frameworks",
+          icon: "https://cdn.simpleicons.org/nextdotjs/ffffff",
+          ranking: 3
+        },
+        {
+          name: "Tailwind CSS",
+          category: "frontend_libraries",
+          icon: "https://cdn.simpleicons.org/tailwindcss",
+          ranking: 1
+        },
+        {
+          name: "Vite",
+          category: "tools",
+          icon: "https://cdn.simpleicons.org/vite",
+          ranking: 3
         }
       ];
 

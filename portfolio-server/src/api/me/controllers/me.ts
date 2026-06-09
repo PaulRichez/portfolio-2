@@ -32,7 +32,7 @@ module.exports = {
       });
 
       // Fetch projects separately with limit and sorting
-      const limit = projectsLimit ? parseInt(projectsLimit) : 6;
+      const limit = projectsLimit ? parseInt(projectsLimit) : 9;
       const projects = await strapi.entityService.findMany('api::project.project', {
         populate: {
           codings: true
@@ -41,9 +41,19 @@ module.exports = {
         limit: limit
       });
 
+      // Map Strapi field names (link_demo / github_link / link_npm) to the shape
+      // the frontend project cards expect (demoUrl / sourceUrl / npmUrl) so the
+      // "Démo" and "Code" buttons render correctly.
+      const mappedProjects = (projects as any[]).map((p) => ({
+        ...p,
+        demoUrl: p.link_demo ?? null,
+        sourceUrl: p.github_link ?? null,
+        npmUrl: p.link_npm ?? null,
+      }));
+
       // Add projects to entity
       if (entity) {
-        (entity as any).projects = projects;
+        (entity as any).projects = mappedProjects;
       }
 
       return { data: entity };

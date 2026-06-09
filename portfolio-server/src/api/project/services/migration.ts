@@ -2,6 +2,27 @@
 /**
  * Migration service for project data
  */
+
+/**
+ * Build a lightweight SVG "cover" as a data URI so projects that don't have a
+ * captured screenshot still render an attractive, on-brand card. rgb() colors
+ * are used (no '#') so the markup encodes cleanly into the data URI.
+ */
+function makeCover(opts: { title: string; subtitle: string; c1: string; c2: string }): string {
+  const { title, subtitle, c1, c2 } = opts;
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" role="img" aria-label="${title}">` +
+    `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">` +
+    `<stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>` +
+    `<rect width="1200" height="600" fill="rgb(10,9,16)"/>` +
+    `<circle cx="1010" cy="70" r="300" fill="url(#g)" opacity="0.30"/>` +
+    `<circle cx="150" cy="560" r="220" fill="url(#g)" opacity="0.16"/>` +
+    `<text x="80" y="300" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="98" font-weight="800" fill="rgb(255,255,255)">${title}</text>` +
+    `<text x="84" y="362" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="33" fill="rgba(255,255,255,0.72)">${subtitle}</text>` +
+    `</svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
 export default ({ strapi }) => ({
   async populateProjectsData() {
     try {
@@ -92,6 +113,66 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
           link_npm: null,
           ranking: 1,
           codings: ["Angular", "Strapi", "LangChain", "Zhipu AI", "Ollama", "ChromaDB", "PrimeNG", "Nebular", "ECharts"]
+        },
+        {
+          title: "Nebula — AI Analytics Landing",
+          image: makeCover({
+            title: "Nebula",
+            subtitle: "AI analytics SaaS · Astro + Tailwind",
+            c1: "rgb(124,92,255)",
+            c2: "rgb(34,211,238)",
+          }),
+          link_demo: "https://api.paulrichez.fr/nebula/",
+          github_link: "https://github.com/PaulRichez/portfolio-landing/tree/main/nebula-astro",
+          link_npm: null,
+          description: `### Nebula — AI analytics platform (concept landing)
+
+A high-performance marketing landing page built with **Astro 4** and **Tailwind CSS**, shipping
+near-zero JavaScript. It features a hand-coded product dashboard mockup (SVG area & bar charts),
+a bento feature grid, scroll-reveal animations, a pointer-parallax hero glow and complete
+SEO / Open-Graph metadata. Built for a perfect-Lighthouse, static-first delivery.`,
+          ranking: 4,
+          codings: ["Astro", "Tailwind CSS", "TypeScript"]
+        },
+        {
+          title: "Lumina — Creative Studio Landing",
+          image: makeCover({
+            title: "Lumina",
+            subtitle: "Creative studio · Next.js + React",
+            c1: "rgb(212,255,79)",
+            c2: "rgb(255,106,61)",
+          }),
+          link_demo: "https://api.paulrichez.fr/lumina/",
+          github_link: "https://github.com/PaulRichez/portfolio-landing/tree/main/lumina-next",
+          link_npm: null,
+          description: `### Lumina — creative studio (concept landing)
+
+An editorial landing page for a fictional design studio, built with **Next.js 14 (App Router)**,
+**React** and **Tailwind CSS**, exported as a fully static site. Bold oversized typography, an
+infinite marquee, animated project tiles, a pointer-following glow and accessible,
+reduced-motion-aware scroll reveals.`,
+          ranking: 5,
+          codings: ["Next.js", "React", "Tailwind CSS", "TypeScript"]
+        },
+        {
+          title: "Pulse — Fitness App Landing",
+          image: makeCover({
+            title: "Pulse",
+            subtitle: "Fitness app · Vue 3 + Vite",
+            c1: "rgb(255,94,58)",
+            c2: "rgb(255,45,118)",
+          }),
+          link_demo: "https://api.paulrichez.fr/pulse/",
+          github_link: "https://github.com/PaulRichez/portfolio-landing/tree/main/pulse-vue",
+          link_npm: null,
+          description: `### Pulse — fitness app (concept landing)
+
+A product landing page for a fictional fitness coaching app, built with **Vue 3**, **Vite** and
+**Tailwind CSS**. Includes a fully hand-coded phone mockup with animated SVG activity rings, a
+custom \`v-reveal\` scroll directive, a bento feature grid and pricing — responsive from mobile
+to ultra-wide.`,
+          ranking: 7,
+          codings: ["Vue.js", "Vite", "Tailwind CSS", "TypeScript"]
         }
 
       ];

@@ -526,7 +526,7 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
       const memory = new StrapiChatMemory(strapi, sessionId);
 
       // Décider si on utilise un agent avec outils RAG ou une conversation simple
-      const useRAG = options?.useRAG !== false; // RAG activé par défaut
+      const useRAG = false; // RAG désactivé : le CV complet est injecté dans le prompt (buildPromptWithContext)
 
       if (useRAG) {
         // UNIFIED PATH: All providers use SmartRAGTool manually (rag_smart)
@@ -565,8 +565,104 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
   // Note: La fonction executeManualRAG a été remplacée par SmartRAGTool
   // qui gère automatiquement l'analyse et la recherche RAG
 
-  // Méthode pour construire le prompt avec contexte et historique
+  // Construit un bloc texte compact du CV (profil + projets + parcours) injecté dans le prompt.
+  // Remplace tout le pipeline RAG : le corpus est minuscule et tient largement dans la fenêtre
+  // de contexte. Le numéro de téléphone est volontairement exclu (vie privée).
+  const buildCvContext = async (): Promise<string> => {
+    try {
+      const me: any = await strapi.entityService.findMany('api::me.me', {
+        populate: {
+          experiences: true,
+          diplomas: true,
+          languages: true,
+          coding_skills: { populate: { coding: true } },
+        },
+      });
+      const projects: any[] = (await strapi.entityService.findMany('api::project.project', {
+        populate: { codings: true },
+        sort: { ranking: 'asc' },
+      })) as any[];
+
+      const lines: string[] = [];
+
+      if (me) {
+        lines.push('# PROFIL');
+        const fullName = `${me.firstName ?? ''} ${me.lastName ?? ''}`.trim();
+        if (fullName) lines.push(`Nom: ${fullName}`);
+        if (me.postName) lines.push(`Poste: ${me.postName}`);
+        if (me.city) lines.push(`Ville: ${me.city}`);
+        if (me.email) lines.push(`Email: ${me.email}`);
+        if (me.website) lines.push(`Site: ${me.website}`);
+        if (me.github) lines.push(`GitHub: ${me.github}`);
+        if (me.linkedin) lines.push(`LinkedIn: ${me.linkedin}`);
+        // NOTE: phoneNumber volontairement NON inclus (vie privée).
+
+        if (Array.isArray(me.languages) && me.languages.length) {
+          lines.push(`Langues: ${me.languages.map((l: any) => `${l.name} (${l.value}%)`).join(', ')}`);
+        }
+        if (Array.isArray(me.coding_skills) && me.coding_skills.length) {
+          const skills = me.coding_skills
+            .map((s: any) => {
+              const n = s.coding?.name ?? '';
+              return n && s.level ? `${n} (${s.level})` : n;
+            })
+            .filter(Boolean)
+            .join(', ');
+          if (skills) lines.push(`Compétences: ${skills}`);
+        }
+
+        if (Array.isArray(me.experiences) && me.experiences.length) {
+          lines.push('\n# EXPÉRIENCES');
+          me.experiences.forEach((e: any) => {
+            const period = `${e.startDate ?? ''}${e.endDate ? ' → ' + e.endDate : ' → en cours'}`;
+            lines.push(`- ${e.title ?? ''} @ ${e.business ?? ''} (${period})`);
+            if (e.descriptions) {
+              const d = Array.isArray(e.descriptions) ? e.descriptions.join(' ') : String(e.descriptions);
+              if (d && d.trim() && d !== '[object Object]') lines.push(`  ${d.trim()}`);
+            }
+          });
+        }
+
+        if (Array.isArray(me.diplomas) && me.diplomas.length) {
+          lines.push('\n# FORMATION');
+          me.diplomas.forEach((d: any) => {
+            const period = `${d.startDate ?? ''}${d.endDate ? ' → ' + d.endDate : ''}`;
+            lines.push(`- ${d.title ?? ''} (${period})${d.description ? ' — ' + d.description : ''}`);
+          });
+        }
+      }
+
+      if (projects && projects.length) {
+        lines.push('\n# PROJETS');
+        projects.forEach((p: any) => {
+          const techs = Array.isArray(p.codings) ? p.codings.map((c: any) => c.name).filter(Boolean).join(', ') : '';
+          const rank = p.ranking != null ? ` [priorité ${p.ranking}]` : '';
+          lines.push(`- ${p.title ?? ''}${rank}${techs ? ' — Techs: ' + techs : ''}`);
+          if (p.description) {
+            const desc = String(p.description).replace(/\s+/g, ' ').trim();
+            if (desc) lines.push(`  ${desc.slice(0, 400)}`);
+          }
+          const links = [
+            p.link_demo && `Démo: ${p.link_demo}`,
+            p.github_link && `Code: ${p.github_link}`,
+            p.link_npm && `NPM: ${p.link_npm}`,
+          ]
+            .filter(Boolean)
+            .join(' | ');
+          if (links) lines.push(`  ${links}`);
+        });
+      }
+
+      return lines.join('\n');
+    } catch (error) {
+      strapi.log.error('❌ buildCvContext error:', error);
+      return '';
+    }
+  };
+
+  // Méthode pour construire le prompt avec le CV injecté + l'historique
   const buildPromptWithContext = async (memory: any, context: string, message: string, systemPrompt: string = SYSTEM_PROMPT) => {
+    const cv = await buildCvContext();
     const memoryVariables = await memory.loadMemoryVariables({});
     const historyString = memoryVariables.history ?
       memoryVariables.history.map(msg => {
@@ -576,11 +672,10 @@ const langchainService = ({ strapi }: { strapi: Core.Strapi }) => {
 
     const separator = "--------------------------------------------------";
 
-    if (context) {
-      return `${systemPrompt}\n\n${separator}\nCONTEXTE (Informations de la base de données):\n${context}\n${separator}\n\nHISTORIQUE:\n${historyString}\n\nUser: ${message}\n\nPaul:`;
-    } else {
-      return `${systemPrompt}\n\n${separator}\nHISTORIQUE:\n${historyString}\n\nUser: ${message}\n\nPaul:`;
-    }
+    // `context` (ancien RAG) est normalement vide désormais ; conservé par compat.
+    const contextBlock = [cv, context].filter(Boolean).join('\n\n');
+
+    return `${systemPrompt}\n\n${separator}\nCONTEXTE (mes vraies infos — profil, projets, parcours, compétences) :\n${contextBlock}\n${separator}\n\nHISTORIQUE:\n${historyString}\n\nUser: ${message}\n\nPaul:`;
   };
 
   return {

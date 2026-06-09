@@ -19,6 +19,12 @@
       "type": "string",
       "required": true
     },
+    "photo": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
     "city": {
       "type": "string"
     },

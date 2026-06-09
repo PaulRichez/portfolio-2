@@ -66,6 +66,7 @@ const controller = ({ strapi }: { strapi: Core.Strapi }) => ({
       // Configurer les headers pour Server-Sent Events
       const allowedOrigins = [
         'https://paulrichez.fr',
+        'http://localhost:4200',
         'http://localhost:4201',
         'http://localhost:3000'
       ];

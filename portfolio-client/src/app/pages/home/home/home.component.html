@@ -3,14 +3,14 @@
 </div>
 
 <div *ngIf="!loading" class="w-full max-w-6xl mx-auto flex flex-col gap-12 p-4">
-  <app-me [me]="me"></app-me>
+  <app-me id="about" class="scroll-mt-24" [me]="me"></app-me>
 
-  <app-projects [projects]="me?.projects || []"></app-projects>
+  <app-projects id="projects" class="scroll-mt-24" [projects]="me?.projects || []"></app-projects>
 
-  <app-experiences [experiences]="me?.experiences || []"></app-experiences>
+  <app-experiences id="experience" class="scroll-mt-24" [experiences]="me?.experiences || []"></app-experiences>
 
-  <app-education [diplomas]="me?.diplomas || []"></app-education>
+  <app-education id="education" class="scroll-mt-24" [diplomas]="me?.diplomas || []"></app-education>
 
-  <app-codings [coding_skills]="me?.coding_skills || []"></app-codings>
+  <app-codings id="skills" class="scroll-mt-24" [coding_skills]="me?.coding_skills || []"></app-codings>
 
 </div>

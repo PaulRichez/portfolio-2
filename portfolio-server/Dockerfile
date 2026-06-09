@@ -27,8 +27,11 @@ COPY . .
 # Set NODE_ENV to production
 ENV NODE_ENV=production
 
-# ✅ Install dependencies with workspace awareness
-RUN npm ci --omit=dev --legacy-peer-deps
+# ✅ Install ALL deps (incl. dev). The custom `llm-chat` plugin compiles during
+#    `npm run build` and needs its build tools (typescript, @strapi/sdk-plugin),
+#    which are devDependencies — so we must NOT use --omit=dev here.
+#    (.npmrc sets legacy-peer-deps; the flag is kept explicit as a safety net.)
+RUN npm ci --legacy-peer-deps
 
 # ✅ Build Strapi (and any plugins if needed)
 RUN npm run build

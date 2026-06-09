@@ -7,6 +7,7 @@ export default [
   config: {
     enabled: true,
     origin: [
+      'http://localhost:4200',
       'http://localhost:4201',
       'http://192.168.1.32:3000',
       'http://localhost:3000',
