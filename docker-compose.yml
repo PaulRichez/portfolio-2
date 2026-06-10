@@ -4,6 +4,7 @@ services:
   # Angular Frontend — image construite par GitHub Actions (ghcr.io), Coolify la pull.
   angular:
     image: ghcr.io/paulrichez/portfolio-2-client:latest
+    pull_policy: always   # Docker ne re-pull pas un :latest deja en cache → on force
     container_name: portfolio-angular
     ports:
       - "3000:80"
@@ -17,6 +18,7 @@ services:
   # Strapi Backend (SQLite) — image construite par GitHub Actions (ghcr.io), Coolify la pull.
   strapi:
     image: ghcr.io/paulrichez/portfolio-2-server:latest
+    pull_policy: always   # idem : force le pull de la derniere image construite
     container_name: portfolio-strapi
     ports:
       - "1337:1337"
