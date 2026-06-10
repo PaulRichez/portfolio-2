@@ -129,13 +129,13 @@ function dateRange(start: string, end: string) {
   const ey = yearOf(end);
   return sy === ey ? sy : `${sy} - ${ey}`;
 }
-function langLabel(v: number) {
+export function langLabel(v: number) {
   if (v == null) return 'notions';
   if (v >= 95) return 'natif'; if (v >= 85) return 'courant'; if (v >= 70) return 'avancé';
   if (v >= 50) return 'intermédiaire'; if (v >= 30) return 'notions'; return 'débutant';
 }
 // Regroupe les compétences en familles compactes (front / back / ai / tools / legacy).
-function bucketSkills(skills: any[]) {
+export function bucketSkills(skills: any[]) {
   const map: Record<string, string> = {
     frontend_languages: 'frontend', frontend_frameworks: 'frontend', frontend_libraries: 'frontend',
     backend: 'backend', databases: 'tools', devops_tools: 'tools', tools: 'tools',
@@ -160,10 +160,10 @@ function joinDesc(e: any) {
 }
 
 /* ---- Construction des lignes de code ---- */
-type Span = { t: string; c: string; href?: string };
-type CodeLine = { indent: number; spans: Span[] };
+export type Span = { t: string; c: string; href?: string };
+export type CodeLine = { indent: number; spans: Span[] };
 
-function buildLines(me: any): CodeLine[] {
+export function buildLines(me: any): CodeLine[] {
   const lines: CodeLine[] = [];
   const sp = (t: string, c = 'punc'): Span => ({ t, c });
   const str = (t: string): Span => ({ t: `"${t}"`, c: 'str' });
@@ -263,6 +263,11 @@ function buildLines(me: any): CodeLine[] {
     sp('   // ', 'com'), sp('disponible · open to work', 'com'));
 
   return lines;
+}
+
+/** Rend les lignes en texte brut (2 espaces d'indentation) — pour le fichier `cv/paul-richez.ts` du VFS. */
+export function linesToText(lines: CodeLine[]): string {
+  return lines.map((l) => '  '.repeat(l.indent) + l.spans.map((s) => s.t).join('')).join('\n');
 }
 
 /* ---- Rendu ---- */

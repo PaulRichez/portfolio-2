@@ -157,6 +157,12 @@ export default ({ strapi }) => ({
           category: "tools",
           icon: "https://cdn.simpleicons.org/vite",
           ranking: 3
+        },
+        {
+          name: "Transformers.js",
+          category: "ai",
+          icon: "https://cdn.simpleicons.org/huggingface",
+          ranking: 1
         }
       ];
 

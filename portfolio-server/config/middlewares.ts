@@ -1,7 +1,27 @@
 export default [
   'strapi::logger',
   'strapi::errors',
-  'strapi::security',
+  {
+    name: 'strapi::security',
+    config: {
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          'connect-src': ["'self'", 'https:'],
+          'img-src': ["'self'", 'data:', 'blob:', 'market-assets.strapi.io'],
+          'media-src': ["'self'", 'data:', 'blob:'],
+          // autorise le front à afficher le CV PDF (servi par Strapi) en iframe
+          'frame-ancestors': [
+            "'self'",
+            'http://localhost:4200',
+            'http://localhost:4201',
+            'https://paulrichez.fr',
+          ],
+          upgradeInsecureRequests: null,
+        },
+      },
+    },
+  },
 {
   name: 'strapi::cors',
   config: {

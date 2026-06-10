@@ -36,12 +36,13 @@ services:
       - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET}
       - API_TOKEN_SALT=${API_TOKEN_SALT}
       - APP_KEYS=${APP_KEYS}
-      # --- LLM chatbot ---
-      # Chat = Zhipu GLM-4-Flash (cloud). Le CV complet est injecté dans le prompt
-      # (pas de RAG, pas de ChromaDB, aucun modèle local).
+      # --- Chatbot IA ---
+      # Chat = Zhipu GLM-4.5-Flash (cloud, gratuit). Assistant agentique : il lit
+      # le système de fichiers virtuel du portfolio via des tool calls (read_file /
+      # open_file). Aucun modèle local, pas de RAG.
       - LLM_PROVIDER=${LLM_PROVIDER:-zhipu}
       - ZHIPU_API_KEY=${ZHIPU_API_KEY}
-      - ZHIPU_MODEL_NAME=${ZHIPU_MODEL_NAME:-glm-4-flash}
+      - ZHIPU_MODEL_NAME=${ZHIPU_MODEL_NAME:-glm-4.5-flash}
     restart: unless-stopped
     networks:
       - portfolio_network

@@ -3,12 +3,26 @@ import { HttpClient, HttpHeaders, HttpEventType } from '@angular/common/http';
 import { Observable, Subject, BehaviorSubject } from 'rxjs';
 import { environment } from '../../environments/environment';
 
+export interface ToolInvocation {
+  id: string;
+  name: string;
+  args: any;
+  status: 'running' | 'done' | 'error';
+  result?: string; // contenu lu/retourné par l'outil (chip dépliable)
+}
+
+export type MessagePart =
+  | { type: 'text'; content: string }
+  | { type: 'tool'; tool: ToolInvocation };
+
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: string;
-  isStreaming?: boolean; // Nouveau: indique si le message est en cours de streaming
+  isStreaming?: boolean; // message en cours de streaming
   isError?: boolean;
+  /** Pour un message assistant : suite ordonnée de blocs (texte + outils inline). */
+  parts?: MessagePart[];
 }
 
 export interface ChatSession {
@@ -30,7 +44,7 @@ export interface ChatResponse {
   providedIn: 'root'
 })
 export class ChatbotService {
-  private readonly API_URL = environment.apiUrl + '/llm-chat';
+  private readonly API_URL = environment.apiUrl + '/chat';
   private readonly SESSION_STORAGE_KEY = 'chatbot-session-id';
   private messagesSubject = new BehaviorSubject<ChatMessage[]>([]);
   private loadingSubject = new BehaviorSubject<boolean>(false);
@@ -38,10 +52,14 @@ export class ChatbotService {
   private suggestionsSubject = new BehaviorSubject<string[]>([]);
   private currentSessionId: string | null = null;
 
+  private openFileSubject = new Subject<string>();
+
   public messages$ = this.messagesSubject.asObservable();
   public loading$ = this.loadingSubject.asObservable();
   public status$ = this.statusSubject.asObservable();
   public suggestions$ = this.suggestionsSubject.asObservable();
+  /** Émis quand l'IA demande d'ouvrir un fichier (tool open_file). */
+  public openFile$ = this.openFileSubject.asObservable();
 
   constructor(private http: HttpClient) {
     // Initialiser avec une session existante ou en créer une nouvelle
@@ -138,6 +156,7 @@ export class ChatbotService {
    */
   sendMessage(message: string): Observable<ChatResponse> {
     this.loadingSubject.next(true);
+    this.suggestionsSubject.next([]); // vider les anciennes suggestions le temps de la réponse
 
     return new Observable<ChatResponse>(observer => {
       if (!this.currentSessionId) {
@@ -219,30 +238,30 @@ export class ChatbotService {
 
                   if (data.type === 'start') {
                     sessionId = data.sessionId || sessionId;
-
                     if (!hasStarted) {
-                      const userMessage: ChatMessage = {
-                        role: 'user',
-                        content: message,
-                        timestamp: new Date().toISOString()
-                      };
-                      this.addMessage(userMessage);
+                      this.addMessage({ role: 'user', content: message, timestamp: new Date().toISOString() });
+                      // coquille assistant : préambule, outils et réponse s'y agrègent en parts
+                      this.addMessage({ role: 'assistant', content: '', parts: [], timestamp: new Date().toISOString(), isStreaming: true });
                       hasStarted = true;
                     }
 
                   } else if (data.type === 'chunk') {
-                    if (data.content) {
-                      currentResponse += data.content;
-                      this.updateStreamingMessage(currentResponse);
-                    }
+                    if (data.content) { currentResponse += data.content; this.appendAssistantText(data.content); }
 
                   } else if (data.type === 'status') {
                     this.statusSubject.next(data.message);
 
                   } else if (data.type === 'suggestions') {
-                    if (data.content && Array.isArray(data.content)) {
-                      this.suggestionsSubject.next(data.content);
-                    }
+                    if (data.content && Array.isArray(data.content)) this.suggestionsSubject.next(data.content);
+
+                  } else if (data.type === 'tool_call') {
+                    this.addAssistantTool({ id: data.id, name: data.name, args: data.args || {}, status: 'running' });
+
+                  } else if (data.type === 'tool_result') {
+                    this.updateAssistantTool(data.id, data.ok === false ? 'error' : 'done', data.result);
+
+                  } else if (data.type === 'open_file') {
+                    if (data.path) this.openFileSubject.next(data.path);
 
                   } else if (data.type === 'complete') {
                     // Update final with history if provided, or just current response
@@ -303,47 +322,41 @@ export class ChatbotService {
   /**
    * Met à jour un message en streaming
    */
-  updateStreamingMessage(content: string): void {
+  /** Ajoute du texte à la coquille assistant (dernier message) : nouveau bloc texte ou suite du dernier. */
+  private appendAssistantText(delta: string): void {
     const messages = this.messagesSubject.value;
-    const lastMessage = messages[messages.length - 1];
+    const a = messages[messages.length - 1];
+    if (!a || a.role !== 'assistant' || !a.parts) return;
+    const last = a.parts[a.parts.length - 1];
+    if (last && last.type === 'text') last.content += delta;
+    else a.parts.push({ type: 'text', content: delta });
+    a.content += delta;
+    this.messagesSubject.next([...messages]);
+  }
 
-    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
-      // Mettre à jour le contenu du message en cours
-      // Check for suggestions tag
-      const suggestionRegex = /\[\[SUGGESTIONS:(.*?)\]\]/;
-      const match = content.match(suggestionRegex);
+  /** Ajoute un bloc outil (chip) inline dans la réponse assistant en cours. */
+  private addAssistantTool(tool: ToolInvocation): void {
+    const messages = this.messagesSubject.value;
+    const a = messages[messages.length - 1];
+    if (!a || a.role !== 'assistant' || !a.parts) return;
+    a.parts.push({ type: 'tool', tool });
+    this.messagesSubject.next([...messages]);
+  }
 
-      let displayContent = content;
-
-      if (match) {
-        try {
-          const rawSuggestions = match[1];
-          const suggestions = rawSuggestions.split('|').map(s => s.trim().replace(/^\?+/, '').replace(/\?+$/, '?')); // Ensure distinct items and maybe single '?'
-
-          // Emit suggestions only if we haven't already (or just update)
-          // We can just next it.
-          this.suggestionsSubject.next(suggestions);
-
-          // Remove tag from content for display
-          displayContent = content.replace(match[0], '').trim();
-        } catch (e) {
-          console.warn('Error parsing suggestions:', e);
-        }
+  /** Met à jour le statut (et le résultat) d'un bloc outil par id. */
+  private updateAssistantTool(id: string, status: ToolInvocation['status'], result?: string): void {
+    const messages = this.messagesSubject.value;
+    const a = messages[messages.length - 1];
+    if (!a || a.role !== 'assistant' || !a.parts) return;
+    for (let i = a.parts.length - 1; i >= 0; i--) {
+      const p = a.parts[i];
+      if (p.type === 'tool' && p.tool.id === id) {
+        p.tool.status = status;
+        if (result !== undefined) p.tool.result = result;
+        break;
       }
-
-      lastMessage.content = displayContent;
-      // Force update reference to trigger change detection if needed, or simple mutation
-      this.messagesSubject.next([...messages]);
-    } else {
-      // Créer un nouveau message streaming
-      const streamingMessage: ChatMessage = {
-        role: 'assistant',
-        content: content,
-        timestamp: new Date().toISOString(),
-        isStreaming: true
-      };
-      this.messagesSubject.next([...messages, streamingMessage]);
     }
+    this.messagesSubject.next([...messages]);
   }
 
   /**

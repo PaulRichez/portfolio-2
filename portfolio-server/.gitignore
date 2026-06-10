@@ -130,3 +130,6 @@ dist
 build
 .strapi-updater.json
 .strapi-cloud.json
+# Harnais de preview local (CV / VFS / chat)
+.preview/
+cv-preview.pdf

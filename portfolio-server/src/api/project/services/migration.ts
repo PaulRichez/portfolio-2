@@ -108,11 +108,33 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
           title: "Portfolio V2",
           image: "assets/images/portfolio-v2.png",
           link_demo: "https://paulrichez.fr",
-          description: "Mon portfolio personnel actuel. Intègre un agent conversationnel IA (RAG) capable de répondre aux questions sur mes compétences et projets. Architecture moderne avec Strapi 5 et Angular.",
+          description: "Ce portfolio, repensé comme un **éditeur de code façon VS Code** : explorateur de fichiers, onglets, thèmes clair/sombre, et un **assistant IA agentique** qui lit mes fichiers en direct via des *tool calls* (`read_file`, `open_file`) pour répondre et ouvrir les projets dans l'éditeur. Contenus générés depuis Strapi (système de fichiers virtuel), CV PDF généré à la volée.",
           github_link: "https://github.com/PaulRichez/portfolio-2",
           link_npm: null,
           ranking: 1,
-          codings: ["Angular", "Strapi", "LangChain", "Zhipu AI", "Ollama", "ChromaDB", "PrimeNG", "Nebular", "ECharts"]
+          codings: ["Angular", "TypeScript", "Strapi", "Zhipu AI", "Docker"]
+        },
+        {
+          title: "Aimi — Assistant IA 100% navigateur",
+          image: makeCover({
+            title: "Aimi",
+            subtitle: "LLM dans le navigateur · zéro serveur · Transformers.js",
+            c1: "rgb(139,92,246)",
+            c2: "rgb(16,185,129)",
+          }),
+          link_demo: null,
+          github_link: null,
+          link_npm: null,
+          description: `### Aimi — assistant IA privacy-first, 100% dans le navigateur
+
+Un assistant IA qui exécute des modèles de langage **directement dans le navigateur** (Transformers.js + ONNX), **sans aucun serveur** : les données ne quittent jamais la machine de l'utilisateur.
+
+- Moteur de chat en **web components vanilla** (zéro dépendance, ~10 kB gzip)
+- Providers LLM interchangeables (Transformers.js, Ollama, Anthropic, Gemini…)
+- **Fine-tuning LoRA** local du modèle (LFM2.5) pour spécialiser l'assistant
+- Monorepo **NX + pnpm**, application de chat **Angular 19**`,
+          ranking: 1,
+          codings: ["Transformers.js", "Angular", "TypeScript"]
         },
         {
           title: "Nebula — AI Analytics Landing",

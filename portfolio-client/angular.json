@@ -41,7 +41,7 @@
             ],
             "styles": [
               "src/styles.scss",
-              "node_modules/prismjs/themes/prism-okaidia.css"
+              "node_modules/@vscode/codicons/dist/codicon.css"
             ],
             "scripts": [
 
