@@ -36,6 +36,15 @@ const descList = (d: any): string[] =>
   Array.isArray(d) ? d.filter(Boolean) : (d ? [d] : []);
 const strip = (u: string) => (u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '');
 const httpify = (u: string) => (!u ? '' : (u.startsWith('http') ? u : `https://${u}`));
+const ageFrom = (b: string): number | null => {
+  if (!b) return null;
+  const d = new Date(b); if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let a = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a--;
+  return a;
+};
 
 function languageOf(path: string): FileLanguage {
   if (path.endsWith('.md')) return 'markdown';
@@ -49,9 +58,11 @@ function languageOf(path: string): FileLanguage {
 /* ---- Générateurs de contenu ---- */
 function readmeMd(me: any, cvUrl: string): string {
   const name = `${me.firstName || ''} ${me.lastName || ''}`.trim();
+  const age = ageFrom(me.birthDay);
+  const sub = [me.city ? `${me.city}, France` : '', age ? `${age} ans` : ''].filter(Boolean).join(' · ');
   return `# 👋 ${name}
 
-**${me.postName || 'Développeur'}**${me.city ? ` — ${me.city}, France` : ''}
+**${me.postName || 'Développeur'}**${sub ? ` — ${sub}` : ''}
 
 Bienvenue dans mon portfolio, présenté comme mon outil de travail quotidien : un éditeur de code.
 
@@ -65,7 +76,7 @@ Bienvenue dans mon portfolio, présenté comme mon outil de travail quotidien : 
 
 | | |
 |---|---|
-| 📄 **CV** | [Télécharger le PDF](${cvUrl}) — ou ouvrez \`cv/paul-richez.ts\` |
+| 📄 **CV** | [Ouvrir le CV (PDF)](${cvUrl}) — ou \`cv/paul-richez.ts\` |
 | 🚀 **Projets** | dossier \`projects/\` |
 | 💼 **Parcours** | dossier \`experience/\` |
 | ✉️ **Contact** | [${me.email}](mailto:${me.email}) — ou \`contact.md\` |
@@ -184,8 +195,9 @@ export default ({ strapi }: { strapi: any }) => ({
       sort: { ranking: 'asc' },
     })) || [];
 
-    const base = strapi.config.get('server.url', '') || 'http://localhost:1337';
-    const cvUrl = `${base}/api/me/cv`;
+    // Route interne du front (vue PDF de l'IDE, avec son bouton de téléchargement).
+    // Lien relatif → correct en dev comme en prod, aucune URL serveur à configurer.
+    const cvUrl = '/cv/cv';
     const files: VfsFile[] = [];
     const add = (path: string, content: string) =>
       files.push({ path, language: languageOf(path), content });
