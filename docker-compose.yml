@@ -49,58 +49,10 @@ services:
       retries: 3
       start_period: 60s
 
-  # Strapi with PostgreSQL
-  strapi-postgres:
-    build:
-      context: ./portfolio-server
-      dockerfile: Dockerfile
-    container_name: portfolio-strapi-postgres
-    ports:
-      - "1337:1337"
-    volumes:
-      - strapi_uploads:/app/public/uploads
-    environment:
-      - NODE_ENV=production
-      - DATABASE_CLIENT=postgres
-      - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_NAME=${POSTGRES_DB}
-      - DATABASE_USERNAME=${POSTGRES_USER}
-      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
-      - HOST=0.0.0.0
-      - PORT=1337
-      - JWT_SECRET=${JWT_SECRET}
-      - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET}
-      - API_TOKEN_SALT=${API_TOKEN_SALT}
-      - APP_KEYS=${APP_KEYS}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - portfolio_network
-    profiles: [ "postgres" ]
-
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: portfolio-postgres
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    restart: unless-stopped
-    networks:
-      - portfolio_network
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # NOTE: Strapi tourne en SQLite (volume strapi_data). Les anciens services
+  # postgres/strapi-postgres ont été retirés : Coolify ne respectait pas le
+  # `profiles` et lançait un postgres en crash-loop. Pour passer en Postgres,
+  # utiliser une base Coolify dédiée + DATABASE_CLIENT=postgres en variables.
 
   # NOTE: Ollama + ChromaDB removed — the chatbot no longer uses RAG/embeddings.
   # The full CV is injected into the prompt and chat generation runs on Zhipu (cloud),
@@ -115,8 +67,6 @@ volumes:
   strapi_data:
     driver: local
   strapi_uploads:
-    driver: local
-  postgres_data:
     driver: local
 
 networks:
