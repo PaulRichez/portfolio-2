@@ -12,6 +12,7 @@ services:
     restart: unless-stopped
     networks:
       - portfolio_network
+      - coolify   # réseau du proxy Coolify (Traefik) : routage déterministe du front
 
   # Strapi Backend (SQLite) — image construite par GitHub Actions (ghcr.io), Coolify la pull.
   strapi:
