@@ -58,8 +58,16 @@ jobs:
           COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
-          if [ -n "$COOLIFY_WEBHOOK" ] && [ -n "$COOLIFY_TOKEN" ]; then
-            curl -fsSL -X GET "$COOLIFY_WEBHOOK" -H "Authorization: Bearer $COOLIFY_TOKEN" || true
-          else
-            echo "ℹ️ COOLIFY_WEBHOOK/COOLIFY_TOKEN non définis — déploiement manuel dans Coolify."
+          echo "WEBHOOK défini : $([ -n "$COOLIFY_WEBHOOK" ] && echo oui || echo NON)"
+          echo "TOKEN défini   : $([ -n "$COOLIFY_TOKEN" ] && echo oui || echo NON)"
+          if [ -z "$COOLIFY_WEBHOOK" ] || [ -z "$COOLIFY_TOKEN" ]; then
+            echo "::warning::Secret(s) manquant(s) — pas d'appel webhook."; exit 0
+          fi
+          # Masque la query (uuid) mais montre le host appelé
+          echo "Appel : $(echo "$COOLIFY_WEBHOOK" | sed 's/?.*$/?***/')"
+          code=$(curl -sS -o /tmp/resp -w "%{http_code}" -X GET "$COOLIFY_WEBHOOK" -H "Authorization: Bearer $COOLIFY_TOKEN" || echo "000")
+          echo "HTTP $code"
+          echo "Réponse Coolify :"; cat /tmp/resp 2>/dev/null | head -c 800; echo
+          if [ "$code" != "200" ] && [ "$code" != "201" ]; then
+            echo "::warning::Coolify a répondu $code (≠ 2xx) — le déploiement ne s'est pas déclenché."
           fi
