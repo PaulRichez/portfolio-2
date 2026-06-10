@@ -1,11 +1,9 @@
 version: "3.8"
 
 services:
-  # Angular Frontend
+  # Angular Frontend — image construite par GitHub Actions (ghcr.io), Coolify la pull.
   angular:
-    build:
-      context: ./portfolio-client
-      dockerfile: Dockerfile
+    image: ghcr.io/paulrichez/portfolio-2-client:latest
     container_name: portfolio-angular
     ports:
       - "3000:80"
@@ -15,11 +13,9 @@ services:
     networks:
       - portfolio_network
 
-  # Strapi Backend (Default with SQLite)
+  # Strapi Backend (SQLite) — image construite par GitHub Actions (ghcr.io), Coolify la pull.
   strapi:
-    build:
-      context: ./portfolio-server
-      dockerfile: Dockerfile
+    image: ghcr.io/paulrichez/portfolio-2-server:latest
     container_name: portfolio-strapi
     ports:
       - "1337:1337"
