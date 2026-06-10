@@ -17,21 +17,20 @@ export default {
    * run jobs, or perform some special logic.
    */
   async bootstrap({ strapi }) {
-    // Seed initial : automatique si la base est VIDE (1er déploiement Coolify),
-    // ou forcé via SEED_FORCE=true (utile en dev pour réappliquer les migrations,
-    // ex. ajout du projet Aimi). Tout est idempotent (create-or-update par nom/titre),
-    // donc relancer ne crée pas de doublons et n'écrase pas tes éditions admin
-    // au-delà des champs seedés.
+    // Seed automatique à CHAQUE démarrage (donc à chaque déploiement Coolify).
+    // Tout est idempotent : upsert du single type `me` (la photo uploadée en admin
+    // est préservée, elle n'est pas dans le payload) + create-or-update des projets
+    // par titre. Le contenu de référence vit dans le code (migration.ts) et se
+    // resynchronise tout seul — aucun SEED_FORCE à gérer.
+    // ⚠️ Conséquence : les champs seedés sont pilotés par le code ; une édition de
+    // ces champs faite dans l'admin sera ré-appliquée depuis le code au prochain
+    // déploiement (les médias comme la photo, eux, ne sont jamais touchés).
     try {
-      const force = process.env.SEED_FORCE === 'true';
-      const existing = await strapi.entityService.findMany('api::project.project', { fields: ['id'], limit: 1 });
-      if (force || !existing || existing.length === 0) {
-        strapi.log.info('🌱 Seed des données (base vide ou SEED_FORCE)…');
-        await strapi.service('api::me.migration').populateAllData();
-        strapi.log.info('✅ Seed terminé.');
-      }
+      strapi.log.info('🌱 Synchronisation du contenu (seed idempotent)…');
+      await strapi.service('api::me.migration').populateAllData();
+      strapi.log.info('✅ Contenu à jour.');
     } catch (e) {
-      strapi.log.error('Seed initial échoué : ' + ((e as Error)?.message || e));
+      strapi.log.error('Seed échoué : ' + ((e as Error)?.message || e));
     }
   },
 };
