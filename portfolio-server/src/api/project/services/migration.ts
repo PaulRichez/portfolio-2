@@ -122,7 +122,7 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
             c1: "rgb(139,92,246)",
             c2: "rgb(16,185,129)",
           }),
-          link_demo: null,
+          link_demo: "https://aimi.paulrichez.fr",
           github_link: null,
           link_npm: null,
           description: `### Aimi — assistant IA privacy-first, 100% dans le navigateur

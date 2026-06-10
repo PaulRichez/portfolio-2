@@ -29,12 +29,10 @@ export default ({ strapi }) => ({
     try {
       console.log('Starting me data population...');
 
-      // Check if data already exists
+      // Upsert : on NE supprime PAS l'entrée existante (sinon on perdrait la photo
+      // uploadée + toute édition). On la met à jour (la photo n'est pas dans meData
+      // → elle est préservée), sinon on crée.
       const existingMe = await strapi.entityService.findMany('api::me.me');
-      if (existingMe) {
-        await strapi.service('api::me.migration').deleteMeData();
-        console.log('Me data already exists, deleting existing data...');
-      }
 
       // Helper function to get coding skills with IDs
       const getCodingSkills = async () => {
@@ -184,12 +182,12 @@ export default ({ strapi }) => ({
         coding_skills: codingSkills
       };
 
-      // Create the me entry with all components
-      const result = await strapi.entityService.create('api::me.me', {
-        data: meData
-      });
+      // Update si l'entrée existe (préserve la photo), sinon create.
+      const result = existingMe
+        ? await strapi.entityService.update('api::me.me', (existingMe as any).id, { data: meData })
+        : await strapi.entityService.create('api::me.me', { data: meData });
 
-      console.log('Me data populated successfully:', result.id);
+      console.log(`Me data ${existingMe ? 'updated' : 'created'} successfully:`, result.id);
       return result;
     } catch (error) {
       console.error('Failed to populate me data:', error);
