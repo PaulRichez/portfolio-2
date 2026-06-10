@@ -131,7 +131,11 @@ export default ({ strapi }) => ({
             title: "Développeur Fullstack",
             business: "Rewayz",
             businessWebsite: "https://rewayz.com",
-            descriptions: ["Développement d'une plateforme web avec Angular et Strapi"]
+            descriptions: [
+              "Lead développeur d'un SaaS B2B « copilote du manager » : architecture et décisions techniques de bout en bout.",
+              "Fullstack Angular (front) + Strapi (back) : produit, API, provisioning SCIM, emails transactionnels.",
+              "Intégration de l'IA : interface de chat et affichage du streaming temps réel."
+            ]
           },
           {
             startDate: "2020-07-07",
