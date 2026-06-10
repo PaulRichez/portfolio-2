@@ -10,6 +10,10 @@ export default [
           'connect-src': ["'self'", 'https:'],
           'img-src': ["'self'", 'data:', 'blob:', 'market-assets.strapi.io'],
           'media-src': ["'self'", 'data:', 'blob:'],
+          // landings statiques (Astro/Next/Vue) servies via public/ : elles
+          // embarquent des scripts/styles inline (hydratation, islands) → autorisé.
+          'script-src': ["'self'", "'unsafe-inline'"],
+          'style-src': ["'self'", "'unsafe-inline'", 'https:'],
           // autorise le front à afficher le CV PDF (servi par Strapi) en iframe
           'frame-ancestors': [
             "'self'",
