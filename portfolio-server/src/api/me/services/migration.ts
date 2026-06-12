@@ -89,9 +89,9 @@ export default ({ strapi }) => ({
         city: "Lille",
         birthDay: "1992-09-08",
         phoneNumber: "07 77 30 19 65",
-        email: "paul.richez59@gmail.com",
+        email: "pro@paulrichez.fr",
         postName: "Développeur Fullstack",
-        linkedin: "https://www.linkedin.com/in/paul-richez/",
+        linkedin: "", // masqué tant que le compte LinkedIn est désactivé — restaurer "https://www.linkedin.com/in/paul-richez/" quand réactivé
         github: "https://github.com/PaulRichez",
         website: "https://paulrichez.fr",
 

@@ -11,7 +11,7 @@ import { IdeStateService } from '../services/ide-state.service';
     </div>
     <nav class="menus">
       <span>Fichier</span><span>Édition</span><span>Affichage</span><span>Aller</span><a
-        class="menu-link" href="mailto:paul.richez59@gmail.com?subject=Contact%20via%20portfolio"
+        class="menu-link" href="mailto:pro@paulrichez.fr?subject=Contact%20via%20portfolio"
         target="_blank" rel="noopener">Aide</a>
     </nav>
     <div class="title">{{ title() }}</div>

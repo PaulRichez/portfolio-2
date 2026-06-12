@@ -20,9 +20,6 @@ import { IdeStateService } from '../services/ide-state.service';
       <a class="item" href="https://github.com/PaulRichez" target="_blank" rel="noopener" title="GitHub">
         <i class="codicon codicon-github-inverted"></i>
       </a>
-      <a class="item" href="https://www.linkedin.com/in/paul-richez/" target="_blank" rel="noopener" title="LinkedIn">
-        <i class="pi pi-linkedin"></i>
-      </a>
     </div>
   `,
   styles: [`

@@ -13,7 +13,9 @@ export default ({ strapi }) => ({
       ctx.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'inline; filename="CV-Paul-Richez.pdf"',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       });
       ctx.body = stream;
     } catch (error) {
@@ -29,7 +31,9 @@ export default ({ strapi }) => ({
       ctx.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'attachment; filename="CV-Paul-Richez.pdf"',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       });
       ctx.body = stream;
     } catch (error) {
