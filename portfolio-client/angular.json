@@ -37,6 +37,7 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "src/favicon.svg",
+              "src/robots.txt",
               "src/assets/images"
             ],
             "styles": [

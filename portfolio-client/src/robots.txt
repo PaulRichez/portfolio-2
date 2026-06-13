@@ -1,0 +1,6 @@
+# Portfolio de Paul Richez — contenu public, entièrement indexable.
+User-agent: *
+Allow: /
+
+# Résumé complet lisible par IA : https://paulrichez.fr/llms.txt
+Sitemap: https://paulrichez.fr/sitemap.xml
