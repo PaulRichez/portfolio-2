@@ -61,11 +61,32 @@ function readmeMd(me: any, cvUrl: string): string {
   const name = `${me.firstName || ''} ${me.lastName || ''}`.trim();
   const age = ageFrom(me.birthDay);
   const sub = [me.city ? `${me.city}, France` : '', age ? `${age} ans` : ''].filter(Boolean).join(' · ');
+  const expYears = (() => {
+    const ys = (me.experiences || []).map((e: any) => (e.startDate ? new Date(e.startDate).getFullYear() : 0)).filter(Boolean);
+    return ys.length ? new Date().getFullYear() - Math.min(...ys) : null;
+  })();
   return `# 👋 ${name}
 
 **${me.postName || 'Développeur'}**${sub ? ` — ${sub}` : ''}
 
-Bienvenue dans mon portfolio, présenté comme mon outil de travail quotidien : un éditeur de code.
+> Développeur fullstack${expYears ? ` (${expYears} ans)` : ''}, je conçois des applications web du MVP à la production — et j'**intègre l'IA** dans les produits.
+
+**🟢 Disponible pour des missions freelance** — fullstack & intégration IA, en ponctuel. → [${me.email}](mailto:${me.email})
+
+## 💡 Ce que je fais
+
+- **Apps web fullstack** — front + back, du prototype à la production.
+- **Intégration d'IA produit** — assistants conversationnels, chat, jusqu'au LLM **100 % navigateur**.
+- **Open-source** — 5 packages npm & plugins publiés.
+- **De bout en bout** — architecture, API, DevOps, déploiement.
+
+## 🌟 Projet phare
+
+**Aimi** — un assistant IA qui exécute ses modèles **directement dans le navigateur** : zéro serveur, données jamais envoyées. → [voir le projet](/projects/apps/aimi-assistant-ia-100-navigateur)
+
+---
+
+Ce portfolio est présenté comme mon outil de travail quotidien : un **éditeur de code**.
 
 ## 🧭 Comment naviguer
 
@@ -81,6 +102,10 @@ Bienvenue dans mon portfolio, présenté comme mon outil de travail quotidien : 
 | 🚀 **Projets** | dossier \`projects/\` |
 | 💼 **Parcours** | dossier \`experience/\` |
 | ✉️ **Contact** | [${me.email}](mailto:${me.email}) — ou \`contact.md\` |
+
+## ✉️ Me contacter
+
+Une question, un projet ? → **[${me.email}](mailto:${me.email})**
 
 ---
 
