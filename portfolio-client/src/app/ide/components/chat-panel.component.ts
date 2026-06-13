@@ -118,7 +118,9 @@ const INTRO_SUGGESTIONS = [
   `,
   styles: [`
     :host {
-      display: flex; flex-direction: column; width: var(--ide-chat-w, 360px); flex: none;
+      display: flex; flex-direction: column;
+      /* largeur souhaitée, mais plafonnée à 40% du viewport sur écran étroit */
+      width: min(var(--ide-chat-w, 360px), 40vw); flex: none;
       background: var(--ide-sidebar-bg); border-left: 1px solid var(--ide-border);
       color: var(--ide-sidebar-fg); min-height: 0;
     }

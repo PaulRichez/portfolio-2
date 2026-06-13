@@ -24,7 +24,9 @@ import { ThemePickerComponent } from './theme-picker.component';
   `,
   styles: [`
     :host {
-      display: flex; flex-direction: column; width: var(--ide-sidebar-w, 260px); flex: none;
+      display: flex; flex-direction: column;
+      /* largeur souhaitée, mais plafonnée à 33% du viewport sur écran étroit */
+      width: min(var(--ide-sidebar-w, 260px), 33vw); flex: none;
       background: var(--ide-sidebar-bg); border-right: 1px solid var(--ide-border);
       overflow: hidden;
     }

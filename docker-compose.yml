@@ -14,6 +14,12 @@ services:
     networks:
       - portfolio_network
       - coolify   # réseau du proxy Coolify (Traefik) : routage déterministe du front
+    labels:
+      # FIX KO récurrent : le front est sur plusieurs réseaux et coolify-proxy n'est
+      # PAS sur portfolio_network. Sans ce label, Traefik pioche parfois l'IP
+      # portfolio_network (injoignable depuis le proxy) → front KO à chaque recréation
+      # de conteneur. On force Traefik à router via l'IP du réseau `coolify`.
+      - "traefik.docker.network=coolify"
 
   # Strapi Backend (SQLite) — image construite par GitHub Actions (ghcr.io), Coolify la pull.
   strapi:
@@ -54,6 +60,8 @@ services:
     networks:
       - portfolio_network
       - coolify   # réseau Coolify : pour joindre le Postgres (host via env)
+    labels:
+      - "traefik.docker.network=coolify"   # idem front : routage Traefik déterministe via coolify
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:1337/_health" ]
       interval: 30s
