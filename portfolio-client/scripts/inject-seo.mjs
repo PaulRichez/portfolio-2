@@ -30,9 +30,11 @@ try {
 
   // IMPORTANT : un vrai <div> (PAS <noscript>). Les extracteurs HTML→texte des IA
   // suppriment <noscript>/<script>/<style> mais GARDENT le texte d'un <div>.
+  // Visuellement masqué en off-screen (PAS display:none) → zéro flash pour les
+  // visiteurs, zéro place prise, mais contenu DOM bien réel pour les crawlers/IA.
   const block =
-    `<div id="seo-content" style="max-width:820px;margin:24px auto;padding:0 16px;font:14px/1.6 system-ui,-apple-system,sans-serif;color:#1e1e1e">` +
-    `<pre style="white-space:pre-wrap;font-family:inherit">${esc(md)}</pre></div>`;
+    `<div id="seo-content" style="position:absolute;width:1px;height:1px;overflow:hidden;` +
+    `clip:rect(0 0 0 0);clip-path:inset(50%);white-space:pre-wrap">${esc(md)}</div>`;
   // Injecté DANS <app-root> : Angular remplace ce contenu à son démarrage → les
   // visiteurs ne voient qu'un bref écran de chargement, mais les crawlers/IA (sans JS)
   // reçoivent tout le CV en clair.
