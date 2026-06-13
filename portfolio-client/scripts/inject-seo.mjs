@@ -28,11 +28,21 @@ try {
     process.exit(0);
   }
 
+  // IMPORTANT : un vrai <div> (PAS <noscript>). Les extracteurs HTML→texte des IA
+  // suppriment <noscript>/<script>/<style> mais GARDENT le texte d'un <div>.
   const block =
-    `<noscript id="seo-content"><pre style="white-space:pre-wrap;font-family:inherit">${esc(md)}</pre></noscript>`;
-  html = html.includes('</body>')
-    ? html.replace('</body>', block + '\n</body>')
-    : html + block;
+    `<div id="seo-content" style="max-width:820px;margin:24px auto;padding:0 16px;font:14px/1.6 system-ui,-apple-system,sans-serif;color:#1e1e1e">` +
+    `<pre style="white-space:pre-wrap;font-family:inherit">${esc(md)}</pre></div>`;
+  // Injecté DANS <app-root> : Angular remplace ce contenu à son démarrage → les
+  // visiteurs ne voient qu'un bref écran de chargement, mais les crawlers/IA (sans JS)
+  // reçoivent tout le CV en clair.
+  if (html.includes('<app-root></app-root>')) {
+    html = html.replace('<app-root></app-root>', `<app-root>${block}</app-root>`);
+  } else if (html.includes('</body>')) {
+    html = html.replace('</body>', block + '\n</body>');
+  } else {
+    html += block;
+  }
   writeFileSync(INDEX, html);
   console.log(`[inject-seo] contenu injecté (${md.length} caractères)`);
 } catch (e) {
