@@ -53,10 +53,9 @@ export default ({ strapi }) => ({
           { name: "PrimeNG", level: "advanced" },
           { name: "Nebular", level: "intermediate" },
           { name: "ECharts", level: "intermediate" },
-          { name: "LangChain", level: "beginner" },
-          { name: "Zhipu AI", level: "beginner" },
-          { name: "Ollama", level: "intermediate" },
-          { name: "ChromaDB", level: "beginner" }
+          { name: "Transformers.js", level: "intermediate" },
+          { name: "ONNX Runtime", level: "intermediate" },
+          { name: "Zhipu AI", level: "intermediate" }
         ];
 
         const codingSkillsWithIds = [];

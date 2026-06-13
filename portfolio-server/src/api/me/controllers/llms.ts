@@ -27,10 +27,11 @@ export default ({ strapi }) => ({
       const me: any = (await strapi.service('api::me.cv').getCvData()) || {};
       const { files } = await strapi.service('api::me.vfs').getVfs();
 
+      // Pas de tri alphabétique : on garde l'ordre du VFS (expériences anté-chrono,
+      // projets par ranking) — sinon CIM remonterait avant Rewayz.
       const pick = (prefix: string): string[] =>
         files
           .filter((f: any) => f.path.startsWith(prefix))
-          .sort((a: any, b: any) => a.path.localeCompare(b.path))
           .map((f: any) => String(f.content || '').trim());
       const file = (path: string): string =>
         String(files.find((f: any) => f.path === path)?.content || '').trim();

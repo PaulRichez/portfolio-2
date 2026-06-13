@@ -163,6 +163,12 @@ export default ({ strapi }) => ({
           category: "ai",
           icon: "https://cdn.simpleicons.org/huggingface",
           ranking: 1
+        },
+        {
+          name: "ONNX Runtime",
+          category: "ai",
+          icon: "https://cdn.simpleicons.org/onnx",
+          ranking: 2
         }
       ];
 

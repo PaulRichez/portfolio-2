@@ -1,6 +1,6 @@
 /** Modèles du shell IDE (explorer, onglets, thème). */
 
-export type FileLanguage = 'markdown' | 'typescript' | 'json' | 'dotenv' | 'pdf' | 'text';
+export type FileLanguage = 'markdown' | 'typescript' | 'json' | 'dotenv' | 'pdf' | 'demo' | 'text';
 
 export interface VfsNode {
   name: string;

@@ -11,7 +11,7 @@
  */
 const { buildLines, linesToText, bucketSkills, langLabel } = require('./cv-document');
 
-type FileLanguage = 'markdown' | 'typescript' | 'json' | 'dotenv' | 'pdf' | 'text';
+type FileLanguage = 'markdown' | 'typescript' | 'json' | 'dotenv' | 'pdf' | 'demo' | 'text';
 interface VfsFile { path: string; language: FileLanguage; content: string; }
 interface VfsNode { name: string; path: string; type: 'dir' | 'file'; children?: VfsNode[]; }
 
@@ -51,6 +51,7 @@ function languageOf(path: string): FileLanguage {
   if (path.endsWith('.ts')) return 'typescript';
   if (path.endsWith('.json')) return 'json';
   if (path.endsWith('.pdf')) return 'pdf';
+  if (path.endsWith('.demo')) return 'demo'; // landing self-hosted rendue en iframe
   if (path.endsWith('.env') || path.startsWith('.env')) return 'dotenv';
   return 'text';
 }
@@ -217,12 +218,22 @@ export default ({ strapi }: { strapi: any }) => ({
       add(`experience/${slug}.md`, experienceMd(e));
     });
 
+    // Sous-dossiers par type : packages (npm), landings (self-hosted), apps (le reste).
+    const projectCategory = (p: any): string => {
+      if (p.link_npm) return 'packages';
+      if (typeof p.link_demo === 'string' && p.link_demo.includes('//api.paulrichez.fr/')) return 'landings';
+      return 'apps';
+    };
     const usedProj = new Set<string>();
     (projects || []).forEach((p: any) => {
+      const cat = projectCategory(p);
       let slug = slugify(p.title);
-      while (usedProj.has(slug)) slug += '-1';
-      usedProj.add(slug);
-      add(`projects/${slug}.md`, projectMd(p));
+      while (usedProj.has(`${cat}/${slug}`)) slug += '-1';
+      usedProj.add(`${cat}/${slug}`);
+      add(`projects/${cat}/${slug}.md`, projectMd(p));
+      // Landing self-hostée : on ajoute un fichier ".demo" (la vraie URL) rendu en
+      // iframe dans l'éditeur → démo intégrée au site, pas un simple lien externe.
+      if (cat === 'landings' && p.link_demo) add(`projects/${cat}/${slug}-live.demo`, p.link_demo);
     });
 
     const usedEdu = new Set<string>();

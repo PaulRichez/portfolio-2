@@ -37,6 +37,13 @@ import { ROOT_FILE, urlForFile } from '../models';
             </a>
           </div>
           <iframe [src]="pdfSrc" title="CV PDF"></iframe>
+        } @else if (f.language === 'demo') {
+          <div class="pdf-bar">
+            <a class="download" [href]="f.content" target="_blank" rel="noopener">
+              <i class="codicon codicon-link-external"></i> Ouvrir la démo dans un onglet
+            </a>
+          </div>
+          <iframe [src]="demoSrc()" title="Démo intégrée"></iframe>
         } @else if (f.language === 'markdown' && preview()) {
           <div class="ide-markdown">
             <app-markdown-block [markdown]="f.content" />
@@ -120,6 +127,14 @@ export class EditorComponent {
   readonly file = computed(() => {
     const path = this.state.activePath();
     return path ? this.vfs.getFile(path) : null;
+  });
+
+  /** URL sécurisée de la démo (iframe) pour les fichiers .demo — landings self-hostées. */
+  readonly demoSrc = computed<SafeResourceUrl | null>(() => {
+    const f = this.file();
+    return f && f.language === 'demo' && f.content
+      ? this.sanitizer.bypassSecurityTrustResourceUrl(f.content)
+      : null;
   });
 
   readonly breadcrumb = computed(() => this.state.activePath()?.split('/') ?? []);
