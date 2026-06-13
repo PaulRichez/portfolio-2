@@ -142,7 +142,10 @@ export default ({ strapi }) => ({
             title: "Développeur",
             business: "E-Mothep Consultants",
             businessWebsite: "https://e-mothep.fr",
-            descriptions: ["Développement d'interfaces web avec Angular2+"]
+            descriptions: [
+              "Intégration de flux et d'API via webMethods (middleware / ESB).",
+              "Développement de petits SaaS web : front Angular, back Firebase."
+            ]
           },
           {
             startDate: "2019-10-01",
@@ -163,12 +166,9 @@ export default ({ strapi }) => ({
             business: "Elosi",
             businessWebsite: "https://www.elosi.com",
             descriptions: [
-              "Développement d'un site web en AngularJS en front avec quelques notions de back-end en JAVA et Elasticsearch",
-              "Intégration de flux avec Webmethods.",
-              "Création d'API rest avec Webmethods.",
-              "Développement de cockpit avec Angular2+",
-              "Utilisation de Firebase",
-              "Utilisation de nodeJs"
+              "Développement front AngularJS puis Angular2+ (sites web et cockpits).",
+              "Intégration de flux et API REST via webMethods.",
+              "Back-end : notions Java / Elasticsearch, Node.js, Firebase."
             ]
           },
           {
