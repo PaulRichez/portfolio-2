@@ -16,6 +16,11 @@ COPY . .
 # Build Angular app (production)
 RUN npm run build
 
+# Injecte le contenu (llms.txt) dans un <noscript> de l'index → les crawlers/IA
+# qui ne lisent que le HTML initial reçoivent le contenu réel. `|| true` : ne
+# casse JAMAIS le build si l'API est injoignable au moment du build.
+RUN node scripts/inject-seo.mjs || true
+
 # Étape 2 : nginx pour servir l'app
 FROM nginx:alpine
 
