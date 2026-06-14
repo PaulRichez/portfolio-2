@@ -183,12 +183,7 @@ SEO / Open-Graph metadata. Built for a perfect-Lighthouse, static-first delivery
         },
         {
           title: "Lumina — Creative Studio Landing",
-          image: makeCover({
-            title: "Lumina",
-            subtitle: "Creative studio · Next.js + React",
-            c1: "rgb(212,255,79)",
-            c2: "rgb(255,106,61)",
-          }),
+          image: "assets/images/lumina.jpg",
           link_demo: "https://api.paulrichez.fr/lumina/",
           github_link: "https://github.com/PaulRichez/portfolio-landing/tree/main/lumina-next",
           link_npm: null,
