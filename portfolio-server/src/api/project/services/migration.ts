@@ -146,12 +146,7 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
         },
         {
           title: "Aimi — Assistant IA 100% navigateur",
-          image: makeCover({
-            title: "Aimi",
-            subtitle: "LLM dans le navigateur · zéro serveur · Transformers.js",
-            c1: "rgb(139,92,246)",
-            c2: "rgb(16,185,129)",
-          }),
+          image: "assets/images/aimi.jpg",
           link_demo: "https://aimi.paulrichez.fr",
           github_link: null,
           link_npm: null,
