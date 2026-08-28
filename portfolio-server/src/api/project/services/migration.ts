@@ -155,23 +155,6 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
           codings: ["Angular", "TypeScript", "Strapi", "Zhipu AI", "Docker"]
         },
         {
-          title: "Aimi — Assistant IA 100% navigateur",
-          image: "assets/images/aimi.jpg",
-          link_demo: "https://aimi.paulrichez.fr",
-          github_link: null,
-          link_npm: null,
-          description: `### Aimi — assistant IA privacy-first, 100% dans le navigateur
-
-Un assistant IA qui exécute des modèles de langage **directement dans le navigateur** (Transformers.js + ONNX), **sans aucun serveur** : les données ne quittent jamais la machine de l'utilisateur.
-
-- Moteur de chat en **web components vanilla** (zéro dépendance, ~10 kB gzip)
-- Providers LLM interchangeables (Transformers.js, Ollama, Anthropic, Gemini…)
-- **Fine-tuning LoRA** local du modèle (LFM2.5) pour spécialiser l'assistant
-- Monorepo **NX + pnpm**, application de chat **Angular 19**`,
-          ranking: 1,
-          codings: ["Transformers.js", "Angular", "TypeScript"]
-        },
-        {
           title: "Nebula — AI Analytics Landing",
           image: "assets/images/nebula.jpg",
           link_demo: "https://api.paulrichez.fr/nebula/",
@@ -215,6 +198,50 @@ custom \`v-reveal\` scroll directive, a bento feature grid and pricing — respo
 to ultra-wide.`,
           ranking: 7,
           codings: ["Vue.js", "Vite", "Tailwind CSS", "TypeScript"]
+        },
+        {
+          title: "DevKit for Strapi",
+          image: makeCover({ title: "DevKit for Strapi", subtitle: "Extension VS Code + serveur MCP", c1: "rgb(73,69,255)", c2: "rgb(124,92,255)" }),
+          link_demo: "https://devkit-for-strapi.paulrichez.fr",
+          github_link: "https://github.com/PaulRichez/devkit-for-strapi",
+          link_npm: "https://www.npmjs.com/package/devkit-for-strapi-mcp",
+          description: `### DevKit for Strapi — l'éditeur et l'agent IA comprennent enfin Strapi
+
+Strapi repose sur des **magic strings** (\`api::article.article\`, services, policies, composants) qu'aucun outil ne sait vérifier. Là où Copilot **devine**, DevKit **sait** : il lit le vrai \`schema.json\` du projet et n'invente jamais un UID.
+
+- **Extension VS Code** : autocomplétion, diagnostics, go-to-definition, references et rename sur les magic strings
+- **Serveur MCP** pour les agents IA (Cursor, Claude Code, Windsurf)
+- Compatible **Strapi v4 et v5**, publié sur le Marketplace, Open VSX et npm`,
+          ranking: 1,
+          codings: ["TypeScript", "Strapi", "Node.js", "MCP"]
+        },
+        {
+          title: "aparté",
+          image: makeCover({ title: "aparté", subtitle: "Chat IA en Web Components · zéro dépendance", c1: "rgb(217,162,75)", c2: "rgb(176,125,51)" }),
+          link_demo: "https://apartejs.dev",
+          github_link: "https://github.com/apartejs/aparte",
+          link_npm: "https://www.npmjs.com/package/@aparte/core",
+          description: `### aparté — le chat IA en Web Components, sans framework imposé
+
+Une bibliothèque d'interface de chat **framework-agnostic** : on pose un \`<aparte-chat>\` sur n'importe quelle page — React, Vue, Svelte, Angular ou rien du tout — on la branche à n'importe quel LLM via un transport enfichable, et on restyle tout en variables CSS.
+
+- **Zéro dépendance tierce** dans \`@aparte/core\` : markdown, coloration syntaxique et sélecteurs de modèle sont des paquets \`provider-*\` / \`plugin-*\` optionnels
+- Un seul moteur en **Web Components vanilla**, des wrappers fins par framework
+- Publié sur npm en **alpha**, tous les paquets \`@aparte/*\` versionnés ensemble`,
+          ranking: 1,
+          codings: ["TypeScript", "Web Components"]
+        },
+        {
+          title: "monaparté",
+          image: makeCover({ title: "monaparté", subtitle: "LLM 100% navigateur · vitrine d'aparté", c1: "rgb(176,125,51)", c2: "rgb(108,92,231)" }),
+          link_demo: "https://mon.apartejs.dev",
+          github_link: "https://github.com/apartejs/monapartejs",
+          link_npm: null,
+          description: `### monaparté — un assistant dont le modèle tourne dans le navigateur
+
+La **vitrine d'aparté** : un assistant conversationnel dont le modèle de langage s'exécute **entièrement côté navigateur**. Aucun serveur d'inférence — la conversation, les fichiers joints et les documents produits ne quittent jamais l'appareil du visiteur. Le serveur ne fait que livrer des fichiers statiques.`,
+          ranking: 2,
+          codings: ["Angular", "TypeScript", "Transformers.js", "Web Components"]
         }
 
       ];

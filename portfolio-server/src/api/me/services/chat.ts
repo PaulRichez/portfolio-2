@@ -17,7 +17,7 @@ const sessions = new Map<string, { role: string; content: string }[]>();
 
 const TOOLS = [
   { type: 'function', function: { name: 'list_files', description: 'Liste tous les fichiers du portfolio.', parameters: { type: 'object', properties: {} } } },
-  { type: 'function', function: { name: 'read_file', description: "Lit le contenu d'un fichier du portfolio. À faire avant de répondre sur un sujet précis (projet, expérience, compétence).", parameters: { type: 'object', properties: { path: { type: 'string', description: 'ex. projects/aimi.md' } }, required: ['path'] } } },
+  { type: 'function', function: { name: 'read_file', description: "Lit le contenu d'un fichier du portfolio. À faire avant de répondre sur un sujet précis (projet, expérience, compétence).", parameters: { type: 'object', properties: { path: { type: 'string', description: 'ex. projects/packages/devkit-for-strapi.md' } }, required: ['path'] } } },
   { type: 'function', function: { name: 'open_file', description: "Ouvre un fichier dans l'éditeur de code du visiteur pour le lui MONTRER. À utiliser quand tu évoques un projet, ton CV ou une expérience précise.", parameters: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] } } },
 ];
 

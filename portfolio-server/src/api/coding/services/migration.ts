@@ -169,6 +169,18 @@ export default ({ strapi }) => ({
           category: "ai",
           icon: "https://cdn.simpleicons.org/onnx",
           ranking: 2
+        },
+        {
+          name: "Web Components",
+          category: "frontend_libraries",
+          icon: "https://cdn.simpleicons.org/webcomponentsdotorg",
+          ranking: 2
+        },
+        {
+          name: "MCP",
+          category: "ai",
+          icon: "https://cdn.simpleicons.org/modelcontextprotocol",
+          ranking: 1
         }
       ];
 

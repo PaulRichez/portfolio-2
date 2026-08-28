@@ -4,7 +4,7 @@ export type FileLanguage = 'markdown' | 'typescript' | 'json' | 'dotenv' | 'pdf'
 
 export interface VfsNode {
   name: string;
-  path: string;            // chemin complet, ex. "projects/aimi.md"
+  path: string;            // chemin complet, ex. "projects/packages/devkit-for-strapi.md"
   type: 'dir' | 'file';
   children?: VfsNode[];
 }
@@ -25,7 +25,7 @@ export const ROOT_FILE = 'README.md';
  * Indispensable : une URL contenant un point (`.md`) est traitée comme un
  * fichier statique par Vite (dev) et nginx/hôtes (prod) → 404 au refresh.
  *   README.md          → /README
- *   projects/aimi.md   → /projects/aimi
+ *   projects/packages/devkit-for-strapi.md   → /projects/packages/devkit-for-strapi
  *   cv/cv.pdf          → /cv/cv
  *   .env               → /env
  */

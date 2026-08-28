@@ -82,7 +82,7 @@ function readmeMd(me: any, cvUrl: string): string {
 
 ## 🌟 Projet phare
 
-**Aimi** — un assistant IA qui exécute ses modèles **directement dans le navigateur** : zéro serveur, données jamais envoyées. → [voir le projet](/projects/apps/aimi-assistant-ia-100-navigateur)
+**DevKit for Strapi** — l'extension VS Code et le serveur MCP qui donnent à l'éditeur, et aux agents IA, une compréhension exacte d'un projet Strapi. → [voir le projet](/projects/packages/devkit-for-strapi)
 
 ---
 
