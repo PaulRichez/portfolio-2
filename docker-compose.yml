@@ -20,16 +20,6 @@ services:
       # portfolio_network (injoignable depuis le proxy) → front KO à chaque recréation
       # de conteneur. On force Traefik à router via l'IP du réseau `coolify`.
       - "traefik.docker.network=coolify"
-      # Redirect www → apex (301). Le reglage "Direction" de Coolify n'existe PAS
-      # pour les build packs dockercompose : on passe donc par un middleware Traefik.
-      # La regex ne matche que les URLs en `www.`, l'apex traverse sans etre reecrit.
-      # `$$` = `$` litteral une fois passe l'interpolation docker compose.
-      - "traefik.http.middlewares.portfolio-redirect-www.redirectregex.regex=^(http|https)://www\\.(.+)"
-      - "traefik.http.middlewares.portfolio-redirect-www.redirectregex.replacement=$${1}://$${2}"
-      - "traefik.http.middlewares.portfolio-redirect-www.redirectregex.permanent=true"
-      # `coolify.traefik.middlewares` AJOUTE le middleware a la chaine du router,
-      # il ne remplace pas les middlewares generes par Coolify (gzip, redirect-to-https).
-      - "coolify.traefik.middlewares=portfolio-redirect-www"
 
   # Strapi Backend (SQLite) — image construite par GitHub Actions (ghcr.io), Coolify la pull.
   strapi:
