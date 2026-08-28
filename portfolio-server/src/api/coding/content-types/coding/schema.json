@@ -33,11 +33,11 @@
         "other_languages"
       ]
     },
-    "project": {
+    "projects": {
       "type": "relation",
-      "relation": "manyToOne",
+      "relation": "manyToMany",
       "target": "api::project.project",
-      "inversedBy": "codings"
+      "mappedBy": "codings"
     },
     "ranking": {
       "type": "integer"
