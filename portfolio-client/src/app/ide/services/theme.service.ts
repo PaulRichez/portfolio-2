@@ -5,8 +5,7 @@ const STORAGE_KEY = 'ide-theme';
 
 /**
  * Thème de l'IDE : system (défaut) | dark | light.
- * Applique la classe `.app-dark` sur <html> — c'est aussi le darkModeSelector
- * de PrimeNG, donc le chat suit automatiquement.
+ * Applique la classe `.app-dark` sur <html>.
  */
 @Injectable({ providedIn: 'root' })
 export class ThemeService {

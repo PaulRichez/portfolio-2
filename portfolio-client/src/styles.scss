@@ -1,12 +1,11 @@
 /* Styles globaux — shell IDE façon VS Code. */
-@import "primeicons/primeicons.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ------------------------------------------------------------------ */
 /* Tokens de thème — Light+ par défaut, Dark+ via html.app-dark        */
-/* (ThemeService applique .app-dark ; PrimeNG suit le même sélecteur)  */
+/* (ThemeService applique .app-dark)                                    */
 /* ------------------------------------------------------------------ */
 :root {
   --ide-font: 'Segoe UI', system-ui, -apple-system, sans-serif;

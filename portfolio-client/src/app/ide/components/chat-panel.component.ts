@@ -215,7 +215,6 @@ export class ChatPanelComponent {
 
   readonly messages = toSignal(this.chat.messages$, { initialValue: [] });
   readonly loading = toSignal(this.chat.loading$, { initialValue: false });
-  readonly status = toSignal(this.chat.status$, { initialValue: '' });
   private readonly liveSuggestions = toSignal(this.chat.suggestions$, { initialValue: [] as string[] });
 
   /** Ids des chips d'outils dépliés (pour voir le contenu lu). */

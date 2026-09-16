@@ -37,7 +37,6 @@ import { IdeStateService } from '../services/ide-state.service';
     .item:hover { color: var(--ide-activitybar-active); }
     .item.active { color: var(--ide-activitybar-active); border-left-color: var(--ide-activitybar-active); }
     .codicon { font-size: 24px; }
-    .pi { font-size: 20px; }
   `],
 })
 export class ActivityBarComponent {
