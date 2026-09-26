@@ -9,9 +9,6 @@ import {
 } from '@aparte/core';
 import { fr } from '@aparte/locale-fr';
 import { setupStreamingMarkdownProvider } from '@aparte/plugin-streaming-markdown';
-import {
-  default_renderer as smdRenderer, parser as smdParser, parser_end as smdEnd, parser_write as smdWrite,
-} from 'streaming-markdown';
 import { ChatbotService } from '../../services/chatbot.service';
 import { IdeStateService } from '../services/ide-state.service';
 import { VfsService } from '../services/vfs.service';
@@ -28,19 +25,6 @@ const INTRO_SUGGESTIONS = [
 /* Réglages globaux d'aparté, exécutés une fois au chargement (différé) de ce panneau. */
 aparteGlobalConfig.setLocale({ ...fr, roleNameAssistant: 'Paul' });
 setupStreamingMarkdownProvider();
-/*
- * Rendu markdown « one-shot » avec le même parseur que le flux. Le plugin ne rend que
- * les messages en cours de flux : sans lui, l'historique restauré s'afficherait en
- * markdown brut (aparté 0.17.1).
- */
-aparteGlobalConfig.setMarkdownProvider((raw) => {
-  const target = document.createElement('div');
-  const parser = smdParser(smdRenderer(target));
-  smdWrite(parser, raw);
-  smdEnd(parser);
-  return target.innerHTML;
-});
-
 /* La ligne d'outil par défaut affiche le fichier lu après le nom : `read_file skills.json`. */
 aparteGlobalConfig.registerToolSummary('read_file', (segment) => String(segment.toolCall.input?.['path'] ?? ''));
 
