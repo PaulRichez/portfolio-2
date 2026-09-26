@@ -29,9 +29,9 @@ const INTRO_SUGGESTIONS = [
 aparteGlobalConfig.setLocale({ ...fr, roleNameAssistant: 'Paul' });
 setupStreamingMarkdownProvider();
 /*
- * Rendu markdown « one-shot » avec le même parseur que le flux. Il sert à l'historique
- * restauré, et contourne un bug d'aparté 0.17 : sans rendu one-shot, la fin d'un tour
- * piloté par updateMessage() re-rend le texte en brut et efface le markdown streamé.
+ * Rendu markdown « one-shot » avec le même parseur que le flux. Le plugin ne rend que
+ * les messages en cours de flux : sans lui, l'historique restauré s'afficherait en
+ * markdown brut (aparté 0.17.1).
  */
 aparteGlobalConfig.setMarkdownProvider((raw) => {
   const target = document.createElement('div');
@@ -40,6 +40,9 @@ aparteGlobalConfig.setMarkdownProvider((raw) => {
   smdEnd(parser);
   return target.innerHTML;
 });
+
+/* La ligne d'outil par défaut affiche le fichier lu après le nom : `read_file skills.json`. */
+aparteGlobalConfig.registerToolSummary('read_file', (segment) => String(segment.toolCall.input?.['path'] ?? ''));
 
 /** Rouvre un fichier depuis la puce `open_file` : branché par le panneau actif. */
 let reopenFile: ((path: string) => void) | null = null;
@@ -102,13 +105,15 @@ function loadAparteStyles(): Promise<void> {
       id="ide-chat"
       [messages]="restored()"
       placeholder="Posez une question à Paul…"
-      (messagesChange)="messageCount.set($event.length)"
       (messageSent)="onSend($event)">
       <div slot="empty-state" class="intro">
         <img class="hero" src="assets/images/profile.jpg" alt="Paul" />
         <p>Salut 👋 Je suis l'assistant de <strong>Paul</strong>. Pose-moi tes questions sur son parcours, ses projets ou ses compétences.</p>
       </div>
-      <aparte-suggestions slot="above-composer" target="ide-chat" [suggestions]="chipsJson()"></aparte-suggestions>
+      <!-- accueil : visible tant que la conversation est vide (restaurée ou nouvelle comprise) -->
+      <aparte-suggestions slot="above-composer" target="ide-chat" empty-only [suggestions]="introJson"></aparte-suggestions>
+      <!-- relances proposées par le serveur après une réponse ; masqué tant qu'il n'y en a pas -->
+      <aparte-suggestions slot="above-composer" target="ide-chat" [suggestions]="liveJson()"></aparte-suggestions>
     </aparte-chat>
   `,
   styles: [`
@@ -153,13 +158,10 @@ export class ChatPanelComponent {
   readonly stylesReady = signal(false);
   /** Historique restauré au chargement ; remis à [] pour une nouvelle conversation. */
   readonly restored = signal<AparteMessage[]>([]);
-  readonly messageCount = signal(0);
   private readonly live = signal<string[]>([]);
 
-  /** Relances du serveur si présentes, sinon suggestions d'accueil sur une conversation vide. */
-  readonly chipsJson = computed(() => JSON.stringify(
-    this.live().length ? this.live() : (this.messageCount() === 0 ? INTRO_SUGGESTIONS : []),
-  ));
+  readonly introJson = JSON.stringify(INTRO_SUGGESTIONS);
+  readonly liveJson = computed(() => JSON.stringify(this.live()));
 
   private turn: AbortController | null = null;
 
@@ -173,7 +175,6 @@ export class ChatPanelComponent {
     this.turn?.abort();
     this.api.newSession();
     this.live.set([]);
-    this.messageCount.set(0);
     this.restored.set([]);
   }
 
@@ -262,8 +263,6 @@ export class ChatPanelComponent {
   private async restore(): Promise<void> {
     const history = await this.api.history();
     if (!history.length) return;
-    // [messages] ne déclenche pas (messagesChange) : on compte nous-mêmes pour masquer l'accueil
-    this.messageCount.set(history.length);
     this.restored.set(history.map((m) => ({
       id: uuid(), role: m.role, content: m.content, timestamp: Date.now(), status: 'completed',
     })));
