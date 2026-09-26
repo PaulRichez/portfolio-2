@@ -41,7 +41,12 @@ import { ROOT_FILE, urlForFile } from './models';
       @if (state.chatVisible()) {
         <ide-resize-handle [width]="state.chatWidth()" [min]="300" [max]="620"
                            side="left" (widthChange)="state.setChatWidth($event)" />
-        <ide-chat-panel [style.--ide-chat-w.px]="state.chatWidth()" />
+        <!-- chargé après le premier rendu de l'IDE : aparté pèse plus que le reste du bundle -->
+        @defer (on idle) {
+          <ide-chat-panel [style.--ide-chat-w.px]="state.chatWidth()" />
+        } @placeholder {
+          <div class="chat-placeholder" [style.--ide-chat-w.px]="state.chatWidth()"></div>
+        }
       }
     </div>
     <ide-status-bar />
@@ -57,6 +62,11 @@ import { ROOT_FILE, urlForFile } from './models';
     }
     .main { display: flex; flex: 1; min-height: 0; position: relative; }
     .editor-zone { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+    .chat-placeholder {
+      width: min(var(--ide-chat-w, 360px), 40vw); flex: none;
+      background: var(--ide-sidebar-bg); border-left: 1px solid var(--ide-border);
+    }
+    @media (max-width: 768px) { .chat-placeholder { display: none; } }
   `],
 })
 export class IdeShellComponent {

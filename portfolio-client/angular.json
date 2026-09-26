@@ -42,11 +42,19 @@
             ],
             "styles": [
               "src/styles.scss",
-              "node_modules/@vscode/codicons/dist/codicon.css"
+              "node_modules/@vscode/codicons/dist/codicon.css",
+              {
+                "input": "node_modules/@aparte/core/dist/index.css",
+                "bundleName": "aparte",
+                "inject": false
+              },
+              {
+                "input": "src/styles/aparte-theme.scss",
+                "bundleName": "aparte",
+                "inject": false
+              }
             ],
-            "scripts": [
-
-            ]
+            "scripts": []
           },
           "configurations": {
             "production": {

@@ -22,7 +22,10 @@ export class ThemeService {
   constructor() {
     this.media?.addEventListener('change', (e) => this.systemDark.set(e.matches));
     effect(() => {
-      document.documentElement.classList.toggle('app-dark', this.isDark());
+      const root = document.documentElement;
+      root.classList.toggle('app-dark', this.isDark());
+      // le chat aparté suit l'IDE, pas le thème du système
+      root.dataset['aparteTheme'] = this.isDark() ? 'dark' : 'light';
     });
   }
 

@@ -1,0 +1,67 @@
+/*
+ * Thème aparté aux couleurs de l'IDE.
+ * Émis avec la feuille d'aparté dans le bundle `aparte` (angular.json), après elle,
+ * et chargé seulement avec le panneau de chat.
+ *
+ * Les jetons pointent vers les variables --ide-* : elles basculent déjà sous
+ * html.app-dark, donc le chat suit le thème de l'IDE sans code. ThemeService pose
+ * aussi data-aparte-theme sur <html> pour qu'aparté ne suive pas le thème du système.
+ * Le sélecteur (0,2,1) passe devant les blocs clair/sombre d'aparté (0,2,0 au plus).
+ */
+html:root[data-aparte-theme] {
+  --aparte-font-family: var(--ide-font);
+  --aparte-code-font-family: var(--ide-mono);
+
+  --aparte-primary: var(--ide-accent);
+  --aparte-primary-hover: color-mix(in srgb, var(--ide-accent) 85%, #000);
+  --aparte-neutral: var(--ide-editor-muted);
+  --aparte-bg: var(--ide-sidebar-bg);
+  --aparte-surface-1: var(--ide-editor-bg);
+  --aparte-surface-2: var(--ide-hover);
+  --aparte-text: var(--ide-sidebar-fg);
+  --aparte-text-muted: var(--ide-editor-muted);
+  --aparte-border: var(--ide-border);
+
+  --aparte-message-content-bg-user: var(--ide-selection);
+  --aparte-message-content-bg-assistant: transparent;
+  --aparte-code-bg: var(--ide-hover);
+
+  /* densité et angles d'un panneau VS Code */
+  --aparte-radius-unit: 2px;
+  --aparte-message-content-radius: 4px;
+  --aparte-font-scale: 0.92;
+}
+
+/*
+ * Jetons de composant : aparté les redéclare sur <aparte-chat>, et sur chaque
+ * .aparte-message dans sa container query « étroite » (le panneau fait 360px).
+ * On les surcharge donc au même niveau, un cran plus spécifique.
+ */
+ide-chat-panel aparte-chat {
+  --aparte-content-font-size: 13px;
+  --aparte-content-line-height: 1.55;
+  --aparte-viewport-padding: 12px;
+}
+ide-chat-panel .aparte-message {
+  --aparte-message-padding-inline: 0;
+  --aparte-message-padding-block: 6px;
+}
+
+/* Relances : même marge que la conversation, retour à la ligne sans débordement. */
+ide-chat-panel aparte-suggestions {
+  padding: 0 12px 8px;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Puce de l'outil open_file (renderer du panneau de chat) : rouvre le fichier. */
+.ide-open-file {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  font-family: var(--ide-mono); font-size: 11.5px; line-height: 1.4;
+  padding: 4px 9px; border-radius: 5px; cursor: pointer;
+  background: var(--ide-hover); border: 1px solid var(--ide-border); color: var(--ide-link);
+  word-break: break-all; text-align: left;
+
+  &:hover { border-color: var(--ide-accent); }
+  .codicon { font-size: 13px; }
+}
