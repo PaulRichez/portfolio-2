@@ -148,11 +148,11 @@ It’s lightweight, reusable, and integrates seamlessly with Angular templates.`
           title: "Portfolio V2",
           image: "assets/images/portfolio-v2.png",
           link_demo: "https://paulrichez.fr",
-          description: "Ce portfolio, repensé comme un **éditeur de code façon VS Code** : explorateur de fichiers, onglets, thèmes clair/sombre, et un **assistant IA agentique** qui lit mes fichiers en direct via des *tool calls* (`read_file`, `open_file`) pour répondre et ouvrir les projets dans l'éditeur. Contenus générés depuis Strapi (système de fichiers virtuel), CV PDF généré à la volée.",
+          description: "Ce portfolio, repensé comme un **éditeur de code façon VS Code** : explorateur de fichiers, onglets, thèmes clair/sombre, et un **assistant IA agentique** construit sur **aparté**. Sa boucle d'agent tourne côté serveur, dans Strapi : il lit mes fichiers en direct via des *tool calls* (`read_file`) pour répondre, et ouvre les projets dans l'éditeur (`open_file`). Contenus générés depuis Strapi (système de fichiers virtuel), CV PDF généré à la volée.",
           github_link: "https://github.com/PaulRichez/portfolio-2",
           link_npm: null,
           ranking: 1,
-          codings: ["Angular", "TypeScript", "Strapi", "Zhipu AI", "Docker"]
+          codings: ["Angular", "TypeScript", "Strapi", "Web Components", "Zhipu AI", "Docker"]
         },
         {
           title: "Nebula — AI Analytics Landing",
@@ -207,11 +207,13 @@ to ultra-wide.`,
           link_npm: "https://www.npmjs.com/package/devkit-for-strapi-mcp",
           description: `### DevKit for Strapi — l'éditeur et l'agent IA comprennent enfin Strapi
 
-Strapi repose sur des **magic strings** (\`api::article.article\`, services, policies, composants) qu'aucun outil ne sait vérifier. Là où Copilot **devine**, DevKit **sait** : il lit le vrai \`schema.json\` du projet et n'invente jamais un UID.
+Strapi repose sur des **magic strings** (\`api::article.article\`, services, policies, routes, composants) qu'aucun outil ne sait vérifier. Là où Copilot **devine**, DevKit **sait** : il lit le vrai \`schema.json\` et le code du projet, sans démarrer Strapi, et n'invente jamais un UID.
 
-- **Extension VS Code** : autocomplétion, diagnostics, go-to-definition, references et rename sur les magic strings
-- **Serveur MCP** pour les agents IA (Cursor, Claude Code, Windsurf)
-- Compatible **Strapi v4 et v5**, publié sur le Marketplace, Open VSX et npm`,
+- **Extension VS Code**, aussi pour Cursor et Windsurf : autocomplétion, diagnostics avec correctifs, go-to-definition, références et rename propagé sur les magic strings
+- **Un panneau dédié** : santé du projet, routes avec le parcours exact d'une requête, modèle de données, plugins installés et Config Sync
+- **Serveur MCP** pour les agents IA (Claude Code, Cursor, Copilot) : 35 outils pour lire le projet, mesurer l'impact d'un changement et refactorer
+- **Version Pro** : refactors présentés en plan relu avant d'être appliqués (rename, déplacement, extraction en plugin, relations), diagramme des relations, Config Sync piloté par le Strapi du projet
+- Compatible **Strapi v4 et v5**, plusieurs projets par workspace ; publié sur le Marketplace VS Code, Open VSX et npm`,
           ranking: 1,
           codings: ["TypeScript", "Strapi", "Node.js", "MCP"]
         },
@@ -223,11 +225,13 @@ Strapi repose sur des **magic strings** (\`api::article.article\`, services, pol
           link_npm: "https://www.npmjs.com/package/@aparte/core",
           description: `### aparté — le chat IA en Web Components, sans framework imposé
 
-Une bibliothèque d'interface de chat **framework-agnostic** : on pose un \`<aparte-chat>\` sur n'importe quelle page — React, Vue, Svelte, Angular ou rien du tout — on la branche à n'importe quel LLM via un transport enfichable, et on restyle tout en variables CSS.
+Une bibliothèque d'interface de chat **framework-agnostic** : on pose un \`<aparte-chat>\` sur n'importe quelle page — React, Vue, Svelte, Angular ou rien du tout — on la branche à n'importe quel LLM, et on restyle tout en variables CSS.
 
-- **Zéro dépendance tierce** dans \`@aparte/core\` : markdown, coloration syntaxique et sélecteurs de modèle sont des paquets \`provider-*\` / \`plugin-*\` optionnels
-- Un seul moteur en **Web Components vanilla**, des wrappers fins par framework
-- Publié sur npm en **alpha**, tous les paquets \`@aparte/*\` versionnés ensemble`,
+- **Zéro dépendance tierce** dans \`@aparte/core\` : markdown, coloration syntaxique et sélecteur de modèle sont des plugins optionnels
+- **La boucle d'agent où on veut** : dans la page, ou sur son serveur à côté de ses outils, avec une validation humaine des appels d'outils qui traverse le réseau
+- **N'importe quel modèle** : famille OpenAI-compatible, Vercel AI SDK (plus de 25 fournisseurs), agents AG-UI dont TanStack AI, ou un LLM 100 % navigateur via Transformers.js
+- **26 paquets \`@aparte/*\`** en **bêta** sur npm, tous versionnés ensemble, avec une surface d'API gelée depuis la 0.17
+- **En production sur ce portfolio** : l'assistant à droite est un chat aparté, boucle d'agent côté serveur`,
           ranking: 1,
           codings: ["TypeScript", "Web Components"]
         },
@@ -239,9 +243,13 @@ Une bibliothèque d'interface de chat **framework-agnostic** : on pose un \`<apa
           link_npm: null,
           description: `### monaparté — un assistant dont le modèle tourne dans le navigateur
 
-La **vitrine d'aparté** : un assistant conversationnel dont le modèle de langage s'exécute **entièrement côté navigateur**. Aucun serveur d'inférence — la conversation, les fichiers joints et les documents produits ne quittent jamais l'appareil du visiteur. Le serveur ne fait que livrer des fichiers statiques.`,
+La **vitrine d'aparté** : un assistant conversationnel dont le modèle de langage s'exécute **entièrement dans le navigateur**, en WebGPU avec WebAssembly en secours. Aucun serveur d'inférence — la conversation, les fichiers joints et les documents produits ne quittent jamais l'appareil du visiteur. Le serveur ne fait que livrer des fichiers statiques.
+
+- **Un seul modèle**, de la famille LFM2 de Liquid AI, spécialisé à la volée par quatre adaptateurs LoRA, les « souffleurs », et complété par un encodeur d'images chargé à la demande : environ 1,1 Go au premier lancement, puis gardé en cache
+- **De vrais outils** : lecture des fichiers joints, images comprises, génération de documents xlsx, docx et pdf, calcul exact en bac à sable, artefacts (graphique, code, HTML, SVG) et rappels locaux
+- **Construit sur aparté** et Angular, conversations gardées dans le navigateur`,
           ranking: 2,
-          codings: ["Angular", "TypeScript", "Transformers.js", "Web Components"]
+          codings: ["Angular", "TypeScript", "Transformers.js", "ONNX Runtime", "Web Components"]
         }
 
       ];

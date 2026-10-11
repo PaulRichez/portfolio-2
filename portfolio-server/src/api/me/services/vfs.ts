@@ -77,7 +77,7 @@ function readmeMd(me: any, cvUrl: string): string {
 
 - **Apps web fullstack** — front + back, du prototype à la production.
 - **Intégration d'IA produit** — assistants conversationnels, chat, jusqu'au LLM **100 % navigateur**.
-- **Open-source** — 5 packages npm & plugins publiés.
+- **Open-source** — plus de 40 packages npm publiés, dont la suite **aparté** et **DevKit for Strapi**.
 - **De bout en bout** — architecture, API, DevOps, déploiement.
 
 ## 🌟 Projet phare
