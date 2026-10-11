@@ -17,6 +17,8 @@
     "upgrade:dry": "npx @strapi/upgrade latest --dry"
   },
   "dependencies": {
+    "@aparte/core": "^0.19.1",
+    "@aparte/provider-openai-compat": "^0.19.1",
     "@react-pdf/renderer": "^4.0.0",
     "@strapi/plugin-cloud": "5.54.0",
     "@strapi/plugin-users-permissions": "5.54.0",

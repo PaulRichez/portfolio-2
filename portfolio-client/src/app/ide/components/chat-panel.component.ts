@@ -1,20 +1,19 @@
 import {
-  ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, inject, signal, viewChild,
+  ChangeDetectionStrategy, Component, HostListener, computed, inject, signal, viewChild,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { AparteChatComponent, AparteSuggestionsDirective, aparteGlobalConfig } from '@aparte/angular';
 import {
-  AparteError, AparteErrorCode, uuid,
-  type AparteMessage, type AparteSendEventDetail,
+  AparteClient, AparteConversationManager, createAgentStreamRunner, contentToText,
+  type AparteConversation, type AparteMessage, type AparteStorageAdapter,
 } from '@aparte/core';
 import { fr } from '@aparte/locale-fr';
 import { setupStreamingMarkdownProvider } from '@aparte/plugin-streaming-markdown';
+import { environment } from '../../../environments/environment';
 import { ChatbotService } from '../../services/chatbot.service';
 import { IdeStateService } from '../services/ide-state.service';
 import { VfsService } from '../services/vfs.service';
 import { urlForFile } from '../models';
-
-const CHAT_ID = 'ide-chat';
 
 const INTRO_SUGGESTIONS = [
   'Quels sont tes projets ?',
@@ -22,15 +21,38 @@ const INTRO_SUGGESTIONS = [
   'Quelles technos maîtrises-tu ?',
 ];
 
+/** Conversation affichée, retrouvée au rechargement. */
+const ACTIVE_KEY = 'ide-chat-conversation';
+const STORE_KEY = 'ide-chat-conversations';
+const MAX_STORED = 5;
+
 /* Réglages globaux d'aparté, exécutés une fois au chargement (différé) de ce panneau. */
 aparteGlobalConfig.setLocale({ ...fr, roleNameAssistant: 'Paul' });
 setupStreamingMarkdownProvider();
 /* La ligne d'outil par défaut affiche le fichier lu après le nom : `read_file skills.json`. */
 aparteGlobalConfig.registerToolSummary('read_file', (segment) => String(segment.toolCall.input?.['path'] ?? ''));
 
-/** Rouvre un fichier depuis la puce `open_file` : branché par le panneau actif. */
-let reopenFile: ((path: string) => void) | null = null;
+/** Ouvre un fichier dans l'éditeur : branché par le panneau actif. */
+let openInEditor: ((path: string) => boolean) | null = null;
 
+/*
+ * open_file est un outil du NAVIGATEUR : la boucle tourne sur Strapi, qui suspend le tour
+ * sur cet appel ; la page l'exécute ici, puis le serveur reprend le même tour.
+ */
+aparteGlobalConfig.registerTool({
+  name: 'open_file',
+  description: "Ouvre un fichier dans l'éditeur de code du visiteur pour le lui MONTRER. À utiliser quand tu évoques un projet, ton CV ou une expérience précise.",
+  inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+}, async (call) => {
+  const path = String(call.input?.['path'] ?? '');
+  const opened = openInEditor?.(path) ?? false;
+  return {
+    toolCallId: call.id,
+    content: opened ? `Fichier ${path} ouvert dans l'éditeur du visiteur.` : `Fichier introuvable: ${path}`,
+  };
+});
+
+/* Sa ligne dans le chat : une puce qui rouvre le fichier. */
 aparteGlobalConfig.registerToolRenderer('open_file', {
   render: (segment) => {
     const path = String(segment.toolCall.input?.['path'] ?? '');
@@ -41,10 +63,38 @@ aparteGlobalConfig.registerToolRenderer('open_file', {
     const icon = document.createElement('i');
     icon.className = 'codicon codicon-go-to-file';
     button.append(icon, document.createTextNode(path));
-    button.addEventListener('click', () => reopenFile?.(path));
+    button.addEventListener('click', () => openInEditor?.(path));
     return button;
   },
 });
+
+/** Conversations gardées dans le navigateur : les plus récentes seulement. */
+class LocalConversations implements AparteStorageAdapter {
+  async loadAll(): Promise<AparteConversation[]> {
+    return this.read().sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+  async save(conv: AparteConversation): Promise<void> {
+    this.write([...this.read().filter((c) => c.id !== conv.id), conv]);
+  }
+  async delete(id: string): Promise<void> {
+    this.write(this.read().filter((c) => c.id !== id));
+  }
+  private read(): AparteConversation[] {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) ?? '[]'); } catch { return []; }
+  }
+  private write(all: AparteConversation[]): void {
+    const kept = all.sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_STORED);
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(kept)); } catch { /* quota, navigation privée */ }
+  }
+}
+
+const conversations = new AparteConversationManager(new LocalConversations(), { retention: { maxMessages: 60 } });
+const conversationsReady = conversations.init().then(() => aparteGlobalConfig.setConversationManager(conversations));
+
+/* La boucle d'agent tourne sur Strapi (createAparteAgentHandler) : le client relaie et dessine. */
+new AparteClient({
+  streamRunner: createAgentStreamRunner({ endpoint: `${environment.apiUrl}/chat/agent` }),
+}).start();
 
 /** Feuille d'aparté + thème IDE, émises à part par le build (angular.json, bundle `aparte`). */
 function loadAparteStyles(): Promise<void> {
@@ -61,10 +111,19 @@ function loadAparteStyles(): Promise<void> {
   return ready;
 }
 
+/** Texte affiché d'un message : son contenu, ou ses segments de texte. */
+function textOf(message: AparteMessage | undefined): string {
+  if (!message) return '';
+  const fromSegments = (message.segments ?? [])
+    .map((s) => (s.type === 'text' ? s.content : ''))
+    .join('');
+  return fromSegments || contentToText(message.content ?? '');
+}
+
 /**
  * Panneau de chat docké à droite (secondary sidebar) façon VS Code Copilot.
- * Rendu par aparté en mode « display-only » : la boucle d'agent tourne sur Strapi,
- * ce composant traduit ses événements SSE en messages et segments aparté.
+ * Tout le chat est aparté : la boucle d'agent tourne sur Strapi, la page relaie,
+ * dessine, exécute `open_file` et garde les conversations.
  */
 @Component({
   selector: 'ide-chat-panel',
@@ -87,9 +146,9 @@ function loadAparteStyles(): Promise<void> {
 
     <aparte-chat
       id="ide-chat"
-      [messages]="restored()"
-      placeholder="Posez une question à Paul…"
-      (messageSent)="onSend($event)">
+      [conversationId]="conversationId()"
+      (conversationCreated)="onConversationCreated($event)"
+      placeholder="Posez une question à Paul…">
       <div slot="empty-state" class="intro">
         <img class="hero" src="assets/images/profile.jpg" alt="Paul" />
         <p>Salut 👋 Je suis l'assistant de <strong>Paul</strong>. Pose-moi tes questions sur son parcours, ses projets ou ses compétences.</p>
@@ -137,101 +196,62 @@ export class ChatPanelComponent {
   private readonly router = inject(Router);
 
   private readonly chat = viewChild.required(AparteChatComponent);
-  private readonly chatHost = viewChild.required(AparteChatComponent, { read: ElementRef });
 
   readonly stylesReady = signal(false);
-  /** Historique restauré au chargement ; remis à [] pour une nouvelle conversation. */
-  readonly restored = signal<AparteMessage[]>([]);
+  /** Conversation chargée dans le chat ; null = nouvelle conversation, créée au premier envoi. */
+  readonly conversationId = signal<string | null>(null);
   private readonly live = signal<string[]>([]);
 
   readonly introJson = JSON.stringify(INTRO_SUGGESTIONS);
   readonly liveJson = computed(() => JSON.stringify(this.live()));
 
-  private turn: AbortController | null = null;
+  /** Tour en cours : seules ses relances sont affichées. */
+  private turnId: string | null = null;
 
   constructor() {
-    reopenFile = (path) => this.openFile(path);
+    openInEditor = (path) => {
+      if (!this.vfs.exists(path)) return false;
+      void this.router.navigateByUrl(urlForFile(path));
+      return true;
+    };
     void loadAparteStyles().then(() => this.stylesReady.set(true));
-    void this.restore();
+    void conversationsReady.then(() => {
+      const saved = readActive();
+      if (saved && conversations.conversations.some((c) => c.id === saved)) this.conversationId.set(saved);
+    });
   }
 
   newSession(): void {
-    this.turn?.abort();
-    this.api.newSession();
     this.live.set([]);
-    this.restored.set([]);
+    this.conversationId.set(null);
+    writeActive(null);
   }
 
-  async onSend(event: AparteSendEventDetail): Promise<void> {
-    const chat = this.chat();
-    const id = uuid();
-    const turn = new AbortController();
-    this.turn = turn;
-    this.live.set([]);
-
-    this.lifecycle('aparte-message-start', { targetId: CHAT_ID, messageId: id, role: 'assistant' });
-    chat.appendMessage({ id, role: 'assistant', timestamp: Date.now(), status: 'streaming', segments: [] });
-    let textId = uuid();
-    chat.addSegment({ id: textId, type: 'text', content: '' });
-    const toolSegments = new Map<string, string>();
-
-    try {
-      for await (const ev of this.api.stream(event.content, turn.signal)) {
-        switch (ev.type) {
-          case 'chunk':
-            if (ev.content) chat.appendToSegment(textId, ev.content);
-            break;
-          case 'tool_call': {
-            const segmentId = `tool-${ev.id || uuid()}`;
-            toolSegments.set(ev.id, segmentId);
-            chat.addSegment({
-              id: segmentId, type: 'tool_call', status: 'pending',
-              toolCall: { id: segmentId, name: ev.name, input: ev.args ?? {} },
-            });
-            // le texte qui suit l'outil s'affiche APRÈS lui : nouveau segment texte
-            textId = uuid();
-            chat.addSegment({ id: textId, type: 'text', content: '' });
-            break;
-          }
-          case 'tool_result': {
-            const segmentId = toolSegments.get(ev.id);
-            if (segmentId) chat.updateSegment(segmentId, { status: 'resolved', result: ev.result });
-            break;
-          }
-          case 'open_file':
-            this.openFile(ev.path);
-            break;
-          case 'suggestions':
-            this.live.set(ev.content ?? []);
-            break;
-          case 'error':
-            throw new Error(ev.message);
-        }
-      }
-      chat.updateMessage(id, { status: 'completed' });
-      this.lifecycle('aparte-message-done', { targetId: CHAT_ID, messageId: id, role: 'assistant' });
-    } catch (err) {
-      if (turn.signal.aborted) {
-        chat.updateMessage(id, { status: 'completed' });
-        this.lifecycle('aparte-message-aborted', { targetId: CHAT_ID });
-      } else {
-        const message = (err as Error)?.message || 'Erreur de connexion au chat.';
-        chat.addSegment({ id: uuid(), type: 'error', content: message });
-        chat.updateMessage(id, { status: 'error' });
-        this.lifecycle('aparte-message-error', {
-          targetId: CHAT_ID, messageId: id, error: new AparteError(message, AparteErrorCode.NET_ERROR),
-        });
-      }
-    } finally {
-      if (this.turn === turn) this.turn = null;
-    }
+  onConversationCreated(id: string): void {
+    this.conversationId.set(id);
+    writeActive(id);
   }
 
-  /** Bouton Stop du composer : commande globale, filtrée sur ce chat. */
-  @HostListener('window:aparte-abort', ['$event'])
-  onAbort(event: CustomEvent<{ targetId?: string }>): void {
-    if (event.detail?.targetId && event.detail.targetId !== CHAT_ID) return;
-    this.turn?.abort();
+  @HostListener('aparte-message-start', ['$event'])
+  onTurnStart(event: CustomEvent<{ messageId?: string; role?: string }>): void {
+    if (event.detail?.role !== 'assistant') return;
+    this.turnId = event.detail.messageId ?? null;
+    this.live.set([]);
+  }
+
+  /** Fin d'un tour : on demande des relances à partir de la question et de la réponse. */
+  @HostListener('aparte-message-done', ['$event'])
+  onTurnDone(event: CustomEvent<{ messageId?: string; role?: string }>): void {
+    if (event.detail?.role !== 'assistant') return;
+    const messageId = event.detail.messageId ?? null;
+    const messages = this.chat().getMessages();
+    const index = messages.findIndex((m) => m.id === messageId);
+    const answer = textOf(messages[index]);
+    const question = textOf(messages.slice(0, Math.max(index, 0)).reverse().find((m) => m.role === 'user'));
+    if (!question || !answer) return;
+    void this.api.suggestions(question, answer).then((s) => {
+      if (this.turnId === messageId) this.live.set(s);
+    });
   }
 
   /** Liens internes des réponses (ex. /projects/...) : navigation SPA, sans rechargement. */
@@ -243,23 +263,14 @@ export class ChatPanelComponent {
     event.preventDefault();
     void this.router.navigateByUrl(href);
   }
+}
 
-  private async restore(): Promise<void> {
-    const history = await this.api.history();
-    if (!history.length) return;
-    this.restored.set(history.map((m) => ({
-      id: uuid(), role: m.role, content: m.content, timestamp: Date.now(), status: 'completed',
-    })));
-  }
+function readActive(): string | null {
+  try { return localStorage.getItem(ACTIVE_KEY); } catch { return null; }
+}
 
-  private openFile(path: string): void {
-    if (this.vfs.exists(path)) void this.router.navigateByUrl(urlForFile(path));
-  }
-
-  /** Événements de cycle de vie qu'AparteClient émettrait : le composer bascule Envoyer/Stop dessus. */
-  private lifecycle(name: string, detail: object): void {
-    (this.chatHost().nativeElement as HTMLElement).dispatchEvent(
-      new CustomEvent(name, { bubbles: true, composed: true, detail }),
-    );
-  }
+function writeActive(id: string | null): void {
+  try {
+    if (id) localStorage.setItem(ACTIVE_KEY, id); else localStorage.removeItem(ACTIVE_KEY);
+  } catch { /* navigation privée */ }
 }
