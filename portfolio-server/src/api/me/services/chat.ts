@@ -4,10 +4,10 @@
  * Service de chat — la boucle d'agent d'aparté tourne ici, à côté de ses outils.
  *
  * `createAparteAgentHandler` (@aparte/core) appelle Zhipu GLM via le provider
- * OpenAI-compatible, exécute `read_file` sur le VFS du portfolio et suspend le tour
- * sur `open_file`, un outil du navigateur qui ouvre le fichier dans l'éditeur du
- * visiteur. Le serveur ne garde aucun état : le navigateur renvoie l'historique à
- * chaque tour, et `prepareRequest` impose ici le prompt, le modèle et les limites.
+ * OpenAI-compatible et exécute ses deux outils sur le VFS du portfolio : `read_file`,
+ * et `open_file`, dont la page tire l'ouverture du fichier dans l'éditeur du visiteur.
+ * Le serveur ne garde aucun état : le navigateur renvoie l'historique à chaque tour,
+ * et `prepareRequest` impose ici le prompt, le modèle et les limites.
  */
 import { createHash } from 'node:crypto';
 
@@ -103,9 +103,25 @@ export default ({ strapi }: { strapi: any }) => {
       secret: agentSecret(),
       maxTurns: 6,
       toolTimeoutMs: 15_000,
-      // Seul outil du navigateur accepté : ouvrir un fichier dans l'éditeur du visiteur.
-      clientTools: ['open_file'],
+      // Aucun outil déclaré par le navigateur : tous les outils vivent ici.
+      clientTools: false,
       tools: [{
+        tool: {
+          name: 'open_file',
+          description: "Ouvre un fichier dans l'éditeur de code du visiteur pour le lui MONTRER. À utiliser quand tu évoques un projet, ton CV ou une expérience précise.",
+          inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+        },
+        // Pur effet d'interface : la page ouvre le fichier en voyant passer l'appel
+        // (chat-panel.component.ts), le serveur se contente de confirmer.
+        handler: async (call: any) => {
+          const path = String(call.input?.path ?? '');
+          const exists = (await vfsFiles()).some((f) => f.path === path);
+          return {
+            toolCallId: call.id,
+            content: exists ? `Fichier ${path} ouvert dans l'éditeur du visiteur.` : `Fichier introuvable: ${path}`,
+          };
+        },
+      }, {
         tool: {
           name: 'read_file',
           description: "Lit le contenu d'un fichier du portfolio. À faire avant de répondre sur un sujet précis (projet, expérience, compétence).",

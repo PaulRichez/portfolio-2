@@ -35,24 +35,7 @@ aparteGlobalConfig.registerToolSummary('read_file', (segment) => String(segment.
 /** Ouvre un fichier dans l'éditeur : branché par le panneau actif. */
 let openInEditor: ((path: string) => boolean) | null = null;
 
-/*
- * open_file est un outil du NAVIGATEUR : la boucle tourne sur Strapi, qui suspend le tour
- * sur cet appel ; la page l'exécute ici, puis le serveur reprend le même tour.
- */
-aparteGlobalConfig.registerTool({
-  name: 'open_file',
-  description: "Ouvre un fichier dans l'éditeur de code du visiteur pour le lui MONTRER. À utiliser quand tu évoques un projet, ton CV ou une expérience précise.",
-  inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
-}, async (call) => {
-  const path = String(call.input?.['path'] ?? '');
-  const opened = openInEditor?.(path) ?? false;
-  return {
-    toolCallId: call.id,
-    content: opened ? `Fichier ${path} ouvert dans l'éditeur du visiteur.` : `Fichier introuvable: ${path}`,
-  };
-});
-
-/* Sa ligne dans le chat : une puce qui rouvre le fichier. */
+/* Ligne de l'outil open_file dans le chat : une puce qui rouvre le fichier. */
 aparteGlobalConfig.registerToolRenderer('open_file', {
   render: (segment) => {
     const path = String(segment.toolCall.input?.['path'] ?? '');
@@ -91,9 +74,23 @@ class LocalConversations implements AparteStorageAdapter {
 const conversations = new AparteConversationManager(new LocalConversations(), { retention: { maxMessages: 60 } });
 const conversationsReady = conversations.init().then(() => aparteGlobalConfig.setConversationManager(conversations));
 
-/* La boucle d'agent tourne sur Strapi (createAparteAgentHandler) : le client relaie et dessine. */
+/*
+ * La boucle d'agent tourne sur Strapi (createAparteAgentHandler) : le client relaie et dessine.
+ * open_file y est un outil serveur qui confirme seulement ; la page ouvre le fichier en voyant
+ * passer l'appel dans les événements du tour. Un tour en direct seulement : une conversation
+ * rechargée ne rejoue pas ces événements, donc ne rouvre rien.
+ */
+const agentRunner = createAgentStreamRunner({ endpoint: `${environment.apiUrl}/chat/agent` });
 new AparteClient({
-  streamRunner: createAgentStreamRunner({ endpoint: `${environment.apiUrl}/chat/agent` }),
+  streamRunner: (opts) => agentRunner({
+    ...opts,
+    emitter: (event) => {
+      if (event.type === 'tool-start' && event.name === 'open_file') {
+        openInEditor?.(String((event.input as { path?: unknown } | undefined)?.path ?? ''));
+      }
+      opts.emitter(event);
+    },
+  }),
 }).start();
 
 /** Feuille d'aparté + thème IDE, émises à part par le build (angular.json, bundle `aparte`). */
@@ -123,7 +120,7 @@ function textOf(message: AparteMessage | undefined): string {
 /**
  * Panneau de chat docké à droite (secondary sidebar) façon VS Code Copilot.
  * Tout le chat est aparté : la boucle d'agent tourne sur Strapi, la page relaie,
- * dessine, exécute `open_file` et garde les conversations.
+ * dessine, ouvre les fichiers que l'assistant montre et garde les conversations.
  */
 @Component({
   selector: 'ide-chat-panel',
