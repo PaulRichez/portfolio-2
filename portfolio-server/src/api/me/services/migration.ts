@@ -181,6 +181,30 @@ export default ({ strapi }) => ({
           }
         ],
 
+        // Open source : section `openSource` du CV (PDF et cv/paul-richez.ts), même forme que les expériences.
+        openSource: [
+          {
+            name: "aparté",
+            website: "https://apartejs.dev",
+            tagline: "v1.1 stable · 39 paquets npm",
+            descriptions: [
+              "Bibliothèque de chat IA en Web Components, sans framework imposé : React, Vue, Svelte, Angular ou HTML seul, branchée à n'importe quel LLM.",
+              "Noyau sans dépendance, boucle d'agent dans la page ou côté serveur, validation humaine des appels d'outils.",
+              "En production sur paulrichez.fr."
+            ]
+          },
+          {
+            name: "DevKit for Strapi",
+            website: "https://devkit-for-strapi.paulrichez.fr",
+            tagline: "VS Code + serveur MCP",
+            descriptions: [
+              "Extension VS Code (Cursor, Windsurf) et serveur MCP qui lisent un projet Strapi sans le démarrer.",
+              "Autocomplétion, diagnostics et rename des UID ; 35 outils MCP pour les agents IA (Claude Code, Cursor, Copilot).",
+              "Strapi v4 et v5, publiée sur le Marketplace VS Code, Open VSX et npm."
+            ]
+          }
+        ],
+
         // Coding skills with proper IDs
         coding_skills: codingSkills
       };

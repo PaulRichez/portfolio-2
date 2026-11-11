@@ -37,6 +37,7 @@ export default ({ strapi }) => ({
         languages: true,
         diplomas: true,
         experiences: true,
+        openSource: true,
         coding_skills: { populate: { coding: true } },
       },
     });

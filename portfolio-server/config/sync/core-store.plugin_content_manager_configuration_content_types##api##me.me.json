@@ -173,20 +173,6 @@
           "sortable": false
         }
       },
-      "knowledges": {
-        "edit": {
-          "label": "knowledges",
-          "description": "",
-          "placeholder": "",
-          "visible": true,
-          "editable": true
-        },
-        "list": {
-          "label": "knowledges",
-          "searchable": false,
-          "sortable": false
-        }
-      },
       "experiences": {
         "edit": {
           "label": "experiences",
@@ -272,14 +258,64 @@
           "searchable": true,
           "sortable": true
         }
+      },
+      "photo": {
+        "edit": {
+          "label": "photo",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "photo",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "openSource": {
+        "edit": {
+          "label": "openSource",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "openSource",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "coding_skills": {
+        "edit": {
+          "label": "coding_skills",
+          "description": "",
+          "placeholder": "",
+          "visible": true,
+          "editable": true
+        },
+        "list": {
+          "label": "coding_skills",
+          "searchable": false,
+          "sortable": false
+        }
+      },
+      "documentId": {
+        "edit": {},
+        "list": {
+          "label": "documentId",
+          "searchable": true,
+          "sortable": true
+        }
       }
     },
     "layouts": {
       "list": [
         "id",
-        "createdAt",
-        "updatedAt",
-        "lastName"
+        "lastName",
+        "firstName",
+        "photo"
       ],
       "edit": [
         [
@@ -294,39 +330,45 @@
         ],
         [
           {
-            "name": "city",
+            "name": "photo",
             "size": 6
           },
+          {
+            "name": "city",
+            "size": 6
+          }
+        ],
+        [
           {
             "name": "birthDay",
             "size": 4
-          }
-        ],
-        [
+          },
           {
             "name": "phoneNumber",
             "size": 6
-          },
+          }
+        ],
+        [
           {
             "name": "email",
             "size": 6
-          }
-        ],
-        [
+          },
           {
             "name": "postName",
             "size": 6
-          },
-          {
-            "name": "linkedin",
-            "size": 6
           }
         ],
         [
           {
-            "name": "github",
+            "name": "linkedin",
             "size": 6
           },
+          {
+            "name": "github",
+            "size": 6
+          }
+        ],
+        [
           {
             "name": "website",
             "size": 6
@@ -340,12 +382,6 @@
         ],
         [
           {
-            "name": "knowledges",
-            "size": 12
-          }
-        ],
-        [
-          {
             "name": "experiences",
             "size": 12
           }
@@ -353,6 +389,18 @@
         [
           {
             "name": "diplomas",
+            "size": 12
+          }
+        ],
+        [
+          {
+            "name": "coding_skills",
+            "size": 12
+          }
+        ],
+        [
+          {
+            "name": "openSource",
             "size": 12
           }
         ]

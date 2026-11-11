@@ -1,0 +1,24 @@
+{
+  "collectionName": "components_me_open_sources",
+  "info": {
+    "displayName": "open-source",
+    "icon": "code"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "website": {
+      "type": "string"
+    },
+    "tagline": {
+      "type": "string"
+    },
+    "descriptions": {
+      "type": "json"
+    }
+  },
+  "config": {}
+}

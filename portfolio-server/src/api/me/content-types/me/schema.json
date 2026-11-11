@@ -60,6 +60,11 @@
       "component": "me.experiences",
       "repeatable": true
     },
+    "openSource": {
+      "type": "component",
+      "component": "me.open-source",
+      "repeatable": true
+    },
     "diplomas": {
       "type": "component",
       "component": "me.diplomas",

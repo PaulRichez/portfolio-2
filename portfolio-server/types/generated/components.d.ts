@@ -57,6 +57,20 @@ export interface MeLanguages extends Struct.ComponentSchema {
   };
 }
 
+export interface MeOpenSource extends Struct.ComponentSchema {
+  collectionName: 'components_me_open_sources';
+  info: {
+    displayName: 'open-source';
+    icon: 'code';
+  };
+  attributes: {
+    descriptions: Schema.Attribute.JSON;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    tagline: Schema.Attribute.String;
+    website: Schema.Attribute.String;
+  };
+}
+
 declare module '@strapi/strapi' {
   export namespace Public {
     export interface ComponentSchemas {
@@ -64,6 +78,7 @@ declare module '@strapi/strapi' {
       'me.diplomas': MeDiplomas;
       'me.experiences': MeExperiences;
       'me.languages': MeLanguages;
+      'me.open-source': MeOpenSource;
     }
   }
 }

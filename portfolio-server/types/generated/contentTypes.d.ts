@@ -515,6 +515,7 @@ export interface ApiMeMe extends Struct.SingleTypeSchema {
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::me.me'> &
       Schema.Attribute.Private;
+    openSource: Schema.Attribute.Component<'me.open-source', true>;
     phoneNumber: Schema.Attribute.String;
     photo: Schema.Attribute.Media<'images'>;
     postName: Schema.Attribute.String;

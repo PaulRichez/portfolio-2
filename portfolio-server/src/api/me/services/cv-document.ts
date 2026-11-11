@@ -84,7 +84,7 @@ const S = StyleSheet.create({
   },
   tsIcon: { width: 13, height: 13, borderRadius: 2, backgroundColor: '#3178c6', alignItems: 'center', justifyContent: 'center', marginRight: 6 },
   tsIconTxt: { color: '#ffffff', fontSize: 6, fontFamily: UIFONT, fontWeight: 700 },
-  tabTxt: { color: '#d4d4d4', fontSize: 8, fontFamily: UIFONT },
+  tabTxt: { color: '#333333', fontSize: 8, fontFamily: UIFONT },
   tabTxtInactive: { color: '#6e7681', fontSize: 8, fontFamily: UIFONT },
   tabClose: { color: UI.muted, fontSize: 9, marginLeft: 10 },
 
@@ -182,6 +182,8 @@ export function buildLines(me: any): CodeLine[] {
   push(0, sp(` * ${name} · ${role}`, 'com'));
   const sub = [me.city, age ? `${age} ans` : null].filter(Boolean).join(' · ');
   if (sub) push(0, sp(` * ${sub}`, 'com'));
+  const oss = (me.openSource || []).filter((o: any) => o?.name);
+  if (oss.length) push(0, sp(` * Open source : ${oss.map((o: any) => o.name).join(', ')}`, 'com'));
   if (me.website) push(0, sp(` * @see ${strip(me.website)}`, 'com'));
   push(0, sp(' */', 'com'));
   blank();
@@ -203,6 +205,21 @@ export function buildLines(me: any): CodeLine[] {
   if (me.website) kv(2, 'website', lnk(strip(me.website), httpify(me.website)));
   push(1, sp('},'));
   blank();
+
+  /* open source — comme l'expérience : commentaire (nom · site · accroche) + descriptions jointes */
+  if (oss.length) {
+    push(1, sp('openSource', 'key'), sp(': '), sp('['));
+    oss.forEach((o: any) => {
+      const head: Span[] = [sp(`// ${o.name}`, 'com')];
+      if (o.website) head.push(sp(' · ', 'com'), { t: strip(o.website), c: 'com', href: httpify(o.website) });
+      if (o.tagline) head.push(sp(` · ${o.tagline}`, 'com'));
+      push(2, ...head);
+      const desc = joinDesc(o);
+      if (desc) push(2, str(desc), sp(','));
+    });
+    push(1, sp('],'));
+    blank();
+  }
 
   /* experience — 2 lignes par poste : commentaire + descriptions jointes */
   const exps = (me.experiences || []).filter(Boolean);
