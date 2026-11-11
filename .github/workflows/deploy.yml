@@ -65,9 +65,12 @@ jobs:
           fi
           # Masque la query (uuid) mais montre le host appelé
           echo "Appel : $(echo "$COOLIFY_WEBHOOK" | sed 's/?.*$/?***/')"
-          code=$(curl -sS -o /tmp/resp -w "%{http_code}" -X GET "$COOLIFY_WEBHOOK" -H "Authorization: Bearer $COOLIFY_TOKEN" || echo "000")
+          # POST : depuis Coolify 4.2, un GET sur /api/v1/deploy répond 405.
+          code=$(curl -sS -o /tmp/resp -w "%{http_code}" -X POST "$COOLIFY_WEBHOOK" -H "Authorization: Bearer $COOLIFY_TOKEN" || echo "000")
           echo "HTTP $code"
           echo "Réponse Coolify :"; cat /tmp/resp 2>/dev/null | head -c 800; echo
+          # Rouge si Coolify refuse : un run vert doit vouloir dire « déployé ».
           if [ "$code" != "200" ] && [ "$code" != "201" ]; then
-            echo "::warning::Coolify a répondu $code (≠ 2xx) — le déploiement ne s'est pas déclenché."
+            echo "::error::Coolify a répondu $code (≠ 2xx) — le déploiement ne s'est pas déclenché."
+            exit 1
           fi
