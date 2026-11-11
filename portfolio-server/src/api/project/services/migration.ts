@@ -219,7 +219,7 @@ Strapi repose sur des **magic strings** (\`api::article.article\`, services, pol
         },
         {
           title: "aparté",
-          image: makeCover({ title: "aparté", subtitle: "Chat IA en Web Components · zéro dépendance", c1: "rgb(217,162,75)", c2: "rgb(176,125,51)" }),
+          image: "assets/images/aparte.jpg",
           link_demo: "https://apartejs.dev",
           github_link: "https://github.com/apartejs/aparte",
           link_npm: "https://www.npmjs.com/package/@aparte/core",
@@ -230,7 +230,8 @@ Une bibliothèque d'interface de chat **framework-agnostic** : on pose un \`<apa
 - **Zéro dépendance tierce** dans \`@aparte/core\` : markdown, coloration syntaxique et sélecteur de modèle sont des plugins optionnels
 - **La boucle d'agent où on veut** : dans la page, ou sur son serveur à côté de ses outils, avec une validation humaine des appels d'outils qui traverse le réseau
 - **N'importe quel modèle** : famille OpenAI-compatible, Vercel AI SDK (plus de 25 fournisseurs), agents AG-UI dont TanStack AI, ou un LLM 100 % navigateur via Transformers.js
-- **26 paquets \`@aparte/*\`** en **bêta** sur npm, tous versionnés ensemble, avec une surface d'API gelée depuis la 0.17
+- **Une interface générative** : sources citées dans les réponses, et en plugins optionnels cartes interactives, graphiques, formules, diagrammes et artefacts
+- **Stable depuis la 1.0** : 39 paquets \`@aparte/*\` sur npm ; éléments, attributs, événements, exports et jetons CSS gardent leur nom et leur comportement jusqu'à la 2.0
 - **En production sur ce portfolio** : l'assistant à droite est un chat aparté, boucle d'agent côté serveur`,
           ranking: 1,
           codings: ["TypeScript", "Web Components"]
