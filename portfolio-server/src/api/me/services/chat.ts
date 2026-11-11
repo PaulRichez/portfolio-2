@@ -16,6 +16,14 @@ const ZHIPU_BASE = process.env.ZHIPU_BASE_URL || 'https://open.bigmodel.cn/api/p
 
 const PROVIDER_ID = 'zai';
 
+/** Pages autorisées à appeler le chat : CORS du contrôleur et garde `allowedOrigins` d'aparté. */
+export const CHAT_ORIGINS = [
+  'http://localhost:4200',
+  'http://localhost:4201',
+  'http://localhost:3000',
+  'https://paulrichez.fr',
+];
+
 const MAX_HISTORY = 24;           // messages renvoyés au modèle, en partant d'un message visiteur
 const MAX_USER_CHARS = 1000;      // cap anti-injection / coût sur chaque message visiteur
 const MAX_TOOL_CHARS = 4000;      // cap d'un résultat d'outil relu dans l'historique
@@ -100,6 +108,9 @@ export default ({ strapi }: { strapi: any }) => {
       resolveKey: () => process.env.ZHIPU_API_KEY,
       // Endpoint public par nature : le contrôleur limite déjà le débit par IP.
       authorize: () => true,
+      // Une page d'un autre site (formulaire compris, sans preflight) est refusée en 403
+      // avant tout appel au modèle ; sans Origin (curl, serveur), la requête passe.
+      allowedOrigins: CHAT_ORIGINS,
       secret: agentSecret(),
       maxTurns: 6,
       toolTimeoutMs: 15_000,

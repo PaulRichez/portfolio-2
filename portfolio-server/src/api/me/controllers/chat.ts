@@ -6,12 +6,7 @@
  *   Pont Koa → Fetch : on construit une `Request`, on recopie la `Response` dans la socket.
  * - POST /chat/suggestions : questions de relance, demandées par le front après un tour.
  */
-const ALLOWED_ORIGINS = [
-  'http://localhost:4200',
-  'http://localhost:4201',
-  'http://localhost:3000',
-  'https://paulrichez.fr',
-];
+import { CHAT_ORIGINS } from '../services/chat';
 
 // Rate-limit par IP en mémoire (anti-spam des endpoints LLM publics).
 const RATE_MAX = 20;          // requêtes
@@ -41,14 +36,18 @@ export default ({ strapi }) => ({
     ctx.res.on('close', () => closed.abort());
 
     const origin = ctx.request.header.origin;
-    const cors = ALLOWED_ORIGINS.includes(origin) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {};
+    const cors = CHAT_ORIGINS.includes(origin) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {};
 
     let response: Response;
     try {
       const handler = await strapi.service('api::me.chat').handler();
       response = await handler(new Request(`http://localhost${ctx.url}`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        // Les vrais en-têtes, pour les gardes d'aparté : 415 hors JSON, 403 hors CHAT_ORIGINS.
+        headers: {
+          'content-type': String(ctx.request.header['content-type'] ?? ''),
+          ...(origin ? { origin } : {}),
+        },
         body: JSON.stringify(ctx.request.body ?? {}),
         signal: closed.signal,
       }));

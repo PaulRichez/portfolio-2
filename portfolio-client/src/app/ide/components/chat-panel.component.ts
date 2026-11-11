@@ -7,7 +7,7 @@ import {
   AparteClient, AparteConversationManager, createAgentStreamRunner, contentToText,
   type AparteConversation, type AparteMessage, type AparteStorageAdapter,
 } from '@aparte/core';
-import { fr } from '@aparte/locale-fr';
+import { fr } from '@aparte/locales/fr';
 import { setupStreamingMarkdownProvider } from '@aparte/plugin-streaming-markdown';
 import { environment } from '../../../environments/environment';
 import { ChatbotService } from '../../services/chatbot.service';
@@ -29,6 +29,10 @@ const MAX_STORED = 5;
 /* Réglages globaux d'aparté, exécutés une fois au chargement (différé) de ce panneau. */
 aparteGlobalConfig.setLocale({ ...fr, roleNameAssistant: 'Paul' });
 setupStreamingMarkdownProvider();
+/* Une image écrite par le modèle attend un clic, sauf celles du site : les visuels des projets du VFS. */
+aparteGlobalConfig.setImagePolicy(['self']);
+/* Bouton « Copier » sous les messages : plus actif par défaut depuis aparté 0.27.1. */
+aparteGlobalConfig.setBubbleActions({ copy: true });
 /* La ligne d'outil par défaut affiche le fichier lu après le nom : `read_file skills.json`. */
 aparteGlobalConfig.registerToolSummary('read_file', (segment) => String(segment.toolCall.input?.['path'] ?? ''));
 
